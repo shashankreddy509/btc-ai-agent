@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BTC AI Agent</title>
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+
+<header>
+  <h1>₿ BTC AI Agent</h1>
+  <span class="badge">BTCUSDT.P · Binance Perp</span>
+  <span class="badge">Dashboard</span>
+  <div class="tz-selector">
+    <label for="tz-select">🕐</label>
+    <select id="tz-select" title="Timezone">
+      <option value="Asia/Kolkata">IST (UTC+5:30)</option>
+      <option value="UTC">UTC</option>
+      <option value="America/New_York">New York (ET)</option>
+      <option value="America/Chicago">Chicago (CT)</option>
+      <option value="America/Los_Angeles">Los Angeles (PT)</option>
+      <option value="Europe/London">London (GMT/BST)</option>
+      <option value="Europe/Berlin">Frankfurt (CET)</option>
+      <option value="Asia/Singapore">Singapore (SGT)</option>
+      <option value="Asia/Tokyo">Tokyo (JST)</option>
+      <option value="Asia/Dubai">Dubai (GST)</option>
+    </select>
+  </div>
+  <span class="btc-price" id="btc-price">Loading…</span>
+</header>
+
+<main>
+
+  <!-- Morning Briefing Card -->
+  <div class="card">
+    <div class="card-header">
+      <h2>Morning Briefing</h2>
+      <div style="display:flex;align-items:center;gap:12px;">
+        <span class="meta">
+          <span class="status-dot dot-ok" id="brief-dot"></span>
+          Last: <span id="brief-ts">—</span>
+        </span>
+        <button class="btn" id="brief-btn">Trigger Briefing Now</button>
+      </div>
+    </div>
+    <pre id="briefing-text" style="color:var(--muted)">Loading briefing…</pre>
+  </div>
+
+  <!-- Pattern Scanner Card -->
+  <div class="card">
+    <div class="card-header">
+      <h2>Pattern Scanner</h2>
+      <div style="display:flex;align-items:center;gap:12px;">
+        <span class="meta">
+          <span class="status-dot dot-ok" id="scan-dot"></span>
+          Last: <span id="scan-ts">—</span>
+        </span>
+        <button class="btn" id="scan-btn">Trigger Scan Now</button>
+      </div>
+    </div>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Timeframe</th>
+          <th>Pattern</th>
+          <th style="text-align:right">Bars Ago</th>
+          <th id="th-baropen">Bar Open</th>
+          <th style="text-align:right">Open Price</th>
+          <th>DEPO Line</th>
+        </tr>
+      </thead>
+      <tbody id="scan-body">
+        <tr class="empty-row">
+          <td colspan="6">Loading…</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+</main>
+
+<script src="/static/main.js"></script>
+</body>
+</html>
