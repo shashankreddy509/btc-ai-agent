@@ -82,9 +82,9 @@ def detect_morning_star(bars: np.ndarray) -> bool:
     if c2 <= o2:
         return False
 
-    # Candle 2 must close above the midpoint of candle 0's body
+    # Candle 2 must close above _STAR_PENETRATION into candle 0's body
     # Candle 0 is bearish: body top = o0, body bottom = c0
-    midpoint = (o0 + c0) / 2
+    midpoint = c0 + (o0 - c0) * _STAR_PENETRATION
     return c2 >= midpoint
 
 
@@ -119,9 +119,9 @@ def detect_evening_star(bars: np.ndarray) -> bool:
     if c2 >= o2:
         return False
 
-    # Candle 2 must close below the midpoint of candle 0's body
+    # Candle 2 must close below _STAR_PENETRATION into candle 0's body
     # Candle 0 is bullish: body bottom = o0, body top = c0
-    midpoint = (o0 + c0) / 2
+    midpoint = c0 - (c0 - o0) * _STAR_PENETRATION
     return c2 <= midpoint
 
 

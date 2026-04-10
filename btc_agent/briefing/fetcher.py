@@ -5,11 +5,15 @@ No API keys required.
 import time
 from datetime import datetime, timezone
 
+import socket
+
 import feedparser
 import praw
 from rich.console import Console
 
 console = Console()
+
+socket.setdefaulttimeout(10)  # prevent any RSS feed from blocking indefinitely
 
 RSS_FEEDS = {
     "Reuters (Business)": "https://feeds.reuters.com/reuters/businessNews",

@@ -46,7 +46,7 @@ def summarize(data: dict) -> str:
     prompt = _PROMPT_TEMPLATE.format(news_block=news_block)
 
     message = client.messages.create(
-        model="claude-sonnet-4-6",
+        model=config.ANTHROPIC_MODEL,
         max_tokens=1024,
         messages=[{"role": "user", "content": prompt}],
     )

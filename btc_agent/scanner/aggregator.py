@@ -13,15 +13,21 @@ def aggregate_tf(
     """
     Aggregate 1m OHLCV into TF bars that match TradingView exactly.
 
-    TradingView resets the bar grid at midnight UTC every day, so a 177m bar
-    that would straddle midnight is dropped — each day gets floor(1440/tf)
-    complete bars starting from 00:00 UTC.
+    TradingView resets the bar grid at midnight UTC (19:00 CDT) every day.
+    Each day gets floor(1440/tf) full-length bars starting at 00:00 UTC.
+    When 1440 % tf != 0, a partial "stub" bar covers the remaining minutes
+    of that day and is treated as a closed bar (just like TradingView shows
+    it as a real candle before the session reset).
 
     Strategy (all vectorised, no Python loops except the final last_n slice):
-      1. Mark "waste" candles (tail of each day that doesn't fill a complete bar)
-      2. Build a global bar index per candle: day × bars_per_day + bar_in_day
-      3. Find bar boundaries with np.diff → identify complete bars (exactly tf candles)
-      4. Extract + aggregate the last last_n complete bars
+      1. Assign each candle a bar-in-day slot; stub candles (tail of each day
+         that don't fill a complete bar) get slot bars_per_day.
+      2. Build a global bar index per candle using (bars_per_day + 1) slots/day
+         so stub-bar-D never collides with bar0-day-(D+1).
+      3. Find bar boundaries with np.diff → identify complete bars.
+         A bar is "complete" if it has exactly tf_minutes candles (full bar)
+         OR if it is a stub bar (always closed at the day boundary).
+      4. Extract + aggregate the last last_n complete bars.
 
     Args:
         arr_1m         : shape (N, 5)  OHLCV, oldest-first
@@ -35,36 +41,36 @@ def aggregate_tf(
         (ohlcv, bar_open_times) — shape (last_n, 5) and (last_n,) Unix-seconds
         or (None, None) if not enough data.
     """
-    bars_per_day = 1440 // tf_minutes          # complete bars that fit in one day
+    bars_per_day = 1440 // tf_minutes          # full bars that fit in one day
     if bars_per_day == 0:
         return None, None
 
-    max_minute = bars_per_day * tf_minutes     # candles from here to 1439 are waste
+    max_minute = bars_per_day * tf_minutes     # stub candles start here
 
-    # ── 1. Filter out waste candles ───────────────────────────────────────────
-    valid = minutes_of_day < max_minute
-    arr_v   = arr_1m[valid]
-    ts_v    = ts_1m[valid]
-    mod_v   = minutes_of_day[valid]
-    days_v  = unix_days[valid]
+    # ── 1. Assign bar-in-day; stub candles get slot bars_per_day ─────────────
+    bar_in_day = np.where(
+        minutes_of_day < max_minute,
+        minutes_of_day // tf_minutes,
+        bars_per_day,                          # stub bar slot
+    )
 
-    if len(arr_v) < tf_minutes * last_n:
-        return None, None
-
-    # ── 2. Global bar index (monotonically non-decreasing) ────────────────────
-    bar_in_day_v  = mod_v // tf_minutes
-    global_bar_v  = days_v * bars_per_day + bar_in_day_v
+    # ── 2. Global bar index — (bars_per_day + 1) slots/day keeps stub-day-D
+    #       distinct from bar0-day-(D+1). ──────────────────────────────────────
+    global_bar = unix_days * (bars_per_day + 1) + bar_in_day
 
     # ── 3. Find bar boundaries and sizes ─────────────────────────────────────
-    diffs      = np.diff(global_bar_v, prepend=global_bar_v[0] - 1)
-    boundaries = np.where(diffs != 0)[0]          # start index of each bar in arr_v
+    diffs      = np.diff(global_bar, prepend=global_bar[0] - 1)
+    boundaries = np.where(diffs != 0)[0]          # start index of each bar
     bar_ends   = np.empty(len(boundaries), dtype=np.int64)
     bar_ends[:-1] = boundaries[1:]
-    bar_ends[-1]  = len(arr_v)
+    bar_ends[-1]  = len(arr_1m)
     bar_sizes  = bar_ends - boundaries            # candle count per bar
 
-    # ── 4. Keep only complete bars ────────────────────────────────────────────
-    complete_mask = bar_sizes == tf_minutes
+    # ── 4. Keep complete bars (full-length OR stub at day boundary) ───────────
+    bar_in_day_at_start = bar_in_day[boundaries]
+    is_stub       = bar_in_day_at_start == bars_per_day
+    is_full       = bar_sizes == tf_minutes
+    complete_mask = is_full | is_stub
     n_complete    = int(complete_mask.sum())
 
     if n_complete < last_n:
@@ -80,13 +86,13 @@ def aggregate_tf(
     for i, pos in enumerate(complete_positions):
         s = int(boundaries[pos])
         e = int(bar_ends[pos])
-        b = arr_v[s:e]                   # shape (tf_minutes, 5)
+        b = arr_1m[s:e]
         ohlcv[i, 0] = b[0,  0]          # open  (first 1m)
         ohlcv[i, 1] = b[:, 1].max()     # high
         ohlcv[i, 2] = b[:, 2].min()     # low
         ohlcv[i, 3] = b[-1, 3]          # close (last 1m)
         ohlcv[i, 4] = b[:, 4].sum()     # volume
-        bar_ts[i]   = ts_v[s]           # bar open time (Unix seconds)
+        bar_ts[i]   = ts_1m[s]          # bar open time (Unix seconds)
 
     return ohlcv, bar_ts
 

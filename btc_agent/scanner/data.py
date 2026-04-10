@@ -37,6 +37,18 @@ def _get_exchange() -> tuple:
     raise RuntimeError("No accessible exchange found for BTCUSDT perpetual. Check your network.")
 
 
+def _fetch_ohlcv(exchange, symbol: str, since: int | None = None, limit: int = 1000, max_retries: int = 3) -> list:
+    """Fetch OHLCV with exponential backoff on rate limit errors."""
+    for attempt in range(max_retries):
+        try:
+            return exchange.fetch_ohlcv(symbol, "1m", since=since, limit=limit)
+        except ccxt.RateLimitExceeded:
+            wait = 2 ** (attempt + 1)
+            console.print(f"[yellow]Rate limit hit, waiting {wait}s… (attempt {attempt + 1}/{max_retries})[/yellow]")
+            time.sleep(wait)
+    raise RuntimeError(f"Rate limit exceeded after {max_retries} retries")
+
+
 def fetch_1m_candles(limit: int = 21600) -> pd.DataFrame:
     """
     Fetch the latest `limit` 1-minute OHLCV candles for BTCUSDT perpetual (BTCUSDT.P).
@@ -50,7 +62,7 @@ def fetch_1m_candles(limit: int = 21600) -> pd.DataFrame:
     console.print(f"[cyan]Fetching {limit} x 1m candles for {symbol} (perpetual, {limit//1440} days)...[/cyan]")
 
     # First page: no since → gets the most recent candles
-    page = exchange.fetch_ohlcv(symbol, "1m", limit=min(1000, remaining))
+    page = _fetch_ohlcv(exchange, symbol, limit=min(1000, remaining))
     if not page:
         raise RuntimeError(f"No candles returned from {exchange.id}")
 
@@ -61,7 +73,7 @@ def fetch_1m_candles(limit: int = 21600) -> pd.DataFrame:
     while remaining > 0 and len(page) > 0:
         oldest_ts = page[0][0]
         since = oldest_ts - (min(1000, remaining) * 60 * 1000)
-        page = exchange.fetch_ohlcv(symbol, "1m", since=since, limit=min(1000, remaining))
+        page = _fetch_ohlcv(exchange, symbol, since=since, limit=min(1000, remaining))
         all_candles = page + all_candles
         remaining -= len(page)
         time.sleep(exchange.rateLimit / 1000)

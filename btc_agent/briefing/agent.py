@@ -11,17 +11,26 @@ def run_briefing() -> str:
     """
     Main briefing entry point.
     Fetches news, summarizes via Claude, delivers, and persists.
+    Falls back to the last cached briefing if all feeds are unreachable.
     Returns the briefing text.
     """
     console.rule("[bold cyan]BTC Morning Briefing[/bold cyan]")
     console.print("Fetching news sources...")
 
-    data = fetch_all()
+    try:
+        data = fetch_all()
+    except Exception as e:
+        console.print(f"[red]Fetch error: {e} — falling back to cached briefing.[/red]")
+        data = {}
+
+    if not data.get("rss") and not data.get("reddit"):
+        cached = storage.load_briefing()
+        console.print("[yellow]No fresh data — delivering cached briefing.[/yellow]")
+        notifiers.deliver("BTC Morning Briefing (cached)", cached["text"])
+        return cached["text"]
+
     console.print("Generating AI summary...")
-
     text = summarize(data)
-
     storage.save_briefing(text)
     notifiers.deliver("BTC Morning Briefing", text)
-
     return text

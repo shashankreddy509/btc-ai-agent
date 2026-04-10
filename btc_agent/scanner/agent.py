@@ -127,63 +127,33 @@ def _display(hits: list[dict]) -> None:
         table.add_row("-", "No patterns found", "-", "-", "-", "-")
     else:
         for h in hits:
-            depo_str  = f"{h['depo_line']:,.0f}" if h["depo_line"] else "none"
-            bars_ago  = str(h["bars_ago"]) if h["bars_ago"] > 0 else "[dim]current[/dim]"
-            open_time = _to_ist(h["bar_open_time"])
-            open_px   = f"{h['bar_open_price']:,.1f}"
-            table.add_row(h["tf"], h["pattern"], bars_ago, open_time, open_px, depo_str)
+            f = _hit_fields(h)
+            bars_ago = str(h["bars_ago"]) if h["bars_ago"] > 0 else "[dim]current[/dim]"
+            table.add_row(h["tf"], h["pattern"], bars_ago, f["open_time"], f["open_px"], f["depo_str"])
 
     console.print(table)
 
 
-def _group_hits(hits: list[dict]) -> list[dict]:
-    """
-    Collapse hits that share the same (pattern, bar_open_time, depo_line) into one
-    entry with a TF range label.  Avoids e.g. 801m / 802m / 803m … all reporting
-    the same daily bar.
-    """
-    from collections import defaultdict
-    buckets: dict[tuple, list[dict]] = defaultdict(list)
-    for h in hits:
-        key = (h["pattern"], h["bar_open_time"][:16], h["depo_line"])
-        buckets[key].append(h)
 
-    grouped = []
-    for (pattern, open_time, depo), group in buckets.items():
-        tfs = sorted(int(h["tf"].rstrip("m")) for h in group)
-        if len(tfs) == 1:
-            tf_label = f"{tfs[0]}m"
-        else:
-            # Build compact label: consecutive runs → "801-811m", gaps → "78m,94m"
-            runs, run = [], [tfs[0]]
-            for t in tfs[1:]:
-                if t == run[-1] + 1:
-                    run.append(t)
-                else:
-                    runs.append(run); run = [t]
-            runs.append(run)
-            parts = [f"{r[0]}m" if len(r) == 1 else f"{r[0]}-{r[-1]}m" for r in runs]
-            tf_label = ", ".join(parts)
-
-        rep = group[0]
-        grouped.append({**rep, "tf": tf_label})
-
-    # Sort: most recent bar first, then by raw tf value
-    grouped.sort(key=lambda h: (h["bar_open_time"], h["bars_ago"]), reverse=True)
-    return grouped
+def _hit_fields(h: dict) -> dict:
+    """Shared field extraction used by all formatters."""
+    return {
+        "depo_str":  f"{h['depo_line']:,.0f}" if h["depo_line"] else "none",
+        "ago":       "current bar" if h["bars_ago"] == 0 else f"{h['bars_ago']} bars ago",
+        "open_time": _to_ist(h["bar_open_time"]),
+        "open_px":   f"{h['bar_open_price']:,.1f}",
+    }
 
 
 def _hit_lines_telegram(h: dict) -> str:
     """Single hit formatted as HTML for Telegram."""
     import html as _html
-    depo_str  = f"{h['depo_line']:,.0f}" if h["depo_line"] else "—"
-    ago       = "current bar" if h["bars_ago"] == 0 else f"{h['bars_ago']} bars ago"
-    open_time = _to_ist(h["bar_open_time"])
-    open_px   = f"{h['bar_open_price']:,.1f}"
+    f = _hit_fields(h)
+    depo_str = f["depo_str"].replace("none", "—")
     return (
-        f"<b>{_html.escape(h['tf'])}</b> · {_html.escape(h['pattern'])} · {ago}\n"
-        f"🕐 {open_time}\n"
-        f"💵 Open: {open_px}  |  DEPO: {depo_str}"
+        f"<b>{_html.escape(h['tf'])}</b> · {_html.escape(h['pattern'])} · {f['ago']}\n"
+        f"🕐 {f['open_time']}\n"
+        f"💵 Open: {f['open_px']}  |  DEPO: {depo_str}"
     )
 
 
@@ -209,15 +179,12 @@ def _format_email(hits: list[dict]) -> str:
     lines = [f"BTC Pattern Alert — {len(hits)} signal{'s' if len(hits)!=1 else ''}\n",
              f"{'─'*60}"]
     for h in hits:
-        depo_str  = f"{h['depo_line']:,.0f}" if h["depo_line"] else "none"
-        ago       = "current bar" if h["bars_ago"] == 0 else f"{h['bars_ago']} bars ago"
-        open_time = _to_ist(h["bar_open_time"])
-        open_px   = f"{h['bar_open_price']:,.1f}"
+        f = _hit_fields(h)
         lines.append(
             f"TF     : {h['tf']}\n"
-            f"Pattern: {h['pattern']}  ({ago})\n"
-            f"Opened : {open_time}  @  {open_px}\n"
-            f"DEPO   : {depo_str}\n"
+            f"Pattern: {h['pattern']}  ({f['ago']})\n"
+            f"Opened : {f['open_time']}  @  {f['open_px']}\n"
+            f"DEPO   : {f['depo_str']}\n"
         )
     return "\n".join(lines)
 
@@ -226,12 +193,9 @@ def _format_summary(hits: list[dict]) -> str:
     """Compact plain-text for terminal / generic delivery."""
     lines = [f"BTC Pattern Scanner Results  ({len(hits)} signals)\n"]
     for h in hits:
-        depo_str  = f"{h['depo_line']:,.0f}" if h["depo_line"] else "none"
-        ago       = "current bar" if h["bars_ago"] == 0 else f"{h['bars_ago']} bars ago"
-        open_time = _to_ist(h["bar_open_time"])
-        open_px   = f"{h['bar_open_price']:,.1f}"
+        f = _hit_fields(h)
         lines.append(
-            f"• {h['tf']} | {h['pattern']} | {ago} | "
-            f"Open: {open_time} @ {open_px} | DEPO: {depo_str}"
+            f"• {h['tf']} | {h['pattern']} | {f['ago']} | "
+            f"Open: {f['open_time']} @ {f['open_px']} | DEPO: {f['depo_str']}"
         )
     return "\n".join(lines)

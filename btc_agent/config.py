@@ -1,9 +1,11 @@
 import os
+import re
 from dotenv import load_dotenv
 
 load_dotenv()
 
 ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY", "")
+ANTHROPIC_MODEL   = os.getenv("ANTHROPIC_MODEL", "claude-sonnet-4-6")
 
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "")
 TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID", "")
@@ -43,3 +45,24 @@ SCANNER_PATTERNS = [
 DEPO_START = 126208
 DEPO_STEP = 1700
 DEPO_STOP = 45000
+
+_VALID_PATTERNS = {"4-Flag", "Morning Star", "Evening Star"}
+
+
+def _validate() -> None:
+    errors = []
+    if not (1 <= SCANNER_TF_MIN <= SCANNER_TF_MAX <= 1440):
+        errors.append(f"Invalid TF range: {SCANNER_TF_MIN}–{SCANNER_TF_MAX} (must be 1–1440 with MIN ≤ MAX)")
+    for p in SCANNER_PATTERNS:
+        if p not in _VALID_PATTERNS:
+            errors.append(f"Unknown pattern: {p!r} (valid: {', '.join(sorted(_VALID_PATTERNS))})")
+    if not (1 <= EMAIL_SMTP_PORT <= 65535):
+        errors.append(f"Invalid EMAIL_SMTP_PORT: {EMAIL_SMTP_PORT}")
+    for name, val in [("BRIEFING_TIME", BRIEFING_TIME), ("SCANNER_TIME", SCANNER_TIME)]:
+        if not re.match(r"^\d{2}:\d{2}$", val):
+            errors.append(f"{name} must be HH:MM, got {val!r}")
+    if errors:
+        raise ValueError("Config errors:\n" + "\n".join(f"  • {e}" for e in errors))
+
+
+_validate()

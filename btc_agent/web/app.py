@@ -16,8 +16,10 @@ app.mount("/static", StaticFiles(directory=BASE / "static"), name="static")
 templates = Jinja2Templates(directory=BASE / "templates")
 
 # Track background task state
-_scan_running = False
+_scan_running  = False
 _brief_running = False
+_scan_lock     = threading.Lock()
+_brief_lock    = threading.Lock()
 
 
 @app.get("/", response_class=HTMLResponse)
@@ -38,9 +40,10 @@ async def get_brief():
 @app.post("/api/scan/trigger")
 async def trigger_scan():
     global _scan_running
-    if _scan_running:
-        return JSONResponse({"status": "already_running"})
-    _scan_running = True
+    with _scan_lock:
+        if _scan_running:
+            return JSONResponse({"status": "already_running"})
+        _scan_running = True
 
     def _run():
         global _scan_running
@@ -57,9 +60,10 @@ async def trigger_scan():
 @app.post("/api/brief/trigger")
 async def trigger_brief():
     global _brief_running
-    if _brief_running:
-        return JSONResponse({"status": "already_running"})
-    _brief_running = True
+    with _brief_lock:
+        if _brief_running:
+            return JSONResponse({"status": "already_running"})
+        _brief_running = True
 
     def _run():
         global _brief_running
