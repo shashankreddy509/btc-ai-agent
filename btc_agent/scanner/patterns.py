@@ -148,8 +148,20 @@ def detect_engulfing(bars: np.ndarray) -> tuple[bool, str]:
     return False, ""
 
 
+def _detect_bullish_engulfing(bars: np.ndarray) -> bool:
+    detected, direction = detect_engulfing(bars)
+    return detected and direction == "bullish"
+
+
+def _detect_bearish_engulfing(bars: np.ndarray) -> bool:
+    detected, direction = detect_engulfing(bars)
+    return detected and direction == "bearish"
+
+
 PATTERNS = {
-    "4-Flag":       detect_4flag,
-    "Morning Star": detect_morning_star,
-    "Evening Star": detect_evening_star,
+    "4-Flag":            detect_4flag,
+    "Morning Star":      detect_morning_star,
+    "Evening Star":      detect_evening_star,
+    "Bullish Engulfing": _detect_bullish_engulfing,
+    "Bearish Engulfing": _detect_bearish_engulfing,
 }

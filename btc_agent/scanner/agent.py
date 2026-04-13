@@ -63,7 +63,7 @@ def run_scanner() -> list[dict]:
             if pattern_name == "4-Flag" and bars_per_day == 1:
                 continue
 
-            window = 4 if pattern_name == "4-Flag" else 3
+            window = 4 if pattern_name == "4-Flag" else (2 if "Engulfing" in pattern_name else 3)
             if len(bars) < window:
                 continue
 

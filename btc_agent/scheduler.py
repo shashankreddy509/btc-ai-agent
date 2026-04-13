@@ -48,6 +48,9 @@ def start() -> None:
     console.print("[green]Scheduler stopped cleanly.[/green]")
 
 
+_RETRY_DELAYS = [60, 300, 900]  # seconds: 1m, 5m, 15m between retries
+
+
 def _safe_brief() -> None:
     try:
         run_briefing()
@@ -56,7 +59,13 @@ def _safe_brief() -> None:
 
 
 def _safe_scan() -> None:
-    try:
-        run_scanner()
-    except Exception as e:
-        console.print(f"[red]Scanner error: {e}[/red]")
+    for attempt, delay in enumerate([0] + _RETRY_DELAYS, start=1):
+        if delay > 0:
+            console.print(f"[yellow]Scanner retry {attempt}/{len(_RETRY_DELAYS) + 1} in {delay}s…[/yellow]")
+            time.sleep(delay)
+        try:
+            run_scanner()
+            return
+        except Exception as e:
+            console.print(f"[red]Scanner error (attempt {attempt}): {e}[/red]")
+    console.print("[red]Scanner failed after all retries — will try again at next scheduled interval.[/red]")

@@ -41,15 +41,6 @@ SCANNER_PATTERNS = [
     if p.strip()
 ]
 
-# Open Interest settings
-# OI_DISPLAY_MODE: "Open Interest" | "Open Interest Delta" | "OID x rVOL" | "Open Interest RSI"
-OI_DISPLAY_MODE    = os.getenv("OI_DISPLAY_MODE", "Open Interest Delta")
-OI_QUOTED_IN       = os.getenv("OI_QUOTED_IN", "USD")          # "USD" or "COIN"
-OI_THRESHOLD_MULT  = float(os.getenv("OI_THRESHOLD_MULT", "4.0"))
-OI_SHOW_THRESHOLDS = os.getenv("OI_SHOW_THRESHOLDS", "true").lower() == "true"
-OI_RSI_LEN         = int(os.getenv("OI_RSI_LEN", "20"))
-OI_TF              = os.getenv("OI_TF", "1h")      # e.g. 1m 5m 15m 30m 1h 4h 1d
-OI_CANDLES         = int(os.getenv("OI_CANDLES", "4"))
 
 # ── Trading scanner ───────────────────────────────────────────────────────────
 TRADING_TF_MIN            = int(os.getenv("TRADING_TF_MIN", "15"))
@@ -72,7 +63,7 @@ DEPO_START = 126208
 DEPO_STEP = 1700
 DEPO_STOP = 45000
 
-_VALID_PATTERNS = {"4-Flag", "Morning Star", "Evening Star"}
+_VALID_PATTERNS = {"4-Flag", "Morning Star", "Evening Star", "Bullish Engulfing", "Bearish Engulfing"}
 
 
 def _validate() -> None:
