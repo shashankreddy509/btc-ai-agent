@@ -32,6 +32,86 @@
 
 <main>
 
+  <!-- Trading Scanner Card -->
+  <div class="card">
+    <div class="card-header">
+      <h2>Trading Scanner</h2>
+      <div style="display:flex;align-items:center;gap:12px;">
+        <span class="meta">
+          <span class="status-dot dot-ok" id="trade-dot"></span>
+          Mode: <span id="trade-mode-label" style="color:var(--accent)">—</span>
+        </span>
+        <button class="btn btn-green" id="trade-start-btn">Start Scanner</button>
+        <button class="btn btn-red"   id="trade-stop-btn" style="display:none">Stop Scanner</button>
+      </div>
+    </div>
+
+    <!-- Settings row -->
+    <details class="trade-settings" id="trade-settings-panel">
+      <summary style="cursor:pointer;color:var(--muted);font-size:12px;margin-bottom:12px;">
+        ⚙ Settings
+      </summary>
+      <div class="settings-grid">
+        <label>Mode
+          <select id="cfg-mode">
+            <option value="paper">Paper</option>
+            <option value="live">Live</option>
+          </select>
+        </label>
+        <label>TF Min (m) <input id="cfg-tf-min" type="number" min="1" max="1440"></label>
+        <label>TF Max (m) <input id="cfg-tf-max" type="number" min="1" max="1440"></label>
+        <label>Scan Interval (m) <input id="cfg-interval" type="number" min="1"></label>
+        <label>Qty (BTC) <input id="cfg-qty" type="number" step="0.001" min="0.001"></label>
+        <label>Max SL (pts) <input id="cfg-max-sl" type="number" min="1"></label>
+        <label>Min TP (pts) <input id="cfg-min-tp" type="number" min="1"></label>
+        <label>Max Concurrent <input id="cfg-max-conc" type="number" min="0"></label>
+      </div>
+      <button class="btn" id="trade-save-btn" style="margin-top:10px">Save Settings</button>
+      <span id="trade-save-msg" style="font-size:11px;color:var(--green);margin-left:10px;display:none">Saved!</span>
+    </details>
+
+    <!-- Pending Signals -->
+    <h3 style="font-size:13px;color:var(--muted);margin:12px 0 6px;">Pending Signals</h3>
+    <table>
+      <thead><tr>
+        <th>Pattern</th><th>TF</th><th>Direction</th>
+        <th style="text-align:right">Trigger</th>
+        <th style="text-align:right">SL (wick)</th>
+        <th>Expires</th><th>Status</th>
+      </tr></thead>
+      <tbody id="trade-signals-body">
+        <tr class="empty-row"><td colspan="7">No pending signals</td></tr>
+      </tbody>
+    </table>
+
+    <!-- Open Positions -->
+    <h3 style="font-size:13px;color:var(--muted);margin:16px 0 6px;">Open Positions</h3>
+    <table>
+      <thead><tr>
+        <th>Direction</th><th style="text-align:right">Entry</th>
+        <th style="text-align:right">SL</th><th style="text-align:right">TP</th>
+        <th style="text-align:right">Qty</th><th>Opened</th><th>Status</th>
+      </tr></thead>
+      <tbody id="trade-positions-body">
+        <tr class="empty-row"><td colspan="7">No open positions</td></tr>
+      </tbody>
+    </table>
+
+    <!-- Trade History -->
+    <h3 style="font-size:13px;color:var(--muted);margin:16px 0 6px;">Recent Trades</h3>
+    <table>
+      <thead><tr>
+        <th>Direction</th><th>TF</th><th>Pattern</th>
+        <th style="text-align:right">Entry</th>
+        <th style="text-align:right">Exit</th><th style="text-align:right">PnL (USD)</th>
+        <th>Reason</th><th>Closed</th>
+      </tr></thead>
+      <tbody id="trade-history-body">
+        <tr class="empty-row"><td colspan="8">No completed trades</td></tr>
+      </tbody>
+    </table>
+  </div>
+
   <!-- Morning Briefing Card -->
   <div class="card">
     <div class="card-header">

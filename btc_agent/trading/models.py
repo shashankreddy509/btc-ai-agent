@@ -1,0 +1,46 @@
+"""
+Data models for the trading scanner.
+"""
+from __future__ import annotations
+
+from dataclasses import dataclass, field
+from datetime import datetime
+
+
+@dataclass
+class Signal:
+    id: str                   # short uuid
+    pattern: str              # "4-Flag" | "Engulfing"
+    direction: str            # "long" | "short"
+    tf: int                   # timeframe in minutes
+    bar_open_time: str        # ISO UTC of pattern candle open
+    entry_trigger: float      # body_high (long) or body_low (short) — cross to enter
+    sl_wick: float            # wick_low (long) or wick_high (short)
+    sl_body: float            # body_low (long) or body_high (short) — fallback SL
+    created_at: datetime
+    expires_at: datetime      # created_at + tf minutes (signal valid for 1 bar)
+    status: str = "pending"   # "pending" | "triggered" | "expired" | "skipped"
+
+
+@dataclass
+class Position:
+    signal_id: str
+    entry_price: float
+    sl: float
+    tp: float
+    qty: float
+    direction: str            # "long" | "short"
+    opened_at: datetime
+    pattern: str = ""         # "4-Flag" | "Engulfing"
+    tf: int = 0               # timeframe in minutes
+    status: str = "open"      # "open" | "closed_tp" | "closed_sl" | "closed_manual"
+    pnl: float | None = None
+    coinbase_order_id: str | None = None
+
+
+@dataclass
+class TradeResult:
+    position: Position
+    close_price: float
+    close_reason: str         # "tp" | "sl" | "manual"
+    closed_at: datetime

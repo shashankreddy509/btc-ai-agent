@@ -4,6 +4,7 @@ BTC AI Agent — CLI entrypoint
 Usage:
   python main.py brief     Run morning briefing now
   python main.py scan      Run pattern scanner now
+  python main.py oi        Show last 4 × 1H aggregated Open Interest candles
   python main.py run       Start scheduler daemon (briefing + scanner on schedule)
   python main.py web       Start web dashboard at http://localhost:8000
   python main.py all       Start scheduler + web dashboard together (for EC2)
@@ -30,7 +31,7 @@ def main():
     )
     parser.add_argument(
         "command",
-        choices=["brief", "scan", "run", "web", "all"],
+        choices=["brief", "scan", "oi", "trade", "run", "web", "all"],
         help="Command to execute",
     )
     parser.add_argument(
@@ -48,6 +49,14 @@ def main():
     elif args.command == "scan":
         from btc_agent.scanner.agent import run_scanner
         run_scanner()
+
+    elif args.command == "oi":
+        from btc_agent.scanner.oi import run_oi_display
+        run_oi_display()
+
+    elif args.command == "trade":
+        from btc_agent.trading.scanner import run_trading_scanner
+        run_trading_scanner()
 
     elif args.command == "run":
         from btc_agent.scheduler import start

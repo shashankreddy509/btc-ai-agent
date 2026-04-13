@@ -41,6 +41,32 @@ SCANNER_PATTERNS = [
     if p.strip()
 ]
 
+# Open Interest settings
+# OI_DISPLAY_MODE: "Open Interest" | "Open Interest Delta" | "OID x rVOL" | "Open Interest RSI"
+OI_DISPLAY_MODE    = os.getenv("OI_DISPLAY_MODE", "Open Interest Delta")
+OI_QUOTED_IN       = os.getenv("OI_QUOTED_IN", "USD")          # "USD" or "COIN"
+OI_THRESHOLD_MULT  = float(os.getenv("OI_THRESHOLD_MULT", "4.0"))
+OI_SHOW_THRESHOLDS = os.getenv("OI_SHOW_THRESHOLDS", "true").lower() == "true"
+OI_RSI_LEN         = int(os.getenv("OI_RSI_LEN", "20"))
+OI_TF              = os.getenv("OI_TF", "1h")      # e.g. 1m 5m 15m 30m 1h 4h 1d
+OI_CANDLES         = int(os.getenv("OI_CANDLES", "4"))
+
+# ── Trading scanner ───────────────────────────────────────────────────────────
+TRADING_TF_MIN            = int(os.getenv("TRADING_TF_MIN", "15"))
+TRADING_TF_MAX            = int(os.getenv("TRADING_TF_MAX", "90"))
+TRADING_SCAN_INTERVAL_MIN = int(os.getenv("TRADING_SCAN_INTERVAL_MIN", "5"))
+TRADING_PATTERNS          = [p.strip() for p in os.getenv("TRADING_PATTERNS", "4-Flag,Engulfing").split(",") if p.strip()]
+TRADING_MODE              = os.getenv("TRADING_MODE", "paper")        # "paper" | "live"
+TRADING_MAX_CONCURRENT    = int(os.getenv("TRADING_MAX_CONCURRENT", "1"))   # 0 = unlimited
+TRADING_QTY               = float(os.getenv("TRADING_QTY", "0.001"))
+TRADING_MAX_SL            = float(os.getenv("TRADING_MAX_SL", "500"))
+TRADING_MIN_TP            = float(os.getenv("TRADING_MIN_TP", "500"))
+
+# Coinbase Advanced Trade
+COINBASE_API_KEY     = os.getenv("COINBASE_API_KEY", "")
+COINBASE_API_SECRET  = os.getenv("COINBASE_API_SECRET", "")
+COINBASE_PRODUCT_ID  = os.getenv("COINBASE_PRODUCT_ID", "BTC-USD-INTX")
+
 # DEPO parameters
 DEPO_START = 126208
 DEPO_STEP = 1700

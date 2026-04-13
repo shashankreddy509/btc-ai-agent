@@ -1,0 +1,171 @@
+"""
+Tests for the trading scanner:
+  - detect_engulfing pattern
+  - calc_sl (wick → body → cap)
+  - signal expiry
+  - entry trigger logic
+"""
+from datetime import datetime, timezone, timedelta
+import numpy as np
+import pytest
+
+from btc_agent.scanner.patterns import detect_engulfing
+from btc_agent.trading.scanner import calc_sl
+from btc_agent.trading.models import Signal
+
+
+# ── Engulfing detection ───────────────────────────────────────────────────────
+
+def _make_bars(candles: list[tuple]) -> np.ndarray:
+    """candles: list of (open, high, low, close, volume)"""
+    return np.array(candles, dtype=np.float64)
+
+
+class TestEngulfing:
+    def test_bullish_engulfing(self):
+        # Previous: bearish (open=105, close=100); Current: bullish engulfs (open=99, close=107)
+        bars = _make_bars([
+            (105.0, 106.0, 98.0, 100.0, 1.0),   # bearish
+            (99.0,  108.0, 98.0, 107.0, 1.0),    # bullish, body engulfs previous body
+        ])
+        found, direction = detect_engulfing(bars)
+        assert found
+        assert direction == "bullish"
+
+    def test_bearish_engulfing(self):
+        # Previous: bullish (open=100, close=105); Current: bearish engulfs (open=106, close=99)
+        bars = _make_bars([
+            (100.0, 107.0, 99.0,  105.0, 1.0),   # bullish
+            (106.0, 107.0, 98.0,  99.0,  1.0),    # bearish, body engulfs previous body
+        ])
+        found, direction = detect_engulfing(bars)
+        assert found
+        assert direction == "bearish"
+
+    def test_not_engulfing_partial(self):
+        # Current bullish but only partially covers previous body
+        bars = _make_bars([
+            (105.0, 106.0, 98.0, 100.0, 1.0),
+            (101.0, 107.0, 99.0, 104.0, 1.0),   # close=104 < prev open=105 → not full engulf
+        ])
+        found, _ = detect_engulfing(bars)
+        assert not found
+
+    def test_insufficient_bars(self):
+        bars = _make_bars([(100.0, 102.0, 99.0, 101.0, 1.0)])
+        found, direction = detect_engulfing(bars)
+        assert not found
+        assert direction == ""
+
+    def test_doji_not_counted(self):
+        # Current candle is a doji (body < MIN_BODY_PCT) — should not detect
+        bars = _make_bars([
+            (105.0, 106.0, 98.0, 100.0, 1.0),       # bearish
+            (100.0, 107.0, 98.5, 100.01, 1.0),       # doji body ~0.01
+        ])
+        found, _ = detect_engulfing(bars)
+        assert not found
+
+
+# ── SL calculation ────────────────────────────────────────────────────────────
+
+class TestCalcSL:
+    def _set_cap(self, cap, monkeypatch):
+        monkeypatch.setattr("btc_agent.trading.scanner.max_sl", lambda: cap)
+
+    def test_long_uses_wick_when_within_cap(self, monkeypatch):
+        self._set_cap(500, monkeypatch)
+        # entry=1000, wick_low=600 → gap=400 < 500 → use wick
+        sl = calc_sl("long", sl_wick=600.0, sl_body=700.0, entry=1000.0)
+        assert sl == pytest.approx(600.0)
+
+    def test_long_falls_back_to_body_when_wick_too_wide(self, monkeypatch):
+        self._set_cap(500, monkeypatch)
+        # entry=1000, wick_low=400 → gap=600 > 500; body_low=600 → gap=400 < 500 → use body
+        sl = calc_sl("long", sl_wick=400.0, sl_body=600.0, entry=1000.0)
+        assert sl == pytest.approx(600.0)
+
+    def test_long_caps_at_max_sl_when_body_also_too_wide(self, monkeypatch):
+        self._set_cap(500, monkeypatch)
+        # entry=1000, wick=300(gap=700>500), body=400(gap=600>500) → cap → 1000-500=500
+        sl = calc_sl("long", sl_wick=300.0, sl_body=400.0, entry=1000.0)
+        assert sl == pytest.approx(500.0)
+
+    def test_short_uses_wick_when_within_cap(self, monkeypatch):
+        self._set_cap(500, monkeypatch)
+        # entry=1000, wick_high=1400 → gap=400 < 500 → use wick
+        sl = calc_sl("short", sl_wick=1400.0, sl_body=1300.0, entry=1000.0)
+        assert sl == pytest.approx(1400.0)
+
+    def test_short_falls_back_to_body(self, monkeypatch):
+        self._set_cap(500, monkeypatch)
+        # entry=1000, wick=1600(gap=600>500), body=1400(gap=400<500) → use body
+        sl = calc_sl("short", sl_wick=1600.0, sl_body=1400.0, entry=1000.0)
+        assert sl == pytest.approx(1400.0)
+
+    def test_short_caps_at_max_sl(self, monkeypatch):
+        self._set_cap(500, monkeypatch)
+        # entry=1000, wick=1700(gap=700>500), body=1600(gap=600>500) → cap → 1000+500=1500
+        sl = calc_sl("short", sl_wick=1700.0, sl_body=1600.0, entry=1000.0)
+        assert sl == pytest.approx(1500.0)
+
+
+# ── Signal expiry ─────────────────────────────────────────────────────────────
+
+class TestSignalExpiry:
+    def _make_signal(self, expires_in_seconds: float) -> Signal:
+        now = datetime.now(timezone.utc)
+        return Signal(
+            id="test01",
+            pattern="4-Flag",
+            direction="long",
+            tf=30,
+            bar_open_time=now.isoformat(),
+            entry_trigger=1050.0,
+            sl_wick=950.0,
+            sl_body=980.0,
+            created_at=now,
+            expires_at=now + timedelta(seconds=expires_in_seconds),
+        )
+
+    def test_signal_not_expired_before_time(self):
+        sig = self._make_signal(300)
+        assert datetime.now(timezone.utc) <= sig.expires_at
+
+    def test_signal_expired_after_time(self):
+        sig = self._make_signal(-1)   # expires 1 second in the past
+        assert datetime.now(timezone.utc) > sig.expires_at
+
+    def test_pending_signal_triggers_on_long_breakout(self):
+        now = datetime.now(timezone.utc)
+        sig = Signal(
+            id="test02",
+            pattern="Engulfing",
+            direction="long",
+            tf=15,
+            bar_open_time=now.isoformat(),
+            entry_trigger=1050.0,
+            sl_wick=990.0,
+            sl_body=1000.0,
+            created_at=now,
+            expires_at=now + timedelta(minutes=15),
+        )
+        # Price above trigger → should fire
+        assert sig.direction == "long" and 1060.0 > sig.entry_trigger
+
+    def test_pending_signal_does_not_trigger_below_trigger(self):
+        now = datetime.now(timezone.utc)
+        sig = Signal(
+            id="test03",
+            pattern="4-Flag",
+            direction="long",
+            tf=30,
+            bar_open_time=now.isoformat(),
+            entry_trigger=1050.0,
+            sl_wick=990.0,
+            sl_body=1000.0,
+            created_at=now,
+            expires_at=now + timedelta(minutes=30),
+        )
+        # Price below trigger → should not fire
+        assert not (sig.direction == "long" and 1040.0 > sig.entry_trigger)

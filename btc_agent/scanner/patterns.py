@@ -125,6 +125,29 @@ def detect_evening_star(bars: np.ndarray) -> bool:
     return c2 <= midpoint
 
 
+def detect_engulfing(bars: np.ndarray) -> tuple[bool, str]:
+    """
+    Bullish engulfing: bars[-2] is bearish, bars[-1] is bullish and fully engulfs bars[-2] body.
+    Bearish engulfing: bars[-2] is bullish, bars[-1] is bearish and fully engulfs bars[-2] body.
+    Returns (detected, direction)  — direction is 'bullish' | 'bearish' | ''.
+    """
+    if len(bars) < 2:
+        return False, ""
+    o1, c1 = bars[-2, 0], bars[-2, 3]   # previous candle
+    o2, c2 = bars[-1, 0], bars[-1, 3]   # current candle
+    body1_hi, body1_lo = max(o1, c1), min(o1, c1)
+    body2_hi, body2_lo = max(o2, c2), min(o2, c2)
+    if o1 == 0 or (body1_hi - body1_lo) / o1 < _MIN_BODY_PCT:
+        return False, ""
+    if o2 == 0 or (body2_hi - body2_lo) / o2 < _MIN_BODY_PCT:
+        return False, ""
+    if c1 < o1 and c2 > o2 and body2_hi >= body1_hi and body2_lo <= body1_lo:
+        return True, "bullish"
+    if c1 > o1 and c2 < o2 and body2_hi >= body1_hi and body2_lo <= body1_lo:
+        return True, "bearish"
+    return False, ""
+
+
 PATTERNS = {
     "4-Flag":       detect_4flag,
     "Morning Star": detect_morning_star,
