@@ -2,19 +2,23 @@
 Coinbase Advanced Trade REST client.
 
 Docs: https://docs.cdp.coinbase.com/advanced-trade/reference/
-Auth: HMAC-SHA256 (api_key + secret)
+Auth: CDP API keys — ES256 JWT Bearer token
 """
 from __future__ import annotations
 
-import hashlib
-import hmac
+import base64
 import json
+import re
 import time
 import uuid
 from typing import Any
 
 import urllib.request
 import urllib.error
+
+from cryptography.hazmat.primitives import hashes, serialization
+from cryptography.hazmat.primitives.asymmetric import ec
+from cryptography.hazmat.primitives.asymmetric.utils import decode_dss_signature
 
 from btc_agent import config
 
@@ -23,25 +27,67 @@ _BASE = "https://api.coinbase.com"
 
 # ── auth ──────────────────────────────────────────────────────────────────────
 
-def _sign(method: str, path: str, body: str = "") -> dict[str, str]:
-    ts = str(int(time.time()))
-    message = ts + method.upper() + path + body
-    sig = hmac.new(
-        config.COINBASE_API_SECRET.encode(),
-        message.encode(),
-        hashlib.sha256,
-    ).hexdigest()
+def _b64url(data: bytes) -> str:
+    return base64.urlsafe_b64encode(data).rstrip(b"=").decode()
+
+
+def _normalize_pem(raw: str) -> str:
+    """Reconstruct a well-formed PEM from a .env-stored string.
+
+    dotenv stores the key on one line with literal \\n separators.
+    We unescape them, extract header/footer, clean the base64 body,
+    and re-wrap at 64 chars.
+    """
+    raw = raw.strip().strip("\"'").replace("\\n", "\n")
+    hm = re.search(r"-----BEGIN [^-]+-----", raw)
+    fm = re.search(r"-----END [^-]+-----",   raw)
+    if not hm or not fm:
+        return raw
+    header = hm.group()
+    footer = fm.group()
+    body   = re.sub(r"[^A-Za-z0-9+/=]", "", raw[hm.end():fm.start()])
+    wrapped = "\n".join(body[i:i+64] for i in range(0, len(body), 64))
+    return f"{header}\n{wrapped}\n{footer}\n"
+
+
+def _build_jwt(method: str, path: str) -> str:
+    """Build a short-lived ES256 JWT for a CDP API key."""
+    key_name = config.COINBASE_API_KEY
+    key_pem  = _normalize_pem(config.COINBASE_API_SECRET)
+
+    private_key = serialization.load_pem_private_key(key_pem.encode(), password=None)
+
+    now = int(time.time())
+    header  = {"alg": "ES256", "kid": key_name}
+    payload = {
+        "sub": key_name,
+        "iss": "cdp",
+        "nbf": now,
+        "exp": now + 120,
+        "uri": f"{method.upper()} api.coinbase.com{path}",
+    }
+
+    h = _b64url(json.dumps(header,  separators=(",", ":")).encode())
+    p = _b64url(json.dumps(payload, separators=(",", ":")).encode())
+    signing_input = f"{h}.{p}".encode()
+
+    der_sig = private_key.sign(signing_input, ec.ECDSA(hashes.SHA256()))
+    r, s = decode_dss_signature(der_sig)
+    sig_b64 = _b64url(r.to_bytes(32, "big") + s.to_bytes(32, "big"))
+
+    return f"{h}.{p}.{sig_b64}"
+
+
+def _auth_headers(method: str, path: str) -> dict[str, str]:
     return {
-        "CB-ACCESS-KEY":       config.COINBASE_API_KEY,
-        "CB-ACCESS-TIMESTAMP": ts,
-        "CB-ACCESS-SIGN":      sig,
-        "Content-Type":        "application/json",
+        "Authorization": f"Bearer {_build_jwt(method, path)}",
+        "Content-Type":  "application/json",
     }
 
 
 def _post(path: str, payload: dict[str, Any]) -> dict[str, Any]:
     body = json.dumps(payload)
-    headers = _sign("POST", path, body)
+    headers = _auth_headers("POST", path)
     req = urllib.request.Request(
         _BASE + path,
         data=body.encode(),

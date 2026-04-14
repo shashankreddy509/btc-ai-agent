@@ -84,19 +84,38 @@ def calc_sl(direction: str, sl_wick: float, sl_body: float, entry: float) -> flo
     """
     Priority: wick → body → hard cap (max_sl() points).
     Long:  sl is below entry; Short: sl is above entry.
+    Logs which level was chosen and why.
     """
     cap = max_sl()
     if direction == "long":
         sl = sl_wick
-        if entry - sl > cap:
+        wick_dist = entry - sl_wick
+        body_dist = entry - sl_body
+        if wick_dist > cap:
+            console.print(
+                f"[dim]SL: wick too wide ({wick_dist:.0f} pts > {cap:.0f} cap), "
+                f"trying body ({body_dist:.0f} pts)[/dim]"
+            )
             sl = sl_body
         if entry - sl > cap:
+            console.print(
+                f"[dim]SL: body also too wide ({body_dist:.0f} pts), capping at {cap:.0f} pts[/dim]"
+            )
             sl = entry - cap
     else:
         sl = sl_wick
-        if sl - entry > cap:
+        wick_dist = sl_wick - entry
+        body_dist = sl_body - entry
+        if wick_dist > cap:
+            console.print(
+                f"[dim]SL: wick too wide ({wick_dist:.0f} pts > {cap:.0f} cap), "
+                f"trying body ({body_dist:.0f} pts)[/dim]"
+            )
             sl = sl_body
         if sl - entry > cap:
+            console.print(
+                f"[dim]SL: body also too wide ({body_dist:.0f} pts), capping at {cap:.0f} pts[/dim]"
+            )
             sl = entry + cap
     return round(sl, 2)
 
@@ -229,8 +248,9 @@ def _scan_patterns(arr, ts_arr, minutes_of_day, unix_days) -> list[Signal]:
                     )
 
         if "Engulfing" in patterns and len(bars) >= 2:
-            found, direction = detect_engulfing(bars[-2:])
+            found, eng_dir = detect_engulfing(bars[-2:])
             if found:
+                direction = "long" if eng_dir == "bullish" else "short"
                 if not _is_duplicate(tf, "Engulfing", direction, bar_open_time):
                     sig = _bars_to_signal("Engulfing", direction, tf, bars, bar_open_time)
                     new_signals.append(sig)
@@ -284,7 +304,7 @@ def _execute_entry(sig: Signal, current_price: float) -> None:
             )
             side = "BUY" if sig.direction == "long" else "SELL"
             stop_side = "SELL" if sig.direction == "long" else "BUY"
-            qty_str = f"{qty:.8f}".rstrip("0").rstrip(".")
+            qty_str = _qty_str(qty)
             order = place_market_order(side, qty_str)
             pos.coinbase_order_id = order.get("order_id", "")
             # SL limit = 0.5% beyond stop to ensure fill
@@ -331,8 +351,8 @@ def _update_live_sl(pos: Position, new_sl: float) -> None:
     """Cancel the old Coinbase SL order and place a new one at the updated price."""
     try:
         from btc_agent.trading.executor import cancel_order, place_stop_limit_order
-        remaining = round(pos.qty / 2 if pos.partial_closed else pos.qty, 8)
-        qty_str   = f"{remaining:.8f}".rstrip("0").rstrip(".")
+        remaining = int(pos.qty) // 2 if pos.partial_closed else int(pos.qty)
+        qty_str   = _qty_str(remaining)
         stop_side = "SELL" if pos.direction == "long" else "BUY"
         if pos.sl_order_id:
             try:
@@ -351,9 +371,9 @@ def _partial_close(pos: Position, price: float) -> None:
     Sell half qty at TP1, move SL to entry ± 50, begin trailing.
     Works for both paper and live modes.
     """
-    half_qty   = round(pos.qty / 2, 8)
-    pnl_pts    = price - pos.entry_price if pos.direction == "long" else pos.entry_price - price
-    pos.partial_pnl   = round(pnl_pts * half_qty, 4)
+    half_contracts = int(pos.qty) // 2
+    pnl_pts        = price - pos.entry_price if pos.direction == "long" else pos.entry_price - price
+    pos.partial_pnl   = round(pnl_pts * half_contracts * config.COINBASE_CONTRACT_SIZE, 4)
     pos.partial_closed = True
     pos.trail_anchor   = price
     old_sl = pos.sl
@@ -362,7 +382,7 @@ def _partial_close(pos: Position, price: float) -> None:
 
     console.print(
         f"[bold cyan]PARTIAL TP {pos.direction.upper()}[/bold cyan] "
-        f"@ {price:.1f}  half={half_qty} BTC  PnL={pos.partial_pnl:+.4f}  "
+        f"@ {price:.1f}  half={half_contracts} contracts  PnL={pos.partial_pnl:+.4f}  "
         f"SL: {old_sl:.1f} → {new_sl:.1f}  (trailing begins)"
     )
 
@@ -371,7 +391,7 @@ def _partial_close(pos: Position, price: float) -> None:
         close_price=price,
         close_reason="tp_partial",
         closed_at=datetime.now(timezone.utc),
-        qty_closed=half_qty,
+        qty_closed=half_contracts,
         pnl_closed=pos.partial_pnl,
     ))
 
@@ -381,25 +401,26 @@ def _partial_close(pos: Position, price: float) -> None:
                 cancel_order, place_market_order, place_stop_limit_order,
             )
             stop_side = "SELL" if pos.direction == "long" else "BUY"
-            qty_str   = f"{half_qty:.8f}".rstrip("0").rstrip(".")
+            qty_str   = _qty_str(half_contracts)
             place_market_order(stop_side, qty_str)
             if pos.sl_order_id:
                 try:
                     cancel_order(pos.sl_order_id)
                 except Exception as ce:
                     console.print(f"[dim]SL cancel warning: {ce}[/dim]")
-            limit_sl = round(new_sl * 0.995 if pos.direction == "long" else new_sl * 1.005, 2)
-            resp = place_stop_limit_order(stop_side, qty_str, new_sl, limit_sl)
+            limit_sl  = round(new_sl * 0.995 if pos.direction == "long" else new_sl * 1.005, 2)
+            sl_qty    = _qty_str(half_contracts)
+            resp = place_stop_limit_order(stop_side, sl_qty, new_sl, limit_sl)
             pos.sl_order_id = resp.get("order_id", "")
         except Exception as e:
             console.print(f"[red]Partial close order error: {e}[/red]")
 
 
 def _close_position(pos: Position, price: float, reason: str) -> None:
-    """Close the remaining qty, compute total PnL, and record a TradeResult."""
-    remaining  = round(pos.qty / 2 if pos.partial_closed else pos.qty, 8)
+    """Close the remaining contracts, compute total PnL, and record a TradeResult."""
+    remaining  = int(pos.qty) // 2 if pos.partial_closed else int(pos.qty)
     pnl_pts    = price - pos.entry_price if pos.direction == "long" else pos.entry_price - price
-    remain_pnl = round(pnl_pts * remaining, 4)
+    remain_pnl = round(pnl_pts * remaining * config.COINBASE_CONTRACT_SIZE, 4)
     pos.pnl    = round(pos.partial_pnl + remain_pnl, 4)
     pos.status = f"closed_{reason}"
 
@@ -408,7 +429,7 @@ def _close_position(pos: Position, price: float, reason: str) -> None:
                    if pos.partial_closed else ""
     console.print(
         f"[{color}]CLOSE {pos.direction.upper()} ({reason.upper()})[/{color}] "
-        f"@ {price:.1f}  {remaining} BTC{partial_note}  Total={pos.pnl:+.4f}"
+        f"@ {price:.1f}  {remaining} contracts{partial_note}  Total={pos.pnl:+.4f}"
     )
 
     if trading_mode() == "live":
@@ -420,7 +441,7 @@ def _close_position(pos: Position, price: float, reason: str) -> None:
                 except Exception:
                     pass  # may already be filled by Coinbase
             stop_side = "SELL" if pos.direction == "long" else "BUY"
-            qty_str   = f"{remaining:.8f}".rstrip("0").rstrip(".")
+            qty_str   = _qty_str(remaining)
             place_market_order(stop_side, qty_str)
         except Exception as e:
             console.print(f"[red]Close order error: {e}[/red]")
@@ -486,7 +507,7 @@ def _signal_to_dict(s: Signal) -> dict:
 
 
 def _position_to_dict(p: Position) -> dict:
-    remaining_qty = round(p.qty / 2 if p.partial_closed else p.qty, 8)
+    remaining_qty = int(p.qty) // 2 if p.partial_closed else int(p.qty)
     return {
         "signal_id": p.signal_id, "entry_price": p.entry_price,
         "sl": p.sl, "tp": p.tp, "qty": p.qty, "direction": p.direction,
@@ -499,6 +520,8 @@ def _position_to_dict(p: Position) -> dict:
         "trail_anchor": p.trail_anchor,
         "partial_pnl": p.partial_pnl,
         "remaining_qty": remaining_qty,
+        "contract_size": config.COINBASE_CONTRACT_SIZE,
+        "sl_order_id": p.sl_order_id,
     }
 
 
@@ -559,11 +582,17 @@ def run_trading_scanner() -> None:
     _running = True
     console.rule("[bold green]Trading Scanner started[/bold green]")
     mode = trading_mode()
+    qty = trading_qty()
     console.print(
         f"Mode=[bold]{mode.upper()}[/bold]  TF={tf_min()}–{tf_max()}m  "
-        f"ScanInterval={scan_interval()}min  Qty={trading_qty()}  "
+        f"ScanInterval={scan_interval()}min  "
+        f"Qty={qty} contracts ({qty * config.COINBASE_CONTRACT_SIZE:.4f} BTC each side)  "
         f"MaxSL={max_sl()}  MinTP={min_tp()}  MaxConcurrent={max_concurrent()}"
     )
+    if qty < 2:
+        console.print(
+            "[yellow]Warning: TRADING_QTY < 2 — partial close requires at least 2 contracts[/yellow]"
+        )
 
     try:
         while _running:

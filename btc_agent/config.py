@@ -49,7 +49,7 @@ TRADING_SCAN_INTERVAL_MIN = int(os.getenv("TRADING_SCAN_INTERVAL_MIN", "5"))
 TRADING_PATTERNS          = [p.strip() for p in os.getenv("TRADING_PATTERNS", "4-Flag,Engulfing").split(",") if p.strip()]
 TRADING_MODE              = os.getenv("TRADING_MODE", "paper")        # "paper" | "live"
 TRADING_MAX_CONCURRENT    = int(os.getenv("TRADING_MAX_CONCURRENT", "1"))   # 0 = unlimited
-TRADING_QTY               = int(os.getenv("TRADING_QTY", "2"))        # contracts (min 2 for partial close)
+TRADING_QTY               = max(2, int(float(os.getenv("TRADING_QTY", "2"))))  # contracts (min 2 for partial close)
 TRADING_MAX_SL            = float(os.getenv("TRADING_MAX_SL", "500"))
 TRADING_MIN_TP            = float(os.getenv("TRADING_MIN_TP", "500"))
 WEEKLY_ADJ                = float(os.getenv("WEEKLY_ADJ", "0.0324"))
@@ -58,7 +58,7 @@ WEEKLY_ADJ                = float(os.getenv("WEEKLY_ADJ", "0.0324"))
 COINBASE_API_KEY          = os.getenv("COINBASE_API_KEY", "")
 COINBASE_API_SECRET       = os.getenv("COINBASE_API_SECRET", "")
 COINBASE_PRODUCT_ID       = os.getenv("COINBASE_PRODUCT_ID", "BTC-PERP-INTX")
-COINBASE_CONTRACT_SIZE    = float(os.getenv("COINBASE_CONTRACT_SIZE", "0.001"))  # BTC per contract
+COINBASE_CONTRACT_SIZE    = float(os.getenv("COINBASE_CONTRACT_SIZE", "0.01"))   # BTC per contract
 
 # DEPO parameters
 DEPO_START = 126208
