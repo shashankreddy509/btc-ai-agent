@@ -34,18 +34,45 @@ def _b64url(data: bytes) -> str:
 def _normalize_pem(raw: str) -> str:
     """Reconstruct a well-formed PEM from a .env-stored string.
 
-    dotenv stores the key on one line with literal \\n separators.
-    We unescape them, extract header/footer, clean the base64 body,
-    and re-wrap at 64 chars.
+    Handles three storage formats:
+    - Literal \\n (dotenv kept backslash-n as-is)
+    - Actual newlines (quoted value or scp'd file)
+    - n chars (dotenv stripped backslash from \\n, leaving just 'n')
     """
-    raw = raw.strip().strip("\"'").replace("\\n", "\n")
+    import base64 as _b64
+    raw = raw.strip().strip("\"'")
+    # Unescape literal \n if present
+    if "\\n" in raw:
+        raw = raw.replace("\\n", "\n")
+
     hm = re.search(r"-----BEGIN [^-]+-----", raw)
     fm = re.search(r"-----END [^-]+-----",   raw)
     if not hm or not fm:
         return raw
+
     header = hm.group()
     footer = fm.group()
-    body   = re.sub(r"[^A-Za-z0-9+/=]", "", raw[hm.end():fm.start()])
+    body   = re.sub(r"\s", "", raw[hm.end():fm.start()])  # strip whitespace/newlines
+
+    # Detect dotenv backslash-stripping: if body starts with 'n' and
+    # base64-decoding fails, the 'n' chars are stripped-backslash separators.
+    def _try_decode(b: str) -> bool:
+        try:
+            _b64.b64decode(b + "=" * (-len(b) % 4))
+            return True
+        except Exception:
+            return False
+
+    if not _try_decode(body) and body.startswith("n"):
+        # Remove leading n, then strip n separators at every 64-char boundary
+        cleaned, i = "", 1
+        while i < len(body):
+            cleaned += body[i:i+64]
+            i += 64
+            if i < len(body) and body[i] == "n":
+                i += 1
+        body = cleaned
+
     wrapped = "\n".join(body[i:i+64] for i in range(0, len(body), 64))
     return f"{header}\n{wrapped}\n{footer}\n"
 
@@ -54,7 +81,6 @@ def _build_jwt(method: str, path: str) -> str:
     """Build a short-lived ES256 JWT for a CDP API key."""
     key_name = config.COINBASE_API_KEY
     key_pem  = _normalize_pem(config.COINBASE_API_SECRET)
-
     private_key = serialization.load_pem_private_key(key_pem.encode(), password=None)
 
     now = int(time.time())
