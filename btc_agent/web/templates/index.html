@@ -70,6 +70,9 @@
       <span id="trade-save-msg" style="font-size:11px;color:var(--green);margin-left:10px;display:none">Saved!</span>
     </details>
 
+    <!-- Market Levels -->
+    <div id="levels-row" class="levels-row" style="display:none"></div>
+
     <!-- Pending Signals -->
     <h3 style="font-size:13px;color:var(--muted);margin:12px 0 6px;">Pending Signals</h3>
     <table>
@@ -88,12 +91,13 @@
     <h3 style="font-size:13px;color:var(--muted);margin:16px 0 6px;">Open Positions</h3>
     <table>
       <thead><tr>
-        <th>Direction</th><th style="text-align:right">Entry</th>
-        <th style="text-align:right">SL</th><th style="text-align:right">TP</th>
-        <th style="text-align:right">Qty</th><th>Opened</th><th>Status</th>
+        <th>Direction</th><th>TF</th><th>Pattern</th>
+        <th style="text-align:right">Entry</th>
+        <th style="text-align:right">SL</th><th style="text-align:right">TP1</th>
+        <th style="text-align:right">Rem Qty</th><th>Phase</th><th>Opened</th>
       </tr></thead>
       <tbody id="trade-positions-body">
-        <tr class="empty-row"><td colspan="7">No open positions</td></tr>
+        <tr class="empty-row"><td colspan="9">No open positions</td></tr>
       </tbody>
     </table>
 
@@ -103,11 +107,13 @@
       <thead><tr>
         <th>Direction</th><th>TF</th><th>Pattern</th>
         <th style="text-align:right">Entry</th>
-        <th style="text-align:right">Exit</th><th style="text-align:right">PnL (USD)</th>
+        <th style="text-align:right">Exit</th>
+        <th style="text-align:right">Qty</th>
+        <th style="text-align:right">PnL (USD)</th>
         <th>Reason</th><th>Closed</th>
       </tr></thead>
       <tbody id="trade-history-body">
-        <tr class="empty-row"><td colspan="8">No completed trades</td></tr>
+        <tr class="empty-row"><td colspan="9">No completed trades</td></tr>
       </tbody>
     </table>
   </div>

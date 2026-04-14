@@ -179,9 +179,54 @@ async function fetchBTCPrice() {
 // ── Trading scanner ───────────────────────────────────────────────────────────
 let _tradingData = null;
 
+function fmtPrice(v) {
+  return v != null
+    ? Number(v).toLocaleString('en-US', { minimumFractionDigits: 1, maximumFractionDigits: 1 })
+    : '—';
+}
+
+function renderLevels(levels) {
+  const el = document.getElementById('levels-row');
+  if (!el) return;
+  if (!levels || (!levels.mrp && !levels.daily_poc && !levels.weekly_poc)) {
+    el.style.display = 'none';
+    return;
+  }
+  el.style.display = '';
+
+  const mrpStr   = levels.mrp        ? `<span style="color:var(--accent)">$${fmtPrice(levels.mrp)}</span>`       : '<span style="color:var(--muted)">—</span>';
+  const dpocStr  = levels.daily_poc  ? `<span style="color:var(--green)">$${fmtPrice(levels.daily_poc)}</span>`  : '<span style="color:var(--muted)">—</span>';
+  const wpocStr  = levels.weekly_poc ? `<span style="color:#c084fc">$${fmtPrice(levels.weekly_poc)}</span>`      : '<span style="color:var(--muted)">—</span>';
+
+  // compute bias
+  const price = _tradingData?.current_price;
+  let bias = '', biasColor = 'var(--muted)';
+  if (price) {
+    const above = [levels.mrp, levels.daily_poc, levels.weekly_poc]
+      .filter(v => v != null)
+      .filter(v => price > v).length;
+    const total = [levels.mrp, levels.daily_poc, levels.weekly_poc].filter(v => v != null).length;
+    if (total === 0) { bias = '—'; }
+    else if (above === total) { bias = 'strongly bullish'; biasColor = 'var(--green)'; }
+    else if (above > total / 2) { bias = 'bullish'; biasColor = 'var(--green)'; }
+    else if (above === 0) { bias = 'strongly bearish'; biasColor = 'var(--red)'; }
+    else { bias = 'bearish'; biasColor = 'var(--red)'; }
+  }
+
+  el.innerHTML = `
+    <span class="level-item">MRP (VWAP): ${mrpStr}</span>
+    <span class="level-sep">·</span>
+    <span class="level-item">Daily POC: ${dpocStr}</span>
+    <span class="level-sep">·</span>
+    <span class="level-item">Weekly POC: ${wpocStr}</span>
+    <span class="level-sep">·</span>
+    <span class="level-item">Bias: <span style="color:${biasColor}">${bias || '—'}</span></span>
+  `;
+}
+
 function renderTrading() {
   if (!_tradingData) return;
-  const { signals = [], positions = [], history = [], running, settings = {} } = _tradingData;
+  const { signals = [], positions = [], history = [], running, settings = {}, levels = {} } = _tradingData;
 
   document.getElementById('trade-mode-label').textContent = (settings.mode || 'paper').toUpperCase();
   const startBtn = document.getElementById('trade-start-btn');
@@ -196,6 +241,8 @@ function renderTrading() {
     stopBtn.style.display  = 'none';
     dot.className = 'status-dot dot-ok';
   }
+
+  renderLevels(levels);
 
   // populate settings inputs (only if not focused)
   const cfgMap = {
@@ -242,14 +289,24 @@ function renderTrading() {
   } else {
     posBody.innerHTML = openPos.map(p => {
       const dirClass = p.direction === 'long' ? 'dir-long' : 'dir-short';
+      const slColor  = p.partial_closed ? 'var(--accent)' : 'var(--red)';
+      const phaseHtml = p.partial_closed
+        ? `<span class="phase-trail">TRAILING <span style="color:var(--muted);font-size:10px">@${fmtPrice(p.trail_anchor)}</span></span>`
+        : `<span class="phase-watch">WATCHING</span>`;
+      const remQty = p.remaining_qty ?? p.qty;
+      const tp1Str = p.partial_closed
+        ? `<span style="color:var(--muted)">${fmtPrice(p.tp)} ✓</span>`
+        : `<span style="color:var(--green)">${fmtPrice(p.tp)}</span>`;
       return `<tr>
         <td class="${dirClass}">${p.direction.toUpperCase()}</td>
-        <td style="text-align:right">${Number(p.entry_price).toLocaleString('en-US',{minimumFractionDigits:1,maximumFractionDigits:1})}</td>
-        <td style="text-align:right;color:var(--red)">${Number(p.sl).toLocaleString('en-US',{minimumFractionDigits:1,maximumFractionDigits:1})}</td>
-        <td style="text-align:right;color:var(--green)">${Number(p.tp).toLocaleString('en-US',{minimumFractionDigits:1,maximumFractionDigits:1})}</td>
-        <td style="text-align:right">${p.qty}</td>
+        <td><span class="tf-badge">${p.tf ? p.tf + 'm' : '—'}</span></td>
+        <td>${p.pattern || '—'}</td>
+        <td style="text-align:right">$${fmtPrice(p.entry_price)}</td>
+        <td style="text-align:right;color:${slColor}">$${fmtPrice(p.sl)}</td>
+        <td style="text-align:right">${tp1Str}</td>
+        <td style="text-align:right">${remQty}</td>
+        <td>${phaseHtml}</td>
         <td style="color:var(--muted);font-size:12px">${formatTs(p.opened_at)}</td>
-        <td>${p.coinbase_order_id ? `<span style="color:var(--muted);font-size:11px">${p.coinbase_order_id.slice(0,8)}…</span>` : '—'}</td>
       </tr>`;
     }).join('');
   }
@@ -257,21 +314,27 @@ function renderTrading() {
   // history table
   const histBody = document.getElementById('trade-history-body');
   if (!history.length) {
-    histBody.innerHTML = '<tr class="empty-row"><td colspan="6">No completed trades</td></tr>';
+    histBody.innerHTML = '<tr class="empty-row"><td colspan="9">No completed trades</td></tr>';
   } else {
-    histBody.innerHTML = [...history].reverse().slice(0, 20).map(r => {
-      const p = r.position;
-      const dirClass = p.direction === 'long' ? 'dir-long' : 'dir-short';
-      const pnlClass = (p.pnl ?? 0) >= 0 ? 'pnl-pos' : 'pnl-neg';
-      const pnlStr   = p.pnl != null ? (p.pnl >= 0 ? '+' : '') + p.pnl.toFixed(4) : '—';
-      return `<tr>
+    histBody.innerHTML = [...history].reverse().slice(0, 40).map(r => {
+      const p          = r.position;
+      const isPartial  = r.close_reason === 'tp_partial';
+      const dirClass   = p.direction === 'long' ? 'dir-long' : 'dir-short';
+      const pnl        = r.pnl_closed ?? 0;
+      const pnlClass   = pnl >= 0 ? 'pnl-pos' : 'pnl-neg';
+      const pnlStr     = (pnl >= 0 ? '+' : '') + pnl.toFixed(4);
+      const reasonLabel = isPartial ? 'TP 50%' : r.close_reason.toUpperCase();
+      const reasonColor = (r.close_reason === 'sl') ? 'var(--red)' : 'var(--green)';
+      const rowStyle    = isPartial ? 'opacity:0.75' : '';
+      return `<tr style="${rowStyle}">
         <td class="${dirClass}">${p.direction.toUpperCase()}</td>
         <td><span class="tf-badge">${p.tf ? p.tf + 'm' : '—'}</span></td>
         <td>${p.pattern || '—'}</td>
-        <td style="text-align:right">${Number(p.entry_price).toLocaleString('en-US',{minimumFractionDigits:1,maximumFractionDigits:1})}</td>
-        <td style="text-align:right">${Number(r.close_price).toLocaleString('en-US',{minimumFractionDigits:1,maximumFractionDigits:1})}</td>
+        <td style="text-align:right">$${fmtPrice(p.entry_price)}</td>
+        <td style="text-align:right">$${fmtPrice(r.close_price)}</td>
+        <td style="text-align:right;color:var(--muted)">${r.qty_closed ?? p.qty}</td>
         <td style="text-align:right" class="${pnlClass}">${pnlStr}</td>
-        <td style="color:${r.close_reason==='tp'?'var(--green)':'var(--red)'}">${r.close_reason.toUpperCase()}</td>
+        <td style="color:${reasonColor}">${reasonLabel}</td>
         <td style="color:var(--muted);font-size:12px">${formatTs(r.closed_at)}</td>
       </tr>`;
     }).join('');

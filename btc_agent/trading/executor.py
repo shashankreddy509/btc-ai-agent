@@ -105,6 +105,11 @@ def place_stop_limit_order(
     return _post("/api/v3/brokerage/orders", payload)
 
 
+def cancel_order(order_id: str) -> dict[str, Any]:
+    """Cancel a single order. Uses batch_cancel endpoint."""
+    return _post("/api/v3/brokerage/orders/batch_cancel", {"order_ids": [order_id]})
+
+
 def place_take_profit_order(
     side: str,
     base_size: str,

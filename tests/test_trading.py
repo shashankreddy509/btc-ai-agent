@@ -169,3 +169,66 @@ class TestSignalExpiry:
         )
         # Price below trigger → should not fire
         assert not (sig.direction == "long" and 1040.0 > sig.entry_trigger)
+
+
+# ── Trailing stop tests ───────────────────────────────────────────────────────
+
+class TestTrailSL:
+    """Tests for _trail_sl() ratchet logic."""
+
+    def _pos(self, direction, entry, sl, trail_anchor):
+        from btc_agent.trading.models import Position
+        from datetime import datetime, timezone
+        pos = Position(
+            signal_id="x", entry_price=entry, sl=sl, tp=entry + 500,
+            qty=0.001, direction=direction,
+            opened_at=datetime.now(timezone.utc),
+            partial_closed=True, trail_anchor=trail_anchor,
+        )
+        pos.sl = sl
+        return pos
+
+    def test_long_no_move_before_100pts(self):
+        from btc_agent.trading.scanner import _trail_sl
+        pos = self._pos("long", 80000, 80050, 83000)
+        # price only 50 pts above anchor → still 0 steps
+        assert _trail_sl(pos, 83050) == 80050
+
+    def test_long_moves_50_per_100pts(self):
+        from btc_agent.trading.scanner import _trail_sl
+        pos = self._pos("long", 80000, 80050, 83000)
+        # 100 pts above anchor → 1 step → sl = entry+50 + 50 = entry+100
+        assert _trail_sl(pos, 83100) == 80100
+        # 200 pts above anchor → 2 steps → sl = entry+50 + 100 = entry+150
+        assert _trail_sl(pos, 83200) == 80150
+
+    def test_long_only_ratchets_up(self):
+        from btc_agent.trading.scanner import _trail_sl
+        pos = self._pos("long", 80000, 80150, 83000)
+        # price drops back toward anchor → sl must not decrease
+        assert _trail_sl(pos, 83050) == 80150
+
+    def test_short_moves_50_per_100pts(self):
+        from btc_agent.trading.scanner import _trail_sl
+        pos = self._pos("short", 82000, 81950, 79000)
+        # 100 pts below anchor → sl = entry-50 - 50 = entry-100
+        assert _trail_sl(pos, 78900) == 81900
+        # 200 pts below anchor → sl = entry-50 - 100 = entry-150
+        assert _trail_sl(pos, 78800) == 81850
+
+    def test_short_only_ratchets_down(self):
+        from btc_agent.trading.scanner import _trail_sl
+        pos = self._pos("short", 82000, 81850, 79000)
+        # price bounces up toward anchor → sl must not increase
+        assert _trail_sl(pos, 78950) == 81850
+
+    def test_no_trail_anchor_returns_original_sl(self):
+        from btc_agent.trading.scanner import _trail_sl
+        from btc_agent.trading.models import Position
+        from datetime import datetime, timezone
+        pos = Position(
+            signal_id="x", entry_price=80000, sl=79500, tp=80500,
+            qty=0.001, direction="long",
+            opened_at=datetime.now(timezone.utc),
+        )
+        assert _trail_sl(pos, 81000) == 79500

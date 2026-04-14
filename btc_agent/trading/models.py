@@ -36,11 +36,18 @@ class Position:
     status: str = "open"      # "open" | "closed_tp" | "closed_sl" | "closed_manual"
     pnl: float | None = None
     coinbase_order_id: str | None = None
+    tp_reason: str = ""          # "MRP" | "Daily POC" | "Weekly POC" | "fixed_500" | …
+    partial_closed: bool = False # True after TP1 hit and half qty sold
+    trail_anchor: float | None = None  # price at which partial TP was hit (trailing reference)
+    partial_pnl: float = 0.0     # PnL banked from the partial close
+    sl_order_id: str | None = None     # Coinbase SL order ID (cancel/replace on trail)
 
 
 @dataclass
 class TradeResult:
     position: Position
     close_price: float
-    close_reason: str         # "tp" | "sl" | "manual"
+    close_reason: str         # "tp_partial" | "tp" | "sl" | "manual"
     closed_at: datetime
+    qty_closed: float = 0.0   # how much BTC was closed in this event
+    pnl_closed: float = 0.0   # PnL for this specific close event (USD)
