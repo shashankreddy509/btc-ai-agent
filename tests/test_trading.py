@@ -1,7 +1,7 @@
 """
 Tests for the trading scanner:
   - detect_engulfing pattern
-  - calc_sl (wick → body → cap)
+  - calc_sl (wick of pattern candle)
   - signal expiry
   - entry trigger logic
 """
@@ -70,44 +70,17 @@ class TestEngulfing:
 # ── SL calculation ────────────────────────────────────────────────────────────
 
 class TestCalcSL:
-    def _set_cap(self, cap, monkeypatch):
-        monkeypatch.setattr("btc_agent.trading.scanner.max_sl", lambda: cap)
-
-    def test_long_uses_wick_when_within_cap(self, monkeypatch):
-        self._set_cap(500, monkeypatch)
-        # entry=1000, wick_low=600 → gap=400 < 500 → use wick
-        sl = calc_sl("long", sl_wick=600.0, sl_body=700.0, entry=1000.0)
+    def test_returns_wick_low_for_long(self):
+        sl = calc_sl(sl_wick=600.0)
         assert sl == pytest.approx(600.0)
 
-    def test_long_falls_back_to_body_when_wick_too_wide(self, monkeypatch):
-        self._set_cap(500, monkeypatch)
-        # entry=1000, wick_low=400 → gap=600 > 500; body_low=600 → gap=400 < 500 → use body
-        sl = calc_sl("long", sl_wick=400.0, sl_body=600.0, entry=1000.0)
-        assert sl == pytest.approx(600.0)
-
-    def test_long_caps_at_max_sl_when_body_also_too_wide(self, monkeypatch):
-        self._set_cap(500, monkeypatch)
-        # entry=1000, wick=300(gap=700>500), body=400(gap=600>500) → cap → 1000-500=500
-        sl = calc_sl("long", sl_wick=300.0, sl_body=400.0, entry=1000.0)
-        assert sl == pytest.approx(500.0)
-
-    def test_short_uses_wick_when_within_cap(self, monkeypatch):
-        self._set_cap(500, monkeypatch)
-        # entry=1000, wick_high=1400 → gap=400 < 500 → use wick
-        sl = calc_sl("short", sl_wick=1400.0, sl_body=1300.0, entry=1000.0)
+    def test_returns_wick_high_for_short(self):
+        sl = calc_sl(sl_wick=1400.0)
         assert sl == pytest.approx(1400.0)
 
-    def test_short_falls_back_to_body(self, monkeypatch):
-        self._set_cap(500, monkeypatch)
-        # entry=1000, wick=1600(gap=600>500), body=1400(gap=400<500) → use body
-        sl = calc_sl("short", sl_wick=1600.0, sl_body=1400.0, entry=1000.0)
-        assert sl == pytest.approx(1400.0)
-
-    def test_short_caps_at_max_sl(self, monkeypatch):
-        self._set_cap(500, monkeypatch)
-        # entry=1000, wick=1700(gap=700>500), body=1600(gap=600>500) → cap → 1000+500=1500
-        sl = calc_sl("short", sl_wick=1700.0, sl_body=1600.0, entry=1000.0)
-        assert sl == pytest.approx(1500.0)
+    def test_rounds_to_two_decimals(self):
+        sl = calc_sl(sl_wick=600.123456)
+        assert sl == pytest.approx(600.12)
 
 
 # ── Signal expiry ─────────────────────────────────────────────────────────────

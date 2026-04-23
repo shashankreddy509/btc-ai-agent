@@ -1,35 +1,349 @@
-const REFRESH_MS = 60_000;
-const TZ_KEY     = 'btc_agent_tz';
-const DEFAULT_TZ = 'Asia/Kolkata';
+const REFRESH_MS    = 60_000;
+const TZ_KEY        = 'btc_agent_tz';
+const DEFAULT_TZ    = 'Asia/Kolkata';
+const THEME_KEY     = 'btc_agent_theme';
+const DEFAULT_THEME = 'dark';
 
-// ── Cached data (re-render without re-fetching on tz change) ─────────────────
-let _scanData  = null;
-let _briefData = null;
+// ── Firebase Auth ──────────────────────────────────────────────────────────────
+const _auth     = firebase.auth();
+const _provider = new firebase.auth.GoogleAuthProvider();
+let   _currentUser = null;   // null = not signed in
 
-// ── Timezone helpers ──────────────────────────────────────────────────────────
-function getTz() {
-  return localStorage.getItem(TZ_KEY) || DEFAULT_TZ;
+async function _getToken() {
+  if (!_currentUser) return null;
+  return _currentUser.getIdToken();   // auto-refreshes before expiry
 }
 
-function setTz(tz) {
-  localStorage.setItem(TZ_KEY, tz);
+function signOut() {
+  _auth.signOut();
 }
+
+async function signInWithGoogle() {
+  try {
+    await _auth.signInWithPopup(_provider);
+  } catch (e) {
+    console.error('Sign-in failed:', e.message);
+  }
+}
+
+// Watch auth state — update UI and re-render relevant pages on change
+_auth.onAuthStateChanged(user => {
+  _currentUser = user;
+  _updateAuthUI();
+  // Re-render trading page if it's currently visible
+  if (document.getElementById('page-trading')?.classList.contains('active')) {
+    _showTradingContent();
+  }
+  // Re-render settings account card if visible
+  if (document.getElementById('page-settings')?.classList.contains('active')) {
+    _renderAccountCard();
+  }
+});
+
+function _updateAuthUI() {
+  const signedIn  = !!_currentUser;
+  const photo     = _currentUser?.photoURL || '';
+  const name      = _currentUser?.displayName || _currentUser?.email || '';
+  const email     = _currentUser?.email || '';
+
+  // Sidebar
+  _show('sidebar-user-signed-in',  signedIn);
+  _show('sidebar-user-signed-out', !signedIn);
+  if (signedIn) {
+    const av = document.getElementById('sidebar-avatar');
+    if (av) { av.src = photo; av.style.display = photo ? 'inline-block' : 'none'; }
+    _setText('sidebar-display-name', name);
+  }
+
+  // Mobile topbar
+  _show('mob-user-signed-in',  signedIn);
+  _show('mob-user-signed-out', !signedIn);
+  if (signedIn && photo) {
+    const mav = document.getElementById('mob-avatar');
+    if (mav) mav.src = photo;
+  }
+}
+
+const ADMIN_EMAIL = 'shashankreddy509@gmail.com';
+function _isAdmin() { return _currentUser?.email === ADMIN_EMAIL; }
+
+function _renderAccountCard() {
+  const signedIn = !!_currentUser;
+  const admin    = _isAdmin();
+  _show('settings-signed-in',  signedIn);
+  _show('settings-signed-out', !signedIn);
+  _show('settings-auth-note',  !signedIn);
+
+  // Cards visible to all signed-in users
+  ['s-card-coinbase-exchange','s-card-coinbase-creds'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = signedIn ? '' : 'none';
+  });
+
+  // Admin-only cards
+  ['s-card-general','s-card-notifications','s-card-scanner'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = admin ? '' : 'none';
+  });
+
+  // Admin-only section inside Notifications card
+  const adminNotif = document.getElementById('s-notif-admin');
+  if (adminNotif) adminNotif.style.display = admin ? '' : 'none';
+
+  if (signedIn) {
+    const av = document.getElementById('settings-avatar');
+    if (av) av.src = _currentUser.photoURL || '';
+    _setText('settings-display-name', _currentUser.displayName || '');
+    _setText('settings-email', _currentUser.email || '');
+  }
+}
+
+// ── Settings load ─────────────────────────────────────────────────────────────
+
+async function loadAppSettings() {
+  if (!_currentUser) return;
+  try {
+    const d = await fetchJSON('/api/settings/app');
+    const sp = (id, v) => { const el = document.getElementById(id); if (el && v) el.placeholder = v; };
+    const sv = (id, v) => { const el = document.getElementById(id); if (el && v != null) el.value = v; };
+    sp('s-anthropic-key',    d.anthropic_api_key);
+    sv('s-anthropic-model',  d.anthropic_model);
+    sv('s-cb-product',       d.coinbase_product_id);
+    sv('s-cb-contract',      d.coinbase_contract_size);
+    sp('s-tg-token',         d.telegram_bot_token);
+    sv('s-tg-chat',          d.telegram_chat_id);
+    sv('s-email-host',       d.email_smtp_host);
+    sv('s-email-port',       d.email_smtp_port);
+    sv('s-email-user',       d.email_user);
+    sp('s-email-pass',       d.email_pass);
+    sv('s-email-to',         d.email_to);
+    sv('s-briefing-time',    d.briefing_time);
+    sv('s-scanner-time',     d.scanner_time);
+    sv('s-scanner-interval', d.scanner_interval_min);
+    sv('s-scanner-tf-min',   d.scanner_tf_min);
+    sv('s-scanner-tf-max',   d.scanner_tf_max);
+    const channels = d.delivery_channels || [];
+    ['terminal','telegram','email'].forEach(c => {
+      const el = document.getElementById(`s-ch-${c}`);
+      if (el) el.checked = channels.includes(c);
+    });
+    const patterns = d.scanner_patterns || [];
+    const pm = {'s-pat-4flag':'4-Flag','s-pat-morning':'Morning Star','s-pat-evening':'Evening Star'};
+    Object.entries(pm).forEach(([id, name]) => {
+      const el = document.getElementById(id);
+      if (el) el.checked = patterns.includes(name);
+    });
+  } catch (_) {}
+}
+
+async function loadUserSettings() {
+  if (!_currentUser) return;
+  try {
+    const d = await fetchJSON('/api/settings/user');
+    const sp = (id, v) => { const el = document.getElementById(id); if (el && v) el.placeholder = v; };
+    sp('s-cb-key',    d.coinbase_api_key);
+    sp('s-cb-secret', d.coinbase_api_secret);
+  } catch (_) {}
+}
+
+// ── Settings save ─────────────────────────────────────────────────────────────
+
+async function _saveSettings(endpoint, data, section) {
+  const okEl  = document.getElementById(`s-ok-${section}`);
+  const errEl = document.getElementById(`s-err-${section}`);
+  const clean = Object.fromEntries(
+    Object.entries(data).filter(([_, v]) => v !== null && v !== undefined && v !== '' && !String(v).includes('****'))
+  );
+  try {
+    await fetchJSON(endpoint, { method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify(clean) });
+    if (errEl) errEl.style.display = 'none';
+    if (okEl)  { okEl.style.display = 'inline'; setTimeout(() => okEl.style.display = 'none', 2500); }
+  } catch (e) {
+    if (errEl) { errEl.textContent = 'Save failed.'; errEl.style.display = 'inline'; }
+  }
+}
+
+function _gv(id) { const el = document.getElementById(id); return el ? el.value.trim() : null; }
+function _gn(id) { const v = _gv(id); return v ? Number(v) : null; }
+function _gc(id) { const el = document.getElementById(id); return el ? el.checked : false; }
+
+async function saveAppSection(section) {
+  if (!_currentUser) return;
+  let data = {};
+  if (section === 'general') {
+    data = { anthropic_api_key: _gv('s-anthropic-key'), anthropic_model: _gv('s-anthropic-model') };
+  } else if (section === 'coinbase-exchange') {
+    data = { coinbase_product_id: _gv('s-cb-product'), coinbase_contract_size: _gn('s-cb-contract') };
+  } else if (section === 'notifications') {
+    const channels = ['terminal','telegram','email'].filter(c => _gc(`s-ch-${c}`));
+    data = { delivery_channels: channels };
+    if (_isAdmin()) {
+      Object.assign(data, {
+        telegram_bot_token: _gv('s-tg-token'), telegram_chat_id: _gv('s-tg-chat'),
+        email_smtp_host: _gv('s-email-host'), email_smtp_port: _gn('s-email-port'),
+        email_user: _gv('s-email-user'), email_pass: _gv('s-email-pass'), email_to: _gv('s-email-to'),
+      });
+    }
+  } else if (section === 'scanner') {
+    const patterns = [
+      ...(_gc('s-pat-4flag')   ? ['4-Flag']       : []),
+      ...(_gc('s-pat-morning') ? ['Morning Star']  : []),
+      ...(_gc('s-pat-evening') ? ['Evening Star']  : []),
+    ];
+    data = {
+      briefing_time: _gv('s-briefing-time'), scanner_time: _gv('s-scanner-time'),
+      scanner_interval_min: _gn('s-scanner-interval'),
+      scanner_tf_min: _gn('s-scanner-tf-min'), scanner_tf_max: _gn('s-scanner-tf-max'),
+      scanner_patterns: patterns.length ? patterns : null,
+    };
+  }
+  await _saveSettings('/api/settings/app', data, section);
+}
+
+async function saveUserSection(section) {
+  if (!_currentUser) return;
+  let data = {};
+  if (section === 'coinbase-creds') {
+    data = { coinbase_api_key: _gv('s-cb-key'), coinbase_api_secret: _gv('s-cb-secret') };
+    if (!data.coinbase_api_key || !data.coinbase_api_secret) {
+      const errEl = document.getElementById('s-err-coinbase-creds');
+      if (errEl) { errEl.textContent = 'Both fields are required.'; errEl.style.display = 'inline'; }
+      return;
+    }
+    // Clear inputs after save
+    ['s-cb-key','s-cb-secret'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+  }
+  await _saveSettings('/api/settings/user', data, section);
+  if (section === 'coinbase-creds') await loadUserSettings();
+}
+
+function _showTradingContent() {
+  const gate    = document.getElementById('trading-auth-gate');
+  const content = document.getElementById('trading-content');
+  if (_currentUser) {
+    if (gate)    gate.style.display    = 'none';
+    if (content) content.style.display = '';
+    loadTrading();
+  } else {
+    if (gate)    gate.style.display    = '';
+    if (content) content.style.display = 'none';
+  }
+}
+
+// ── Utility helpers ────────────────────────────────────────────────────────────
+function _show(id, visible) {
+  const el = document.getElementById(id);
+  if (el) el.style.display = visible ? '' : 'none';
+}
+
+function _setText(id, text) {
+  const el = document.getElementById(id);
+  if (el) el.textContent = text;
+}
+
+// ── Navigation ─────────────────────────────────────────────────────────────────
+let _currentSection = 'home';
+let _currentSubTab  = 'briefing';
+
+const SECTION_TITLES = { briefing: 'Morning Briefing', scanner: 'Pattern Scanner', trading: 'Live Trading', settings: 'Settings' };
+
+function navTo(section) {
+  _currentSection = section;
+  const subTabsEl = document.getElementById('sub-tabs');
+
+  if (section === 'trading') {
+    _showPage('trading');
+    subTabsEl.style.display = 'none';
+    _setTopbarTitle('Live Trading');
+    _setSidebarActive('nav-trading');
+    _setMobTabActive('mob-tab-trading');
+    _showTradingContent();
+  } else if (section === 'settings') {
+    _showPage('settings');
+    subTabsEl.style.display = 'none';
+    _setTopbarTitle('Settings');
+    _setSidebarActive('nav-settings');
+    _setMobTabActive('mob-tab-settings');
+    _renderSettingsPage();
+  } else if (section === 'scanner') {
+    _currentSubTab = 'scanner';
+    _showPage('scanner');
+    subTabsEl.style.display = '';
+    _activateSubTab('scanner');
+    _setTopbarTitle('Pattern Scanner');
+    _setSidebarActive('nav-home');
+    _setMobTabActive('mob-tab-scanner');
+  } else {
+    _showPage(_currentSubTab);
+    subTabsEl.style.display = '';
+    _activateSubTab(_currentSubTab);
+    _setTopbarTitle(SECTION_TITLES[_currentSubTab]);
+    _setSidebarActive('nav-home');
+    _setMobTabActive('mob-tab-home');
+  }
+}
+
+function switchSubTab(tab) {
+  _currentSubTab = tab;
+  _currentSection = tab === 'scanner' ? 'scanner' : 'home';
+  _showPage(tab);
+  _activateSubTab(tab);
+  _setTopbarTitle(SECTION_TITLES[tab]);
+  _setMobTabActive(tab === 'scanner' ? 'mob-tab-scanner' : 'mob-tab-home');
+}
+
+function _showPage(id) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  const el = document.getElementById('page-' + id);
+  if (el) el.classList.add('active');
+}
+
+function _activateSubTab(tab) {
+  document.querySelectorAll('.sub-tab').forEach(b => b.classList.remove('active'));
+  const el = document.getElementById('subtab-' + tab);
+  if (el) el.classList.add('active');
+}
+
+function _setSidebarActive(id) {
+  document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
+  const el = document.getElementById(id);
+  if (el) el.classList.add('active');
+}
+
+function _setMobTabActive(id) {
+  document.querySelectorAll('.tab-item').forEach(b => b.classList.remove('active'));
+  const el = document.getElementById(id);
+  if (el) el.classList.add('active');
+}
+
+function _setTopbarTitle(title) {
+  const el = document.getElementById('topbar-title');
+  if (el) el.textContent = title;
+}
+
+// ── Cached data ────────────────────────────────────────────────────────────────
+let _scanData    = null;
+let _briefData   = null;
+let _scanFilter  = 'all';
+
+// ── Timezone helpers ───────────────────────────────────────────────────────────
+function getTz() { return localStorage.getItem(TZ_KEY) || DEFAULT_TZ; }
+function setTz(tz) { localStorage.setItem(TZ_KEY, tz); }
 
 function formatTs(iso) {
   if (!iso) return '—';
   const d = new Date(iso);
-  if (isNaN(d)) return iso;  // fallback: show raw string if unparseable
+  if (isNaN(d)) return iso;
   return d.toLocaleString('en-GB', {
     timeZone: getTz(),
     day: '2-digit', month: 'short', year: 'numeric',
-    hour: '2-digit', minute: '2-digit',
-    hour12: false,
+    hour: '2-digit', minute: '2-digit', hour12: false,
   }).replace(',', '');
 }
 
 function tzAbbr() {
   const sel = document.getElementById('tz-select');
-  return sel ? sel.options[sel.selectedIndex].text.split(' ')[0] : '';
+  return sel ? sel.options[sel.selectedIndex].text.split('(')[0].trim() : '';
 }
 
 function updateThHeader() {
@@ -37,124 +351,193 @@ function updateThHeader() {
   if (th) th.textContent = `Bar Open (${tzAbbr()})`;
 }
 
-async function fetchJSON(url) {
-  const r = await fetch(url, { cache: 'no-store' });
+// ── Theme ──────────────────────────────────────────────────────────────────────
+function getTheme() { return localStorage.getItem(THEME_KEY) || DEFAULT_THEME; }
+
+function applyTheme(t) {
+  document.documentElement.setAttribute('data-theme', t);
+  localStorage.setItem(THEME_KEY, t);
+  // Keep all theme selectors in sync
+  ['theme-select', 'settings-theme-select'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = t;
+  });
+}
+
+// ── HTTP helpers ───────────────────────────────────────────────────────────────
+async function fetchJSON(url, opts = {}) {
+  const token = await _getToken();
+  const headers = { ...(opts.headers || {}) };
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+  const r = await fetch(url, { ...opts, headers, cache: 'no-store' });
+  if (r.status === 401) throw Object.assign(new Error('Unauthenticated'), { status: 401 });
   if (!r.ok) throw new Error(`${url} → ${r.status}`);
   return r.json();
 }
 
-function patternClass(name) {
-  if (name.includes('Flag'))    return 'pattern-flag';
-  if (name.includes('Morning')) return 'pattern-morning';
-  if (name.includes('Evening')) return 'pattern-evening';
-  return '';
+// ── Pattern helpers ────────────────────────────────────────────────────────────
+function inferDirection(patternName) {
+  const n = (patternName || '').toLowerCase();
+  if (n.includes('morning') || n.includes('bullish') || n.includes('bottom')) return 'long';
+  if (n.includes('evening') || n.includes('bearish') || n.includes('top'))    return 'short';
+  return null;
 }
 
-// ── Render (uses cached data, no fetch) ───────────────────────────────────────
+function directionBadge(dir) {
+  if (dir === 'long')  return '<span class="badge badge-bull">▲ Long</span>';
+  if (dir === 'short') return '<span class="badge badge-bear">▼ Short</span>';
+  return '<span class="badge badge-neutral">—</span>';
+}
+
+function patternMatchesFilter(h) {
+  if (_scanFilter === 'all')     return true;
+  if (_scanFilter === 'depo')    return !!h.depo_line;
+  const dir = inferDirection(h.pattern);
+  if (_scanFilter === 'bullish') return dir === 'long';
+  if (_scanFilter === 'bearish') return dir === 'short';
+  return true;
+}
+
+// ── Markdown renderer ──────────────────────────────────────────────────────────
+function renderMarkdown(text) {
+  if (!text) return '<p style="color:var(--text-3)">No briefing yet.</p>';
+  const esc    = s => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const inline = s => esc(s)
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*(.+?)\*/g,     '<em>$1</em>');
+
+  const lines = text.split('\n');
+  let html = '', inList = false;
+
+  for (const raw of lines) {
+    const t = raw.trim();
+    if      (t.startsWith('### ')) { if (inList) { html += '</ul>'; inList = false; } html += `<h3>${inline(t.slice(4))}</h3>`; }
+    else if (t.startsWith('## '))  { if (inList) { html += '</ul>'; inList = false; } html += `<h2>${inline(t.slice(3))}</h2>`; }
+    else if (t.startsWith('# '))   { if (inList) { html += '</ul>'; inList = false; } html += `<h1>${inline(t.slice(2))}</h1>`; }
+    else if (t === '---')           { if (inList) { html += '</ul>'; inList = false; } html += '<hr>'; }
+    else if (t.startsWith('- ') || t.startsWith('* ')) {
+      if (!inList) { html += '<ul>'; inList = true; }
+      html += `<li>${inline(t.slice(2))}</li>`;
+    } else if (t === '') {
+      if (inList) { html += '</ul>'; inList = false; }
+    } else {
+      if (inList) { html += '</ul>'; inList = false; }
+      html += `<p>${inline(t)}</p>`;
+    }
+  }
+  if (inList) html += '</ul>';
+  return html;
+}
+
+// ── Briefing ───────────────────────────────────────────────────────────────────
 function renderBriefing() {
   if (!_briefData) return;
-  document.getElementById('briefing-text').textContent = _briefData.text || 'No briefing yet.';
-  document.getElementById('brief-ts').textContent = formatTs(_briefData.timestamp);
+  document.getElementById('briefing-text').innerHTML = renderMarkdown(_briefData.text);
+  _setText('brief-ts', formatTs(_briefData.timestamp));
 }
 
-function renderScan() {
-  if (!_scanData) return;
-  document.getElementById('scan-ts').textContent = formatTs(_scanData.timestamp);
-
-  const hits  = _scanData.results || [];
-  const tbody = document.getElementById('scan-body');
-
-  if (hits.length === 0) {
-    tbody.innerHTML = '<tr class="empty-row"><td colspan="6">No patterns detected yet — trigger a scan to start.</td></tr>';
-    return;
-  }
-
-  tbody.innerHTML = hits.map(h => {
-    const depoHtml = h.depo_line
-      ? `<span class="depo-hit">${Number(h.depo_line).toLocaleString()}</span>`
-      : `<span class="depo-none">none</span>`;
-    const agoHtml = h.bars_ago === 0
-      ? `<span style="color:var(--green)">current</span>`
-      : `<span style="color:var(--muted)">${h.bars_ago} bars ago</span>`;
-    const openTime = formatTs(h.bar_open_time);
-    const openPx   = h.bar_open_price
-      ? Number(h.bar_open_price).toLocaleString('en-US', { minimumFractionDigits: 1, maximumFractionDigits: 1 })
-      : '—';
-    return `<tr>
-      <td><span class="tf-badge">${h.tf}</span></td>
-      <td class="${patternClass(h.pattern)}">${h.pattern}</td>
-      <td style="text-align:right">${agoHtml}</td>
-      <td style="color:var(--muted);font-size:12px">${openTime}</td>
-      <td style="text-align:right;color:var(--accent)">${openPx}</td>
-      <td>${depoHtml}</td>
-    </tr>`;
-  }).join('');
-}
-
-// ── Fetch + render ────────────────────────────────────────────────────────────
 async function loadBriefing() {
   try {
     _briefData = await fetchJSON('/api/brief');
     renderBriefing();
-  } catch (e) {
-    document.getElementById('briefing-text').textContent = 'Failed to load briefing.';
+  } catch (_) {
+    document.getElementById('briefing-text').innerHTML = '<p style="color:var(--red)">Failed to load briefing.</p>';
   }
+}
+
+// ── Scanner ────────────────────────────────────────────────────────────────────
+function renderScan() {
+  if (!_scanData) return;
+  _setText('scan-ts', formatTs(_scanData.timestamp));
+  const hits  = (_scanData.results || []).filter(patternMatchesFilter);
+  const tbody = document.getElementById('scan-body');
+
+  if (!hits.length) {
+    tbody.innerHTML = '<tr class="empty-row"><td colspan="7">No patterns detected yet — trigger a scan to start.</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = hits.map(h => {
+    const dir      = inferDirection(h.pattern);
+    const depoHtml = h.depo_line
+      ? `<span class="depo-val">⚡${Number(h.depo_line).toLocaleString()}</span>`
+      : `<span class="depo-none">—</span>`;
+    const agoHtml  = h.bars_ago === 0
+      ? `<span style="color:var(--green)">current</span>`
+      : `<span style="color:var(--text-3)">${h.bars_ago}b</span>`;
+    const openPx   = h.bar_open_price
+      ? Number(h.bar_open_price).toLocaleString('en-US', { minimumFractionDigits: 1, maximumFractionDigits: 1 })
+      : '—';
+    return `<tr>
+      <td><span class="badge badge-neutral">${h.tf}m</span></td>
+      <td style="color:var(--text)">${h.pattern}</td>
+      <td>${directionBadge(dir)}</td>
+      <td style="text-align:right">${agoHtml}</td>
+      <td style="color:var(--text-3);font-size:12px">${formatTs(h.bar_open_time)}</td>
+      <td style="text-align:right;color:var(--text);font-variant-numeric:tabular-nums">${openPx}</td>
+      <td>${depoHtml}</td>
+    </tr>`;
+  }).join('');
 }
 
 async function loadScan() {
   try {
     _scanData = await fetchJSON('/api/scan');
     renderScan();
-  } catch (e) {
+  } catch (_) {
     document.getElementById('scan-body').innerHTML =
-      '<tr class="empty-row"><td colspan="6">Failed to load scan results.</td></tr>';
+      '<tr class="empty-row"><td colspan="7">Failed to load scan results.</td></tr>';
   }
 }
 
-// ── Status / spinner management ───────────────────────────────────────────────
+// ── Status dots ────────────────────────────────────────────────────────────────
 async function pollStatus() {
   try {
     const s = await fetchJSON('/api/status');
-    setRunning('scan',  s.scan_running);
-    setRunning('brief', s.brief_running);
+    _setDot('scan-dot',  s.scan_running);
+    _setDot('brief-dot', s.brief_running);
+    _setRunningBtn(s.scan_running, s.brief_running);
   } catch (_) {}
 }
 
-function setRunning(which, running) {
-  const btn = document.getElementById(`${which}-btn`);
-  const dot = document.getElementById(`${which}-dot`);
-  btn.disabled = running;
-  if (running) {
-    btn.innerHTML = '<span class="spinner"></span>Running…';
-    dot.className = 'status-dot dot-run';
-  } else {
-    btn.textContent = which === 'scan' ? 'Trigger Scan Now' : 'Trigger Briefing Now';
-    dot.className = 'status-dot dot-ok';
+function _setDot(id, running) {
+  const el = document.getElementById(id);
+  if (el) el.className = running ? 'status-dot dot-run' : 'status-dot dot-ok';
+}
+
+function _setRunningBtn(scanRunning, briefRunning) {
+  const scanBtn  = document.getElementById('scan-btn');
+  const briefBtn = document.getElementById('brief-btn');
+  if (scanBtn) {
+    scanBtn.disabled = scanRunning;
+    scanBtn.innerHTML = scanRunning
+      ? '<span class="spinner"></span> Scanning…'
+      : `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:13px;height:13px"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg> Refresh`;
+  }
+  if (briefBtn) {
+    briefBtn.disabled = briefRunning;
+    briefBtn.innerHTML = briefRunning
+      ? '<span class="spinner"></span> Generating…'
+      : `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:13px;height:13px"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg> Briefing`;
   }
 }
 
-// ── Trigger buttons ───────────────────────────────────────────────────────────
+// ── Trigger buttons ────────────────────────────────────────────────────────────
 async function triggerScan() {
   document.getElementById('scan-btn').disabled = true;
-  await fetch('/api/scan/trigger', { method: 'POST' });
-  const iv = setInterval(async () => {
-    await pollStatus();
-    await loadScan();
-  }, 3000);
-  setTimeout(() => clearInterval(iv), 5 * 60 * 1000); // stop polling after 5min
+  await fetchJSON('/api/scan/trigger', { method: 'POST' });
+  const iv = setInterval(async () => { await pollStatus(); await loadScan(); }, 3000);
+  setTimeout(() => clearInterval(iv), 5 * 60 * 1000);
 }
 
 async function triggerBrief() {
   document.getElementById('brief-btn').disabled = true;
-  await fetch('/api/brief/trigger', { method: 'POST' });
-  const iv = setInterval(async () => {
-    await pollStatus();
-    await loadBriefing();
-  }, 3000);
+  await fetchJSON('/api/brief/trigger', { method: 'POST' });
+  const iv = setInterval(async () => { await pollStatus(); await loadBriefing(); }, 3000);
   setTimeout(() => clearInterval(iv), 5 * 60 * 1000);
 }
 
-// ── BTC live price ────────────────────────────────────────────────────────────
+// ── BTC price ──────────────────────────────────────────────────────────────────
 async function fetchBTCPrice() {
   const endpoints = [
     'https://fapi.binance.com/fapi/v1/ticker/price?symbol=BTCUSDT',
@@ -169,14 +552,17 @@ async function fetchBTCPrice() {
         ? parseFloat(d.price)
         : parseFloat(d?.result?.list?.[0]?.lastPrice);
       if (!price || isNaN(price)) continue;
-      document.getElementById('btc-price').textContent =
-        '$' + price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      const fmt = '$' + price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      ['btc-price', 'btc-price-mobile'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.textContent = fmt;
+      });
       return;
     } catch (_) {}
   }
 }
 
-// ── Trading scanner ───────────────────────────────────────────────────────────
+// ── Trading scanner ────────────────────────────────────────────────────────────
 let _tradingData = null;
 
 function fmtPrice(v) {
@@ -189,62 +575,177 @@ function renderLevels(levels) {
   const el = document.getElementById('levels-row');
   if (!el) return;
   if (!levels || (!levels.mrp && !levels.daily_poc && !levels.weekly_poc)) {
-    el.style.display = 'none';
-    return;
+    el.style.display = 'none'; return;
   }
   el.style.display = '';
+  const mrpStr  = levels.mrp       ? `<span style="color:var(--accent)">$${fmtPrice(levels.mrp)}</span>`      : '<span style="color:var(--text-3)">—</span>';
+  const dpocStr = levels.daily_poc  ? `<span style="color:var(--green)">$${fmtPrice(levels.daily_poc)}</span>` : '<span style="color:var(--text-3)">—</span>';
+  const wpocStr = levels.weekly_poc ? `<span style="color:#c084fc">$${fmtPrice(levels.weekly_poc)}</span>`     : '<span style="color:var(--text-3)">—</span>';
 
-  const mrpStr   = levels.mrp        ? `<span style="color:var(--accent)">$${fmtPrice(levels.mrp)}</span>`       : '<span style="color:var(--muted)">—</span>';
-  const dpocStr  = levels.daily_poc  ? `<span style="color:var(--green)">$${fmtPrice(levels.daily_poc)}</span>`  : '<span style="color:var(--muted)">—</span>';
-  const wpocStr  = levels.weekly_poc ? `<span style="color:#c084fc">$${fmtPrice(levels.weekly_poc)}</span>`      : '<span style="color:var(--muted)">—</span>';
-
-  // compute bias
   const price = _tradingData?.current_price;
-  let bias = '', biasColor = 'var(--muted)';
+  let bias = '—', biasColor = 'var(--text-3)';
   if (price) {
-    const above = [levels.mrp, levels.daily_poc, levels.weekly_poc]
-      .filter(v => v != null)
-      .filter(v => price > v).length;
-    const total = [levels.mrp, levels.daily_poc, levels.weekly_poc].filter(v => v != null).length;
-    if (total === 0) { bias = '—'; }
-    else if (above === total) { bias = 'strongly bullish'; biasColor = 'var(--green)'; }
-    else if (above > total / 2) { bias = 'bullish'; biasColor = 'var(--green)'; }
-    else if (above === 0) { bias = 'strongly bearish'; biasColor = 'var(--red)'; }
-    else { bias = 'bearish'; biasColor = 'var(--red)'; }
+    const vals  = [levels.mrp, levels.daily_poc, levels.weekly_poc].filter(v => v != null);
+    const above = vals.filter(v => price > v).length;
+    if (vals.length) {
+      if      (above === vals.length)       { bias = 'strongly bullish'; biasColor = 'var(--green)'; }
+      else if (above > vals.length / 2)     { bias = 'bullish';          biasColor = 'var(--green)'; }
+      else if (above === 0)                 { bias = 'strongly bearish'; biasColor = 'var(--red)';   }
+      else                                  { bias = 'bearish';          biasColor = 'var(--red)';   }
+    }
   }
-
   el.innerHTML = `
-    <span class="level-item">MRP (VWAP): ${mrpStr}</span>
-    <span class="level-sep">·</span>
-    <span class="level-item">Daily POC: ${dpocStr}</span>
-    <span class="level-sep">·</span>
-    <span class="level-item">Weekly POC: ${wpocStr}</span>
-    <span class="level-sep">·</span>
-    <span class="level-item">Bias: <span style="color:${biasColor}">${bias || '—'}</span></span>
-  `;
+    <span class="level-item">MRP: ${mrpStr}</span><span class="level-sep">·</span>
+    <span class="level-item">D-POC: ${dpocStr}</span><span class="level-sep">·</span>
+    <span class="level-item">W-POC: ${wpocStr}</span><span class="level-sep">·</span>
+    <span class="level-item">Bias: <span style="color:${biasColor}">${bias}</span></span>`;
 }
 
 function renderTrading() {
   if (!_tradingData) return;
-  const { signals = [], positions = [], history = [], running, settings = {}, levels = {} } = _tradingData;
+  const { signals = [], positions = [], history = [], running, settings = {}, levels = {}, current_price = 0 } = _tradingData;
 
-  document.getElementById('trade-mode-label').textContent = (settings.mode || 'paper').toUpperCase();
+  _setText('trade-mode-label', (settings.mode || 'paper').toUpperCase());
+  const liveEl = document.getElementById('trade-live-price');
+  if (liveEl) liveEl.textContent = current_price ? `$${fmtPrice(current_price)}` : '—';
+
   const startBtn = document.getElementById('trade-start-btn');
   const stopBtn  = document.getElementById('trade-stop-btn');
   const dot      = document.getElementById('trade-dot');
   if (running) {
-    startBtn.style.display = 'none';
-    stopBtn.style.display  = '';
-    dot.className = 'status-dot dot-run';
+    if (startBtn) startBtn.style.display = 'none';
+    if (stopBtn)  stopBtn.style.display  = '';
+    if (dot)      dot.className = 'status-dot dot-run';
   } else {
-    startBtn.style.display = '';
-    stopBtn.style.display  = 'none';
-    dot.className = 'status-dot dot-ok';
+    if (startBtn) startBtn.style.display = '';
+    if (stopBtn)  stopBtn.style.display  = 'none';
+    if (dot)      dot.className = 'status-dot dot-ok';
   }
 
   renderLevels(levels);
 
-  // populate settings inputs (only if not focused)
+  // sync settings inputs (also used by settings page)
+  _syncSettingsInputs(settings);
+
+  // signals table
+  const sigBody = document.getElementById('trade-signals-body');
+  const pendingSigs = signals.filter(s => s.status === 'pending');
+  if (!pendingSigs.length) {
+    sigBody.innerHTML = '<tr class="empty-row"><td colspan="7">No pending signals</td></tr>';
+  } else {
+    sigBody.innerHTML = pendingSigs.map(s => {
+      const dirBadge = s.direction === 'long'
+        ? '<span class="badge badge-bull">▲ Long</span>'
+        : '<span class="badge badge-bear">▼ Short</span>';
+      return `<tr>
+        <td>${s.pattern}</td>
+        <td><span class="badge badge-neutral">${s.tf}m</span></td>
+        <td>${dirBadge}</td>
+        <td style="text-align:right;font-variant-numeric:tabular-nums">${Number(s.entry_trigger).toLocaleString('en-US',{minimumFractionDigits:1,maximumFractionDigits:1})}</td>
+        <td style="text-align:right;color:var(--red);font-variant-numeric:tabular-nums">${Number(s.sl_wick).toLocaleString('en-US',{minimumFractionDigits:1,maximumFractionDigits:1})}</td>
+        <td style="color:var(--text-3);font-size:12px">${formatTs(s.expires_at)}</td>
+        <td style="color:var(--accent)">${s.status}</td>
+      </tr>`;
+    }).join('');
+  }
+
+  // positions table
+  const posBody = document.getElementById('trade-positions-body');
+  const openPos = positions.filter(p => p.status === 'open');
+  if (!openPos.length) {
+    posBody.innerHTML = '<tr class="empty-row"><td colspan="11">No open positions</td></tr>';
+  } else {
+    posBody.innerHTML = openPos.map(p => {
+      const dirBadge  = p.direction === 'long'
+        ? '<span class="badge badge-bull">▲ Long</span>'
+        : '<span class="badge badge-bear">▼ Short</span>';
+      const slColor   = p.partial_closed ? 'var(--accent)' : 'var(--red)';
+      const phaseHtml = p.partial_closed
+        ? `<span class="phase-trail">TRAILING <span style="color:var(--text-3);font-size:10px">@${fmtPrice(p.trail_anchor)}</span></span>`
+        : `<span class="phase-watch">WATCHING</span>`;
+      const remQty    = p.remaining_qty ?? p.qty;
+      const tp1Str    = p.partial_closed
+        ? `<span style="color:var(--text-3)">${fmtPrice(p.tp)} ✓</span>`
+        : `<span style="color:var(--green)">${fmtPrice(p.tp)}</span>`;
+      const pts       = current_price
+        ? (p.direction === 'long' ? current_price - p.entry_price : p.entry_price - current_price)
+        : null;
+      const ptsStr    = pts !== null
+        ? `<span style="color:${pts >= 0 ? 'var(--green)' : 'var(--red)'}">${pts >= 0 ? '+' : ''}${pts.toFixed(1)}</span>`
+        : '—';
+      return `<tr>
+        <td>${dirBadge}</td>
+        <td><span class="badge badge-neutral">${p.tf ? p.tf + 'm' : '—'}</span></td>
+        <td>${p.pattern || '—'}</td>
+        <td style="text-align:right;font-variant-numeric:tabular-nums">$${fmtPrice(p.entry_price)}</td>
+        <td style="text-align:right;color:${slColor};font-variant-numeric:tabular-nums">$${fmtPrice(p.sl)}</td>
+        <td style="text-align:right">${tp1Str}</td>
+        <td style="text-align:right">${ptsStr}</td>
+        <td style="text-align:right;color:var(--text-3)">${remQty}</td>
+        <td>${phaseHtml}</td>
+        <td style="color:var(--text-3);font-size:12px">${formatTs(p.opened_at)}</td>
+        <td><button class="btn btn-danger" style="font-size:11px;padding:3px 10px" onclick="cancelPosition('${p.signal_id}')">Cancel</button></td>
+      </tr>`;
+    }).join('');
+  }
+
+  // history table
+  const histBody = document.getElementById('trade-history-body');
+  if (!history.length) {
+    histBody.innerHTML = '<tr class="empty-row"><td colspan="9">No completed trades</td></tr>';
+  } else {
+    histBody.innerHTML = [...history].reverse().slice(0, 40).map(r => {
+      const p          = r.position;
+      const isPartial  = r.close_reason === 'tp_partial';
+      const dirBadge   = p.direction === 'long'
+        ? '<span class="badge badge-bull">▲ Long</span>'
+        : '<span class="badge badge-bear">▼ Short</span>';
+      const pnl        = r.pnl_closed ?? 0;
+      const pnlClass   = pnl >= 0 ? 'pnl-pos' : 'pnl-neg';
+      const pnlStr     = (pnl >= 0 ? '+' : '') + pnl.toFixed(4);
+      const reasonColor = r.close_reason === 'sl' ? 'var(--red)' : 'var(--green)';
+      return `<tr style="${isPartial ? 'opacity:0.75' : ''}">
+        <td>${dirBadge}</td>
+        <td><span class="badge badge-neutral">${p.tf ? p.tf + 'm' : '—'}</span></td>
+        <td>${p.pattern || '—'}</td>
+        <td style="text-align:right;font-variant-numeric:tabular-nums">$${fmtPrice(p.entry_price)}</td>
+        <td style="text-align:right;font-variant-numeric:tabular-nums">$${fmtPrice(r.close_price)}</td>
+        <td style="text-align:right;color:var(--text-3)">${r.qty_closed ?? p.qty}</td>
+        <td style="text-align:right" class="${pnlClass}">${pnlStr}</td>
+        <td style="color:${reasonColor}">${isPartial ? 'TP 50%' : r.close_reason.toUpperCase()}</td>
+        <td style="color:var(--text-3);font-size:12px">${formatTs(r.closed_at)}</td>
+      </tr>`;
+    }).join('');
+  }
+}
+
+async function loadTrading() {
+  try {
+    _tradingData = await fetchJSON('/api/trading/state');
+    renderTrading();
+  } catch (e) {
+    if (e.status === 401) _showTradingContent();  // re-show gate if token expired
+  }
+}
+
+async function startTrading() {
+  await fetchJSON('/api/trading/start', { method: 'POST' });
+  await loadTrading();
+}
+
+async function stopTrading() {
+  await fetchJSON('/api/trading/stop', { method: 'POST' });
+  await loadTrading();
+}
+
+async function cancelPosition(signalId) {
+  if (!confirm('Cancel this position? This will close it at market price.')) return;
+  await fetchJSON(`/api/trading/position/${signalId}/cancel`, { method: 'POST' });
+  await loadTrading();
+}
+
+// ── Settings page ──────────────────────────────────────────────────────────────
+function _syncSettingsInputs(settings) {
   const cfgMap = {
     'cfg-mode':     settings.mode,
     'cfg-tf-min':   settings.tf_min,
@@ -259,106 +760,22 @@ function renderTrading() {
     const el = document.getElementById(id);
     if (el && document.activeElement !== el) el.value = val ?? '';
   }
-
-  // signals table
-  const sigBody = document.getElementById('trade-signals-body');
-  const pendingSigs = signals.filter(s => s.status === 'pending');
-  if (!pendingSigs.length) {
-    sigBody.innerHTML = '<tr class="empty-row"><td colspan="7">No pending signals</td></tr>';
-  } else {
-    sigBody.innerHTML = pendingSigs.map(s => {
-      const exp = formatTs(s.expires_at);
-      const dirClass = s.direction === 'long' ? 'dir-long' : 'dir-short';
-      return `<tr>
-        <td>${s.pattern}</td>
-        <td><span class="tf-badge">${s.tf}m</span></td>
-        <td class="${dirClass}">${s.direction.toUpperCase()}</td>
-        <td style="text-align:right">${Number(s.entry_trigger).toLocaleString('en-US',{minimumFractionDigits:1,maximumFractionDigits:1})}</td>
-        <td style="text-align:right;color:var(--red)">${Number(s.sl_wick).toLocaleString('en-US',{minimumFractionDigits:1,maximumFractionDigits:1})}</td>
-        <td style="color:var(--muted);font-size:12px">${exp}</td>
-        <td style="color:var(--accent)">${s.status}</td>
-      </tr>`;
-    }).join('');
-  }
-
-  // positions table
-  const posBody = document.getElementById('trade-positions-body');
-  const openPos = positions.filter(p => p.status === 'open');
-  if (!openPos.length) {
-    posBody.innerHTML = '<tr class="empty-row"><td colspan="7">No open positions</td></tr>';
-  } else {
-    posBody.innerHTML = openPos.map(p => {
-      const dirClass = p.direction === 'long' ? 'dir-long' : 'dir-short';
-      const slColor  = p.partial_closed ? 'var(--accent)' : 'var(--red)';
-      const phaseHtml = p.partial_closed
-        ? `<span class="phase-trail">TRAILING <span style="color:var(--muted);font-size:10px">@${fmtPrice(p.trail_anchor)}</span></span>`
-        : `<span class="phase-watch">WATCHING</span>`;
-      const remQty = p.remaining_qty ?? p.qty;
-      const tp1Str = p.partial_closed
-        ? `<span style="color:var(--muted)">${fmtPrice(p.tp)} ✓</span>`
-        : `<span style="color:var(--green)">${fmtPrice(p.tp)}</span>`;
-      return `<tr>
-        <td class="${dirClass}">${p.direction.toUpperCase()}</td>
-        <td><span class="tf-badge">${p.tf ? p.tf + 'm' : '—'}</span></td>
-        <td>${p.pattern || '—'}</td>
-        <td style="text-align:right">$${fmtPrice(p.entry_price)}</td>
-        <td style="text-align:right;color:${slColor}">$${fmtPrice(p.sl)}</td>
-        <td style="text-align:right">${tp1Str}</td>
-        <td style="text-align:right">${remQty}</td>
-        <td>${phaseHtml}</td>
-        <td style="color:var(--muted);font-size:12px">${formatTs(p.opened_at)}</td>
-      </tr>`;
-    }).join('');
-  }
-
-  // history table
-  const histBody = document.getElementById('trade-history-body');
-  if (!history.length) {
-    histBody.innerHTML = '<tr class="empty-row"><td colspan="9">No completed trades</td></tr>';
-  } else {
-    histBody.innerHTML = [...history].reverse().slice(0, 40).map(r => {
-      const p          = r.position;
-      const isPartial  = r.close_reason === 'tp_partial';
-      const dirClass   = p.direction === 'long' ? 'dir-long' : 'dir-short';
-      const pnl        = r.pnl_closed ?? 0;
-      const pnlClass   = pnl >= 0 ? 'pnl-pos' : 'pnl-neg';
-      const pnlStr     = (pnl >= 0 ? '+' : '') + pnl.toFixed(4);
-      const reasonLabel = isPartial ? 'TP 50%' : r.close_reason.toUpperCase();
-      const reasonColor = (r.close_reason === 'sl') ? 'var(--red)' : 'var(--green)';
-      const rowStyle    = isPartial ? 'opacity:0.75' : '';
-      return `<tr style="${rowStyle}">
-        <td class="${dirClass}">${p.direction.toUpperCase()}</td>
-        <td><span class="tf-badge">${p.tf ? p.tf + 'm' : '—'}</span></td>
-        <td>${p.pattern || '—'}</td>
-        <td style="text-align:right">$${fmtPrice(p.entry_price)}</td>
-        <td style="text-align:right">$${fmtPrice(r.close_price)}</td>
-        <td style="text-align:right;color:var(--muted)">${r.qty_closed ?? p.qty}</td>
-        <td style="text-align:right" class="${pnlClass}">${pnlStr}</td>
-        <td style="color:${reasonColor}">${reasonLabel}</td>
-        <td style="color:var(--muted);font-size:12px">${formatTs(r.closed_at)}</td>
-      </tr>`;
-    }).join('');
-  }
+  const activePatterns = settings.patterns || ['4-Flag', 'Engulfing'];
+  document.getElementById('cfg-pattern-4flag').checked    = activePatterns.includes('4-Flag');
+  document.getElementById('cfg-pattern-engulfing').checked = activePatterns.includes('Engulfing');
 }
 
-async function loadTrading() {
-  try {
-    _tradingData = await fetchJSON('/api/trading/state');
-    renderTrading();
-  } catch (_) {}
-}
-
-async function startTrading() {
-  await fetch('/api/trading/start', { method: 'POST' });
-  await loadTrading();
-}
-
-async function stopTrading() {
-  await fetch('/api/trading/stop', { method: 'POST' });
-  await loadTrading();
+async function _renderSettingsPage() {
+  _renderAccountCard();
+  const st = document.getElementById('settings-theme-select');
+  const sz = document.getElementById('settings-tz-select');
+  if (st) st.value = getTheme();
+  if (sz) sz.value = getTz();
+  await Promise.all([loadAppSettings(), loadUserSettings()]);
 }
 
 async function saveTradingSettings() {
+  if (!_currentUser) return;
   const settings = {
     mode:              document.getElementById('cfg-mode').value,
     tf_min:            parseInt(document.getElementById('cfg-tf-min').value),
@@ -368,8 +785,12 @@ async function saveTradingSettings() {
     max_sl:            parseFloat(document.getElementById('cfg-max-sl').value),
     min_tp:            parseFloat(document.getElementById('cfg-min-tp').value),
     max_concurrent:    parseInt(document.getElementById('cfg-max-conc').value),
+    patterns: [
+      ...(document.getElementById('cfg-pattern-4flag').checked    ? ['4-Flag']    : []),
+      ...(document.getElementById('cfg-pattern-engulfing').checked ? ['Engulfing'] : []),
+    ],
   };
-  await fetch('/api/trading/settings', {
+  await fetchJSON('/api/trading/settings', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(settings),
@@ -377,31 +798,63 @@ async function saveTradingSettings() {
   const msg = document.getElementById('trade-save-msg');
   msg.style.display = 'inline';
   setTimeout(() => { msg.style.display = 'none'; }, 2000);
-  await loadTrading();
 }
 
-// ── Boot ──────────────────────────────────────────────────────────────────────
+// ── Filter pills ───────────────────────────────────────────────────────────────
+document.getElementById('scan-filter-pills').addEventListener('click', e => {
+  const pill = e.target.closest('.pill');
+  if (!pill) return;
+  _scanFilter = pill.dataset.filter;
+  document.querySelectorAll('#scan-filter-pills .pill').forEach(p => p.classList.remove('active'));
+  pill.classList.add('active');
+  renderScan();
+});
+
+// ── Boot ───────────────────────────────────────────────────────────────────────
 document.getElementById('scan-btn').addEventListener('click', triggerScan);
 document.getElementById('brief-btn').addEventListener('click', triggerBrief);
 document.getElementById('trade-start-btn').addEventListener('click', startTrading);
 document.getElementById('trade-stop-btn').addEventListener('click', stopTrading);
 document.getElementById('trade-save-btn').addEventListener('click', saveTradingSettings);
 
+// Sidebar TZ + theme
 const tzSelect = document.getElementById('tz-select');
 tzSelect.value = getTz();
 tzSelect.addEventListener('change', () => {
   setTz(tzSelect.value);
+  // keep settings TZ in sync
+  const sz = document.getElementById('settings-tz-select');
+  if (sz) sz.value = tzSelect.value;
   updateThHeader();
-  // Re-render instantly from cached data — no network call needed
   renderBriefing();
   renderScan();
 });
 
+applyTheme(getTheme());
+document.getElementById('theme-select').addEventListener('change', e => applyTheme(e.target.value));
+
+// Settings page selectors
+document.getElementById('settings-theme-select').addEventListener('change', e => {
+  applyTheme(e.target.value);
+});
+document.getElementById('settings-tz-select').addEventListener('change', e => {
+  setTz(e.target.value);
+  tzSelect.value = e.target.value;
+  updateThHeader();
+  renderBriefing();
+  renderScan();
+});
+
+// Initial auth state render (may be null until Firebase resolves)
+_updateAuthUI();
+
 (async () => {
   updateThHeader();
-  await Promise.all([loadBriefing(), loadScan(), loadTrading(), fetchBTCPrice(), pollStatus()]);
+  // Briefing + scanner are public — load immediately
+  await Promise.all([loadBriefing(), loadScan(), fetchBTCPrice(), pollStatus()]);
   setInterval(() => Promise.all([loadBriefing(), loadScan()]), REFRESH_MS);
-  setInterval(loadTrading, 5000);   // refresh trading state every 5s
   setInterval(fetchBTCPrice, 10_000);
   setInterval(pollStatus, 3000);
+  // Trading polling only when signed in
+  setInterval(() => { if (_currentUser) loadTrading(); }, 5000);
 })();

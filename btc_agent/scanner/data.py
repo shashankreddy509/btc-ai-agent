@@ -14,6 +14,8 @@ _EXCHANGE_CANDIDATES = [
     ("Bybit",                  "BTC/USDT:USDT", lambda: ccxt.bybit({"enableRateLimit": True})),
 ]
 
+_exchange_cache: tuple | None = None  # (exchange, symbol) — reused for fast ticker calls
+
 
 def _get_exchange() -> tuple:
     """
@@ -35,6 +37,20 @@ def _get_exchange() -> tuple:
             console.print(f"[yellow]{name} unavailable ({e}), trying next…[/yellow]")
             continue
     raise RuntimeError("No accessible exchange found for BTCUSDT perpetual. Check your network.")
+
+
+def _get_exchange_cached() -> tuple:
+    global _exchange_cache
+    if _exchange_cache is None:
+        _exchange_cache = _get_exchange()
+    return _exchange_cache
+
+
+def fetch_current_price() -> float:
+    """Lightweight single-call price fetch using a cached exchange connection."""
+    exchange, symbol = _get_exchange_cached()
+    ticker = exchange.fetch_ticker(symbol)
+    return float(ticker["last"])
 
 
 def _fetch_ohlcv(exchange, symbol: str, since: int | None = None, limit: int = 1000, max_retries: int = 3) -> list:

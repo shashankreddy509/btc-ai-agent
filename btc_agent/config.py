@@ -54,6 +54,9 @@ TRADING_MAX_SL            = float(os.getenv("TRADING_MAX_SL", "500"))
 TRADING_MIN_TP            = float(os.getenv("TRADING_MIN_TP", "500"))
 WEEKLY_ADJ                = float(os.getenv("WEEKLY_ADJ", "0.0324"))
 
+# Firebase owner UID — Coinbase keys stored in Firestore are tied to this UID
+FIREBASE_OWNER_UID        = os.getenv("FIREBASE_OWNER_UID", "")
+
 # Coinbase Advanced Trade
 COINBASE_API_KEY          = os.getenv("COINBASE_API_KEY", "")
 COINBASE_API_SECRET       = os.getenv("COINBASE_API_SECRET", "")
@@ -85,3 +88,55 @@ def _validate() -> None:
 
 
 _validate()
+
+
+def apply_settings(d: dict) -> None:
+    """Override module-level config vars from a Firestore settings dict."""
+    import sys
+    mod = sys.modules[__name__]
+    _str = {
+        "anthropic_api_key": "ANTHROPIC_API_KEY", "anthropic_model": "ANTHROPIC_MODEL",
+        "telegram_bot_token": "TELEGRAM_BOT_TOKEN", "telegram_chat_id": "TELEGRAM_CHAT_ID",
+        "email_smtp_host": "EMAIL_SMTP_HOST", "email_user": "EMAIL_USER",
+        "email_pass": "EMAIL_PASS", "email_to": "EMAIL_TO",
+        "briefing_time": "BRIEFING_TIME", "scanner_time": "SCANNER_TIME",
+        "trading_mode": "TRADING_MODE",
+        "coinbase_api_key": "COINBASE_API_KEY", "coinbase_api_secret": "COINBASE_API_SECRET",
+        "coinbase_product_id": "COINBASE_PRODUCT_ID",
+    }
+    _int = {
+        "email_smtp_port": "EMAIL_SMTP_PORT",
+        "scanner_tf_min": "SCANNER_TF_MIN", "scanner_tf_max": "SCANNER_TF_MAX",
+        "scanner_interval_min": "SCANNER_INTERVAL_MIN",
+        "trading_tf_min": "TRADING_TF_MIN", "trading_tf_max": "TRADING_TF_MAX",
+        "trading_scan_interval_min": "TRADING_SCAN_INTERVAL_MIN",
+        "trading_max_concurrent": "TRADING_MAX_CONCURRENT", "trading_qty": "TRADING_QTY",
+    }
+    _float = {
+        "trading_max_sl": "TRADING_MAX_SL", "trading_min_tp": "TRADING_MIN_TP",
+        "weekly_adj": "WEEKLY_ADJ", "coinbase_contract_size": "COINBASE_CONTRACT_SIZE",
+    }
+    _list = {
+        "delivery_channels": "DELIVERY_CHANNELS",
+        "scanner_patterns": "SCANNER_PATTERNS", "trading_patterns": "TRADING_PATTERNS",
+    }
+    for key, attr in _str.items():
+        v = d.get(key)
+        if v is not None and str(v).strip() and "****" not in str(v):
+            setattr(mod, attr, str(v))
+    for key, attr in _int.items():
+        v = d.get(key)
+        if v is not None:
+            try: setattr(mod, attr, int(v))
+            except (ValueError, TypeError): pass
+    for key, attr in _float.items():
+        v = d.get(key)
+        if v is not None:
+            try: setattr(mod, attr, float(v))
+            except (ValueError, TypeError): pass
+    for key, attr in _list.items():
+        v = d.get(key)
+        if isinstance(v, list) and v:
+            setattr(mod, attr, v)
+        elif isinstance(v, str) and v:
+            setattr(mod, attr, [x.strip() for x in v.split(",") if x.strip()])

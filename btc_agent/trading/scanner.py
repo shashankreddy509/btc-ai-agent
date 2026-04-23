@@ -25,7 +25,7 @@ from rich.console import Console
 
 from btc_agent import config
 from btc_agent.scanner.aggregator import aggregate_tf, df_to_numpy
-from btc_agent.scanner.data import fetch_1m_candles
+from btc_agent.scanner.data import fetch_1m_candles, fetch_current_price
 from btc_agent.scanner.levels import compute_levels
 from btc_agent.scanner.patterns import detect_4flag, detect_engulfing
 from btc_agent.trading.models import Position, Signal, TradeResult
@@ -36,6 +36,13 @@ _IST = timezone(timedelta(hours=5, minutes=30))
 _STATE_PATH = Path(__file__).parent.parent / "data" / "trading_state.json"
 _SETTINGS_PATH = Path(__file__).parent.parent / "data" / "trading_settings.json"
 
+try:
+    from btc_agent.trading import firestore_store as _fs
+    _FS = True
+except Exception:
+    _fs = None  # type: ignore
+    _FS = False
+
 # ── module-level state (shared with web API) ──────────────────────────────────
 pending_signals: list[Signal] = []
 open_positions:  list[Position] = []
@@ -43,6 +50,7 @@ trade_history:   list[TradeResult] = []
 _running = False
 _last_scan_time: datetime | None = None
 _current_levels: dict = {}
+_last_price: float = 0.0
 
 
 # ── settings (hot-reloadable from JSON) ──────────────────────────────────────
@@ -80,44 +88,9 @@ def _qty_str(contracts: int) -> str:
 
 # ── SL calculation ────────────────────────────────────────────────────────────
 
-def calc_sl(direction: str, sl_wick: float, sl_body: float, entry: float) -> float:
-    """
-    Priority: wick → body → hard cap (max_sl() points).
-    Long:  sl is below entry; Short: sl is above entry.
-    Logs which level was chosen and why.
-    """
-    cap = max_sl()
-    if direction == "long":
-        sl = sl_wick
-        wick_dist = entry - sl_wick
-        body_dist = entry - sl_body
-        if wick_dist > cap:
-            console.print(
-                f"[dim]SL: wick too wide ({wick_dist:.0f} pts > {cap:.0f} cap), "
-                f"trying body ({body_dist:.0f} pts)[/dim]"
-            )
-            sl = sl_body
-        if entry - sl > cap:
-            console.print(
-                f"[dim]SL: body also too wide ({body_dist:.0f} pts), capping at {cap:.0f} pts[/dim]"
-            )
-            sl = entry - cap
-    else:
-        sl = sl_wick
-        wick_dist = sl_wick - entry
-        body_dist = sl_body - entry
-        if wick_dist > cap:
-            console.print(
-                f"[dim]SL: wick too wide ({wick_dist:.0f} pts > {cap:.0f} cap), "
-                f"trying body ({body_dist:.0f} pts)[/dim]"
-            )
-            sl = sl_body
-        if sl - entry > cap:
-            console.print(
-                f"[dim]SL: body also too wide ({body_dist:.0f} pts), capping at {cap:.0f} pts[/dim]"
-            )
-            sl = entry + cap
-    return round(sl, 2)
+def calc_sl(sl_wick: float) -> float:
+    """SL is always the wick low/high of the pattern candle."""
+    return round(sl_wick, 2)
 
 
 # ── TP calculation using market structure levels ──────────────────────────────
@@ -152,6 +125,9 @@ def _calc_tp(direction: str, entry: float, levels: dict) -> tuple[float, str]:
     if dist < min_tp():
         tp_price = entry + min_tp() if direction == "long" else entry - min_tp()
         tp_reason = f"{tp_reason}(min_floor)"
+    elif dist > 500:
+        tp_price = entry + 500 if direction == "long" else entry - 500
+        tp_reason = "500_cap"
 
     return round(tp_price, 2), tp_reason
 
@@ -183,14 +159,27 @@ def _bars_to_signal(
     body_hi = max(o, c)
     body_lo = min(o, c)
     now = datetime.now(timezone.utc)
-    if direction == "long":
-        entry_trigger = body_hi
-        sl_wick = l           # wick low
-        sl_body = body_lo     # body low
+    if pattern == "4-Flag":
+        # Trigger = highest body_hi (long) or lowest body_lo (short) across all 4 flag candles
+        flag_bars = bars[-4:]
+        flag_body_his = np.maximum(flag_bars[:, 0], flag_bars[:, 3])
+        flag_body_los = np.minimum(flag_bars[:, 0], flag_bars[:, 3])
+        if direction == "long":
+            entry_trigger = float(flag_body_his.max())
+        else:
+            entry_trigger = float(flag_body_los.min())
     else:
-        entry_trigger = body_lo
-        sl_wick = h           # wick high
-        sl_body = body_hi     # body high
+        # Engulfing: breakout above/below the body of the engulfing candle
+        if direction == "long":
+            entry_trigger = body_hi
+        else:
+            entry_trigger = body_lo
+    if direction == "long":
+        sl_wick = l
+        sl_body = body_lo
+    else:
+        sl_wick = h
+        sl_body = body_hi
     return Signal(
         id=uuid.uuid4().hex[:8],
         pattern=pattern,
@@ -236,16 +225,14 @@ def _scan_patterns(arr, ts_arr, minutes_of_day, unix_days) -> list[Signal]:
 
         if "4-Flag" in patterns and len(bars) >= 4:
             if detect_4flag(bars[-4:]):
-                last = bars[-1]
-                o, c = last[0], last[3]
-                direction = "long" if c >= o else "short"
-                if not _is_duplicate(tf, "4-Flag", direction, bar_open_time):
-                    sig = _bars_to_signal("4-Flag", direction, tf, bars, bar_open_time)
-                    new_signals.append(sig)
-                    console.print(
-                        f"[bold yellow]4-Flag[/bold yellow] detected on [green]{tf}m[/green] "
-                        f"→ {direction.upper()}  trigger={sig.entry_trigger:.1f}"
-                    )
+                for direction in ("long", "short"):
+                    if not _is_duplicate(tf, "4-Flag", direction, bar_open_time):
+                        sig = _bars_to_signal("4-Flag", direction, tf, bars, bar_open_time)
+                        new_signals.append(sig)
+                        console.print(
+                            f"[bold yellow]4-Flag[/bold yellow] detected on [green]{tf}m[/green] "
+                            f"→ {direction.upper()}  trigger={sig.entry_trigger:.1f}"
+                        )
 
         if "Engulfing" in patterns and len(bars) >= 2:
             found, eng_dir = detect_engulfing(bars[-2:])
@@ -273,11 +260,21 @@ def _execute_entry(sig: Signal, current_price: float) -> None:
         console.print(
             f"[yellow]Signal {sig.id} skipped — max concurrent ({cap}) reached[/yellow]"
         )
+        if _FS: _fs.update_signal_status(sig.id, "skipped")
         _save_state()
         return
 
     entry = current_price
-    sl = calc_sl(sig.direction, sig.sl_wick, sig.sl_body, entry)
+    sl = calc_sl(sig.sl_wick)
+    sl_dist = abs(entry - sl)
+    if sl_dist > 500:
+        sig.status = "skipped"
+        console.print(
+            f"[yellow]Signal {sig.id} skipped — SL distance {sl_dist:.0f} pts > 500[/yellow]"
+        )
+        if _FS: _fs.update_signal_status(sig.id, "skipped")
+        _save_state()
+        return
     tp, tp_reason = _calc_tp(sig.direction, entry, _current_levels)
     qty = trading_qty()
     sig.status = "triggered"
@@ -324,6 +321,9 @@ def _execute_entry(sig: Signal, current_price: float) -> None:
         )
 
     open_positions.append(pos)
+    if _FS:
+        _fs.update_signal_status(sig.id, "triggered")
+        _fs.save_position(_position_to_dict(pos))
     _save_state()
 
 
@@ -386,14 +386,18 @@ def _partial_close(pos: Position, price: float) -> None:
         f"SL: {old_sl:.1f} → {new_sl:.1f}  (trailing begins)"
     )
 
-    trade_history.append(TradeResult(
+    _partial_result = TradeResult(
         position=pos,
         close_price=price,
         close_reason="tp_partial",
         closed_at=datetime.now(timezone.utc),
         qty_closed=half_contracts,
         pnl_closed=pos.partial_pnl,
-    ))
+    )
+    trade_history.append(_partial_result)
+    if _FS:
+        _fs.save_position(_position_to_dict(pos))
+        _fs.save_history(_result_to_dict(_partial_result), f"{pos.signal_id}_partial")
 
     if trading_mode() == "live":
         try:
@@ -446,14 +450,18 @@ def _close_position(pos: Position, price: float, reason: str) -> None:
         except Exception as e:
             console.print(f"[red]Close order error: {e}[/red]")
 
-    trade_history.append(TradeResult(
+    _close_result = TradeResult(
         position=pos,
         close_price=price,
         close_reason=reason,
         closed_at=datetime.now(timezone.utc),
         qty_closed=remaining,
         pnl_closed=remain_pnl,
-    ))
+    )
+    trade_history.append(_close_result)
+    if _FS:
+        _fs.save_position(_position_to_dict(pos))
+        _fs.save_history(_result_to_dict(_close_result), f"{pos.signal_id}_{reason}")
 
 
 def _monitor_positions(current_price: float) -> None:
@@ -536,6 +544,93 @@ def _result_to_dict(r: TradeResult) -> dict:
     }
 
 
+def _dict_to_position(d: dict) -> Position:
+    return Position(
+        signal_id=d["signal_id"], entry_price=d["entry_price"],
+        sl=d["sl"], tp=d["tp"], qty=d["qty"], direction=d["direction"],
+        opened_at=datetime.fromisoformat(d["opened_at"]),
+        pattern=d.get("pattern", ""), tf=d.get("tf", 0),
+        status=d["status"], pnl=d.get("pnl"),
+        coinbase_order_id=d.get("coinbase_order_id"),
+        tp_reason=d.get("tp_reason", ""),
+        partial_closed=d.get("partial_closed", False),
+        trail_anchor=d.get("trail_anchor"),
+        partial_pnl=d.get("partial_pnl", 0.0),
+        sl_order_id=d.get("sl_order_id"),
+    )
+
+
+def _load_state() -> None:
+    """Restore in-memory state from Firestore on scanner startup."""
+    global pending_signals, open_positions, trade_history
+    if not _FS:
+        return
+    state = _fs.load_state()
+    if not state:
+        return
+
+    now = datetime.now(timezone.utc)
+    restored_sigs, restored_pos, restored_hist = 0, 0, 0
+
+    for d in state.get("signals", []):
+        try:
+            expires_at = datetime.fromisoformat(d["expires_at"])
+            if expires_at < now:
+                continue
+            pending_signals.append(Signal(
+                id=d["id"], pattern=d["pattern"], direction=d["direction"],
+                tf=d["tf"], bar_open_time=d["bar_open_time"],
+                entry_trigger=d["entry_trigger"],
+                sl_wick=d["sl_wick"], sl_body=d["sl_body"],
+                created_at=datetime.fromisoformat(d["created_at"]),
+                expires_at=expires_at, status=d["status"],
+            ))
+            restored_sigs += 1
+        except Exception as e:
+            console.print(f"[dim yellow]Skipping malformed signal: {e}[/dim yellow]")
+
+    for d in state.get("positions", []):
+        try:
+            open_positions.append(_dict_to_position(d))
+            restored_pos += 1
+        except Exception as e:
+            console.print(f"[dim yellow]Skipping malformed position: {e}[/dim yellow]")
+
+    for d in state.get("history", []):
+        try:
+            trade_history.append(TradeResult(
+                position=_dict_to_position(d["position"]),
+                close_price=d["close_price"],
+                close_reason=d["close_reason"],
+                closed_at=datetime.fromisoformat(d["closed_at"]),
+                qty_closed=d.get("qty_closed", 0.0),
+                pnl_closed=d.get("pnl_closed", 0.0),
+            ))
+            restored_hist += 1
+        except Exception as e:
+            console.print(f"[dim yellow]Skipping malformed history entry: {e}[/dim yellow]")
+
+    console.print(
+        f"[green]Restored from Firestore:[/green] "
+        f"{restored_sigs} signals · {restored_pos} positions · {restored_hist} history"
+    )
+
+    # Load app-level and user-level settings from Firestore
+    from btc_agent import config as _cfg
+    from btc_agent.trading.firestore_store import load_app_settings, load_user_prefs
+    app_data = load_app_settings()
+    if app_data:
+        _cfg.apply_settings(app_data)
+        console.print("[green]App settings loaded from Firestore[/green]")
+    if _cfg.FIREBASE_OWNER_UID:
+        user_data = load_user_prefs(_cfg.FIREBASE_OWNER_UID)
+        if user_data:
+            _cfg.apply_settings(user_data)
+            console.print("[green]User settings (Coinbase keys) loaded from Firestore[/green]")
+        else:
+            console.print("[dim yellow]No user settings in Firestore — using .env values[/dim yellow]")
+
+
 def _save_state() -> None:
     _STATE_PATH.parent.mkdir(parents=True, exist_ok=True)
     state = {
@@ -554,8 +649,9 @@ def get_state() -> dict:
         "signals":   [_signal_to_dict(s) for s in pending_signals],
         "positions": [_position_to_dict(p) for p in open_positions],
         "history":   [_result_to_dict(r) for r in trade_history[-50:]],
-        "running":   _running,
-        "levels":    _current_levels,
+        "running":       _running,
+        "current_price": _last_price,
+        "levels":        _current_levels,
         "settings": {
             "mode":              trading_mode(),
             "tf_min":            tf_min(),
@@ -577,15 +673,19 @@ def stop_trading_scanner() -> None:
     _running = False
 
 
+_PRICE_TICK_S = 5  # fast price refresh interval for entries and position monitoring
+
+
 def run_trading_scanner() -> None:
-    global _running, _last_scan_time, _current_levels
+    global _running, _last_scan_time, _current_levels, _last_price
+    _load_state()
     _running = True
     console.rule("[bold green]Trading Scanner started[/bold green]")
     mode = trading_mode()
     qty = trading_qty()
     console.print(
         f"Mode=[bold]{mode.upper()}[/bold]  TF={tf_min()}–{tf_max()}m  "
-        f"ScanInterval={scan_interval()}min  "
+        f"ScanInterval={scan_interval()}min  PriceTick={_PRICE_TICK_S}s  "
         f"Qty={qty} contracts ({qty * config.COINBASE_CONTRACT_SIZE:.4f} BTC each side)  "
         f"MaxSL={max_sl()}  MinTP={min_tp()}  MaxConcurrent={max_concurrent()}"
     )
@@ -594,44 +694,33 @@ def run_trading_scanner() -> None:
             "[yellow]Warning: TRADING_QTY < 2 — partial close requires at least 2 contracts[/yellow]"
         )
 
+    arr = ts_arr = minutes_of_day = unix_days = None
+
     try:
         while _running:
-            loop_start = datetime.now(timezone.utc)
+            tick_start = datetime.now(timezone.utc)
+            now = tick_start
 
-            # ── fetch latest 1m candles ───────────────────────────────────────
+            # ── fast price tick ───────────────────────────────────────────────
             try:
-                df = fetch_1m_candles()
-                arr, ts_arr, minutes_of_day, unix_days = df_to_numpy(df)
-                current_price = float(arr[-1, 3])   # last 1m close
+                current_price = fetch_current_price()
+                _last_price = current_price
             except Exception as e:
-                console.print(f"[red]Data fetch error: {e}[/red]")
-                time.sleep(60)
+                console.print(f"[red]Price tick error: {e}[/red]")
+                time.sleep(_PRICE_TICK_S)
                 continue
-
-            # ── compute market structure levels ───────────────────────────────
-            try:
-                _current_levels = compute_levels(df, weekly_adj=config.WEEKLY_ADJ)
-                bias = _trend_bias(current_price, _current_levels)
-                mrp_str   = f"{_current_levels['mrp']:.1f}"   if _current_levels.get("mrp")        else "—"
-                dpoc_str  = f"{_current_levels['daily_poc']:.1f}" if _current_levels.get("daily_poc")  else "—"
-                wpoc_str  = f"{_current_levels['weekly_poc']:.1f}" if _current_levels.get("weekly_poc") else "—"
-                console.print(
-                    f"[dim]Levels — MRP={mrp_str}  DailyPOC={dpoc_str}  "
-                    f"WeeklyPOC={wpoc_str}  Trend: {bias}[/dim]"
-                )
-            except Exception as e:
-                console.print(f"[dim]Levels error: {e}[/dim]")
 
             # ── monitor open positions ────────────────────────────────────────
             _monitor_positions(current_price)
 
             # ── check pending signals for entry trigger ───────────────────────
-            now = datetime.now(timezone.utc)
             for sig in pending_signals:
                 if sig.status != "pending":
                     continue
                 if now > sig.expires_at:
                     sig.status = "expired"
+                    if _FS:
+                        _fs.update_signal_status(sig.id, "expired")
                     console.print(f"[dim]Signal {sig.id} ({sig.pattern} {sig.tf}m) expired[/dim]")
                     continue
                 if sig.direction == "long"  and current_price > sig.entry_trigger:
@@ -640,25 +729,41 @@ def run_trading_scanner() -> None:
                     _execute_entry(sig, current_price)
 
             # ── pattern scan (every scan_interval() minutes) ──────────────────
-            elapsed = (now - _last_scan_time).total_seconds() / 60 if _last_scan_time else 999
-            if elapsed >= scan_interval():
-                console.print(
-                    f"[cyan]Scanning {tf_min()}–{tf_max()}m "
-                    f"({', '.join(active_patterns())})…[/cyan]"
-                )
-                new_sigs = _scan_patterns(arr, ts_arr, minutes_of_day, unix_days)
-                if new_sigs:
-                    pending_signals.extend(new_sigs)
-                else:
-                    console.print("[dim]No new patterns found[/dim]")
-                _last_scan_time = now
+            elapsed_min = (now - _last_scan_time).total_seconds() / 60 if _last_scan_time else 999
+            if elapsed_min >= scan_interval():
+                try:
+                    df = fetch_1m_candles()
+                    arr, ts_arr, minutes_of_day, unix_days = df_to_numpy(df)
+                    _current_levels = compute_levels(df, weekly_adj=config.WEEKLY_ADJ)
+                    bias = _trend_bias(current_price, _current_levels)
+                    mrp_str  = f"{_current_levels['mrp']:.1f}"      if _current_levels.get("mrp")       else "—"
+                    dpoc_str = f"{_current_levels['daily_poc']:.1f}" if _current_levels.get("daily_poc") else "—"
+                    wpoc_str = f"{_current_levels['weekly_poc']:.1f}" if _current_levels.get("weekly_poc") else "—"
+                    console.print(
+                        f"[dim]Levels — MRP={mrp_str}  DailyPOC={dpoc_str}  "
+                        f"WeeklyPOC={wpoc_str}  Trend: {bias}[/dim]"
+                    )
+                    console.print(
+                        f"[cyan]Scanning {tf_min()}–{tf_max()}m "
+                        f"({', '.join(active_patterns())})…[/cyan]"
+                    )
+                    new_sigs = _scan_patterns(arr, ts_arr, minutes_of_day, unix_days)
+                    if new_sigs:
+                        pending_signals.extend(new_sigs)
+                        if _FS:
+                            for sig in new_sigs:
+                                _fs.save_signal(_signal_to_dict(sig))
+                    else:
+                        console.print("[dim]No new patterns found[/dim]")
+                    _last_scan_time = now
+                except Exception as e:
+                    console.print(f"[red]Pattern scan error: {e}[/red]")
 
             _save_state()
 
-            # ── sleep until next minute ───────────────────────────────────────
-            elapsed_s = (datetime.now(timezone.utc) - loop_start).total_seconds()
-            sleep_s = max(0, 60 - elapsed_s)
-            time.sleep(sleep_s)
+            # ── sleep until next 5-second tick ───────────────────────────────
+            elapsed_s = (datetime.now(timezone.utc) - tick_start).total_seconds()
+            time.sleep(max(0, _PRICE_TICK_S - elapsed_s))
 
     except KeyboardInterrupt:
         console.print("\n[yellow]Trading scanner stopped.[/yellow]")

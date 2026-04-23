@@ -119,14 +119,23 @@ class TestDetectMorningStar:
         )
         assert detect_morning_star(b) == False
 
-    def test_star_too_large(self):
+    def test_star_body_below_threshold(self):
+        # star body=5 < 30% of 20=6, and positioned near c0=90 ✓
         b = bars(
-            bar(110, 90),   # body=20
-            bar(100, 95),   # body=5 → 5 >= 30% of 20 (6) → actually 5 < 6, passes
+            bar(110, 90),   # body=20, c0=90
+            bar(91, 86),    # body=5, star_body_top=91 <= 90+20*0.30=96 ✓
+            bar(86, 102),
+        )
+        assert detect_morning_star(b) == True
+
+    def test_star_inside_bar0_body_rejected(self):
+        # Small star body but positioned inside bar 0 — not a valid Morning Star
+        b = bars(
+            bar(110, 90),
+            bar(100, 95),   # body=5, but star_body_top=100 > 90+20*0.30=96
             bar(89, 102),
         )
-        # star body=5, threshold=0.30*20=6 → 5 < 6 → star OK → should pass
-        assert detect_morning_star(b) == True
+        assert detect_morning_star(b) == False
 
     def test_star_exactly_at_threshold(self):
         b = bars(
@@ -154,6 +163,15 @@ class TestDetectMorningStar:
             bar(100.01, 100.00),  # body ~ 0.001/100 = 0.001% << 0.3%
             bar(99, 98),
             bar(99, 102),
+        )
+        assert detect_morning_star(b) == False
+
+    def test_candle2_doji_filtered(self):
+        # Candle 2 meaningful-body check — doji bar 2 should be rejected
+        b = bars(
+            bar(110, 90),
+            bar(89, 88),
+            bar(100.001, 100.000),   # body ~0.001% << 0.3%
         )
         assert detect_morning_star(b) == False
 

@@ -20,3 +20,5 @@ data/
 
 # Logs
 *.log
+
+serviceAccountKey.json

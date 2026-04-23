@@ -14,6 +14,9 @@ _STAR_BODY_RATIO = 0.30
 _FLAG_BODY_TOLERANCE_PCT = 0.30
 # Morning/Evening star: candle 3 must close beyond this fraction into candle 1's body
 _STAR_PENETRATION = 0.50
+# Star candle must sit within this fraction of bar 0's body from bar 0's close.
+# Prevents false positives where a small candle forms inside bar 0 (not at its extreme).
+_STAR_POSITION_PCT = 0.30
 
 
 def detect_4flag(bars: np.ndarray, tolerance_pct: float = _FLAG_BODY_TOLERANCE_PCT) -> bool:
@@ -55,7 +58,7 @@ def detect_morning_star(bars: np.ndarray) -> bool:
     """
     Bullish 3-candle reversal:
       Bar 0: large bearish candle
-      Bar 1: small star body (< 30% of bar 0 body)
+      Bar 1: small star body (< 30% of bar 0 body), positioned near bar 0's close
       Bar 2: large bullish candle closing > 50% into bar 0's body
     """
     if len(bars) < 3:
@@ -67,6 +70,7 @@ def detect_morning_star(bars: np.ndarray) -> bool:
 
     body0 = abs(c0 - o0)
     body1 = abs(c1 - o1)
+    body2 = abs(c2 - o2)
 
     # Candle 0: bearish with meaningful body
     if c0 >= o0:
@@ -78,13 +82,19 @@ def detect_morning_star(bars: np.ndarray) -> bool:
     if body1 >= _STAR_BODY_RATIO * body0:
         return False
 
-    # Candle 2: bullish
+    # Star must be near bar 0's close (bottom of the bearish move), not floating
+    # inside bar 0's body. Allow at most _STAR_POSITION_PCT overlap back into bar 0.
+    if max(o1, c1) > c0 + body0 * _STAR_POSITION_PCT:
+        return False
+
+    # Candle 2: meaningful bullish body
     if c2 <= o2:
+        return False
+    if o2 == 0 or body2 / o2 < _MIN_BODY_PCT:
         return False
 
     # Candle 2 must close above _STAR_PENETRATION into candle 0's body
-    # Candle 0 is bearish: body top = o0, body bottom = c0
-    midpoint = c0 + (o0 - c0) * _STAR_PENETRATION
+    midpoint = c0 + body0 * _STAR_PENETRATION
     return c2 >= midpoint
 
 
@@ -92,7 +102,7 @@ def detect_evening_star(bars: np.ndarray) -> bool:
     """
     Bearish 3-candle reversal:
       Bar 0: large bullish candle
-      Bar 1: small star body (< 30% of bar 0 body)
+      Bar 1: small star body (< 30% of bar 0 body), positioned near bar 0's close
       Bar 2: large bearish candle closing > 50% into bar 0's body
     """
     if len(bars) < 3:
@@ -104,6 +114,7 @@ def detect_evening_star(bars: np.ndarray) -> bool:
 
     body0 = abs(c0 - o0)
     body1 = abs(c1 - o1)
+    body2 = abs(c2 - o2)
 
     # Candle 0: bullish with meaningful body
     if c0 <= o0:
@@ -115,13 +126,19 @@ def detect_evening_star(bars: np.ndarray) -> bool:
     if body1 >= _STAR_BODY_RATIO * body0:
         return False
 
-    # Candle 2: bearish
+    # Star must be near bar 0's close (top of the bullish move), not floating
+    # inside bar 0's body. Allow at most _STAR_POSITION_PCT overlap back into bar 0.
+    if min(o1, c1) < c0 - body0 * _STAR_POSITION_PCT:
+        return False
+
+    # Candle 2: meaningful bearish body
     if c2 >= o2:
+        return False
+    if o2 == 0 or body2 / o2 < _MIN_BODY_PCT:
         return False
 
     # Candle 2 must close below _STAR_PENETRATION into candle 0's body
-    # Candle 0 is bullish: body bottom = o0, body top = c0
-    midpoint = c0 - (c0 - o0) * _STAR_PENETRATION
+    midpoint = c0 - body0 * _STAR_PENETRATION
     return c2 <= midpoint
 
 

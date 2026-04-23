@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -8,165 +8,589 @@
 </head>
 <body>
 
-<header>
-  <h1>₿ BTC AI Agent</h1>
-  <span class="badge">BTCUSDT.P · Binance Perp</span>
-  <span class="badge">Dashboard</span>
-  <div class="tz-selector">
-    <label for="tz-select">🕐</label>
-    <select id="tz-select" title="Timezone">
-      <option value="Asia/Kolkata">IST (UTC+5:30)</option>
-      <option value="UTC">UTC</option>
-      <option value="America/New_York">New York (ET)</option>
-      <option value="America/Chicago">Chicago (CT)</option>
-      <option value="America/Los_Angeles">Los Angeles (PT)</option>
-      <option value="Europe/London">London (GMT/BST)</option>
-      <option value="Europe/Berlin">Frankfurt (CET)</option>
-      <option value="Asia/Singapore">Singapore (SGT)</option>
-      <option value="Asia/Tokyo">Tokyo (JST)</option>
-      <option value="Asia/Dubai">Dubai (GST)</option>
-    </select>
-  </div>
-  <span class="btc-price" id="btc-price">Loading…</span>
-</header>
+<div id="app-shell">
 
-<main>
-
-  <!-- Trading Scanner Card -->
-  <div class="card">
-    <div class="card-header">
-      <h2>Trading Scanner</h2>
-      <div style="display:flex;align-items:center;gap:12px;">
-        <span class="meta">
-          <span class="status-dot dot-ok" id="trade-dot"></span>
-          Mode: <span id="trade-mode-label" style="color:var(--accent)">—</span>
-        </span>
-        <button class="btn btn-green" id="trade-start-btn">Start Scanner</button>
-        <button class="btn btn-red"   id="trade-stop-btn" style="display:none">Stop Scanner</button>
-      </div>
+  <!-- ── Sidebar (desktop only) ─────────────────────────────────────────── -->
+  <aside id="sidebar">
+    <div class="sidebar-brand">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M11.767 19.089c4.924.868 6.14-6.025 1.216-6.894m-1.216 6.894L5.86 18.047m5.908 1.042-.347 1.97m1.563-8.864c4.924.869 6.14-6.025 1.215-6.893m-1.215 6.893-3.94-.694m5.155-6.2L8.29 4.26m5.908 1.042.348-1.97M7.48 20.364l3.126-17.727"/>
+      </svg>
+      BTC Command Center
     </div>
 
-    <!-- Settings row -->
-    <details class="trade-settings" id="trade-settings-panel">
-      <summary style="cursor:pointer;color:var(--muted);font-size:12px;margin-bottom:12px;">
-        ⚙ Settings
-      </summary>
-      <div class="settings-grid">
-        <label>Mode
-          <select id="cfg-mode">
-            <option value="paper">Paper</option>
-            <option value="live">Live</option>
+    <nav class="sidebar-nav">
+      <button class="nav-item active" id="nav-home" onclick="navTo('home')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+        Home
+      </button>
+      <button class="nav-item" id="nav-trading" onclick="navTo('trading')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>
+        Live Trading
+      </button>
+      <button class="nav-item" id="nav-settings" onclick="navTo('settings')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        Settings
+      </button>
+    </nav>
+
+    <div class="sidebar-footer">
+      <!-- User info (signed in) -->
+      <div id="sidebar-user-signed-in" style="display:none;align-items:center;gap:8px;padding:4px;">
+        <img id="sidebar-avatar" src="" alt="" width="24" height="24"
+             style="border-radius:50%;border:1px solid var(--border);flex-shrink:0;">
+        <span id="sidebar-display-name" style="flex:1;min-width:0;font-size:11px;color:var(--text-3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"></span>
+        <button onclick="signOut()" title="Sign out"
+                style="background:none;border:none;cursor:pointer;color:var(--text-3);padding:2px;flex-shrink:0;display:flex;"
+                onmouseover="this.style.color='var(--red)'" onmouseout="this.style.color='var(--text-3)'">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>
+          </svg>
+        </button>
+      </div>
+      <!-- Sign-in prompt (signed out) -->
+      <div id="sidebar-user-signed-out" style="display:none;padding:4px;">
+        <button class="btn btn-ghost" style="width:100%;justify-content:center;font-size:11px;" onclick="signInWithGoogle()">
+          Sign In
+        </button>
+      </div>
+
+      <div class="sidebar-controls">
+        <div class="sidebar-select-row">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          <select id="tz-select" title="Timezone">
+            <option value="Asia/Kolkata">IST</option>
+            <option value="UTC">UTC</option>
+            <option value="America/New_York">New York</option>
+            <option value="America/Chicago">Chicago</option>
+            <option value="America/Los_Angeles">Los Angeles</option>
+            <option value="Europe/London">London</option>
+            <option value="Europe/Berlin">Frankfurt</option>
+            <option value="Asia/Singapore">Singapore</option>
+            <option value="Asia/Tokyo">Tokyo</option>
+            <option value="Asia/Dubai">Dubai</option>
           </select>
-        </label>
-        <label>TF Min (m) <input id="cfg-tf-min" type="number" min="1" max="1440"></label>
-        <label>TF Max (m) <input id="cfg-tf-max" type="number" min="1" max="1440"></label>
-        <label>Scan Interval (m) <input id="cfg-interval" type="number" min="1"></label>
-        <label>Qty (Contracts) <input id="cfg-qty" type="number" step="1" min="2"></label>
-        <label>Max SL (pts) <input id="cfg-max-sl" type="number" min="1"></label>
-        <label>Min TP (pts) <input id="cfg-min-tp" type="number" min="1"></label>
-        <label>Max Concurrent <input id="cfg-max-conc" type="number" min="0"></label>
-      </div>
-      <button class="btn" id="trade-save-btn" style="margin-top:10px">Save Settings</button>
-      <span id="trade-save-msg" style="font-size:11px;color:var(--green);margin-left:10px;display:none">Saved!</span>
-    </details>
-
-    <!-- Market Levels -->
-    <div id="levels-row" class="levels-row" style="display:none"></div>
-
-    <!-- Pending Signals -->
-    <h3 style="font-size:13px;color:var(--muted);margin:12px 0 6px;">Pending Signals</h3>
-    <table>
-      <thead><tr>
-        <th>Pattern</th><th>TF</th><th>Direction</th>
-        <th style="text-align:right">Trigger</th>
-        <th style="text-align:right">SL (wick)</th>
-        <th>Expires</th><th>Status</th>
-      </tr></thead>
-      <tbody id="trade-signals-body">
-        <tr class="empty-row"><td colspan="7">No pending signals</td></tr>
-      </tbody>
-    </table>
-
-    <!-- Open Positions -->
-    <h3 style="font-size:13px;color:var(--muted);margin:16px 0 6px;">Open Positions</h3>
-    <table>
-      <thead><tr>
-        <th>Direction</th><th>TF</th><th>Pattern</th>
-        <th style="text-align:right">Entry</th>
-        <th style="text-align:right">SL</th><th style="text-align:right">TP1</th>
-        <th style="text-align:right">Rem Qty</th><th>Phase</th><th>Opened</th>
-      </tr></thead>
-      <tbody id="trade-positions-body">
-        <tr class="empty-row"><td colspan="9">No open positions</td></tr>
-      </tbody>
-    </table>
-
-    <!-- Trade History -->
-    <h3 style="font-size:13px;color:var(--muted);margin:16px 0 6px;">Recent Trades</h3>
-    <table>
-      <thead><tr>
-        <th>Direction</th><th>TF</th><th>Pattern</th>
-        <th style="text-align:right">Entry</th>
-        <th style="text-align:right">Exit</th>
-        <th style="text-align:right">Qty</th>
-        <th style="text-align:right">PnL (USD)</th>
-        <th>Reason</th><th>Closed</th>
-      </tr></thead>
-      <tbody id="trade-history-body">
-        <tr class="empty-row"><td colspan="9">No completed trades</td></tr>
-      </tbody>
-    </table>
-  </div>
-
-  <!-- Morning Briefing Card -->
-  <div class="card">
-    <div class="card-header">
-      <h2>Morning Briefing</h2>
-      <div style="display:flex;align-items:center;gap:12px;">
-        <span class="meta">
-          <span class="status-dot dot-ok" id="brief-dot"></span>
-          Last: <span id="brief-ts">—</span>
-        </span>
-        <button class="btn" id="brief-btn">Trigger Briefing Now</button>
+        </div>
+        <div class="sidebar-select-row">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+          <select id="theme-select" title="Theme">
+            <option value="dark">Dark</option>
+            <option value="midnight">Midnight</option>
+            <option value="light">Light</option>
+          </select>
+        </div>
       </div>
     </div>
-    <pre id="briefing-text" style="color:var(--muted)">Loading briefing…</pre>
-  </div>
+  </aside>
 
-  <!-- Pattern Scanner Card -->
-  <div class="card">
-    <div class="card-header">
-      <h2>Pattern Scanner</h2>
-      <div style="display:flex;align-items:center;gap:12px;">
-        <span class="meta">
-          <span class="status-dot dot-ok" id="scan-dot"></span>
-          Last: <span id="scan-ts">—</span>
+  <!-- ── Main area ───────────────────────────────────────────────────────── -->
+  <div id="main-area">
+
+    <!-- Mobile top bar -->
+    <div class="mobile-topbar">
+      <div class="mobile-brand">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px">
+          <path d="M11.767 19.089c4.924.868 6.14-6.025 1.216-6.894m-1.216 6.894L5.86 18.047m5.908 1.042-.347 1.97m1.563-8.864c4.924.869 6.14-6.025 1.215-6.893m-1.215 6.893-3.94-.694m5.155-6.2L8.29 4.26m5.908 1.042.348-1.97M7.48 20.364l3.126-17.727"/>
+        </svg>
+        BTC
+      </div>
+      <div class="mobile-topbar-right">
+        <span class="btc-price-widget">
+          <span class="price-label">BTC</span>
+          <span class="price-val" id="btc-price-mobile">—</span>
         </span>
-        <button class="btn" id="scan-btn">Trigger Scan Now</button>
+        <!-- mobile user icon -->
+        <div id="mob-user-signed-in" style="display:none;">
+          <img id="mob-avatar" src="" alt="" width="24" height="24" style="border-radius:50%;border:1px solid var(--border);cursor:pointer;" onclick="navTo('settings')">
+        </div>
+        <div id="mob-user-signed-out" style="display:none;">
+          <button class="btn btn-ghost" style="font-size:11px;padding:4px 8px;" onclick="signInWithGoogle()">Sign In</button>
+        </div>
       </div>
     </div>
 
-    <table>
-      <thead>
-        <tr>
-          <th>Timeframe</th>
-          <th>Pattern</th>
-          <th style="text-align:right">Bars Ago</th>
-          <th id="th-baropen">Bar Open</th>
-          <th style="text-align:right">Open Price</th>
-          <th>DEPO Line</th>
-        </tr>
-      </thead>
-      <tbody id="scan-body">
-        <tr class="empty-row">
-          <td colspan="6">Loading…</td>
-        </tr>
-      </tbody>
-    </table>
-  </div>
+    <!-- Desktop top bar -->
+    <div id="topbar">
+      <span id="topbar-title">Morning Briefing</span>
+      <div class="topbar-right">
+        <div class="btc-price-widget">
+          <span class="price-label">BTC</span>
+          <span class="price-val" id="btc-price">—</span>
+        </div>
+        <button class="btn btn-ghost" id="scan-btn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+          Refresh
+        </button>
+        <button class="btn btn-ghost" id="brief-btn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+          Briefing
+        </button>
+      </div>
+    </div>
 
-</main>
+    <!-- Sub-tabs (Home page only) -->
+    <div class="sub-tabs" id="sub-tabs">
+      <button class="sub-tab active" id="subtab-briefing" onclick="switchSubTab('briefing')">Morning Briefing</button>
+      <button class="sub-tab" id="subtab-scanner" onclick="switchSubTab('scanner')">Pattern Scanner</button>
+    </div>
 
+    <!-- Main scrollable content -->
+    <div id="main-content">
+
+      <!-- ── Home: Morning Briefing ──────────────────────────────────────── -->
+      <div id="page-briefing" class="page active">
+        <div class="page-body">
+          <div class="card">
+            <div class="card-header">
+              <span class="card-title">Morning Briefing</span>
+              <span style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text-3)">
+                <span class="status-dot dot-ok" id="brief-dot"></span>
+                <span id="brief-ts">—</span>
+              </span>
+            </div>
+            <div id="briefing-text" class="briefing-content"><p style="color:var(--text-3)">Loading briefing…</p></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Home: Pattern Scanner ───────────────────────────────────────── -->
+      <div id="page-scanner" class="page">
+        <div class="page-body">
+          <div class="card">
+            <div class="card-header">
+              <span class="card-title">Pattern Scanner</span>
+              <span style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text-3)">
+                <span class="status-dot dot-ok" id="scan-dot"></span>
+                Last: <span id="scan-ts">—</span>
+              </span>
+            </div>
+            <div style="padding:10px 16px;border-bottom:1px solid var(--border);">
+              <div class="filter-pills" id="scan-filter-pills">
+                <button class="pill active" data-filter="all">All</button>
+                <button class="pill" data-filter="bullish">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+                  Bullish
+                </button>
+                <button class="pill" data-filter="bearish">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 18 13.5 8.5 8.5 13.5 1 6"/><polyline points="17 18 23 18 23 12"/></svg>
+                  Bearish
+                </button>
+                <button class="pill" data-filter="depo">⚡ DEPO</button>
+              </div>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr id="scan-head">
+                    <th>TF</th><th>Pattern</th><th>Direction</th>
+                    <th style="text-align:right">Bars Ago</th>
+                    <th id="th-baropen">Bar Open</th>
+                    <th style="text-align:right">Price</th>
+                    <th>DEPO</th>
+                  </tr>
+                </thead>
+                <tbody id="scan-body">
+                  <tr class="empty-row"><td colspan="7">Loading…</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Live Trading ─────────────────────────────────────────────────── -->
+      <div id="page-trading" class="page">
+        <div class="page-body">
+
+          <!-- Sign-in gate (shown when not authenticated) -->
+          <div id="trading-auth-gate" style="display:none;">
+            <div class="card" style="text-align:center;padding:48px 24px;">
+              <div style="margin-bottom:16px;">
+                <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="var(--text-3)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="margin:0 auto;display:block;margin-bottom:12px;"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                <p style="font-size:14px;font-weight:500;color:var(--text);margin-bottom:6px;">Sign in to access Live Trading</p>
+                <p style="font-size:12px;color:var(--text-3);">Morning Briefing and Pattern Scanner are available without an account.</p>
+              </div>
+              <button class="btn btn-primary" style="margin:0 auto;" onclick="signInWithGoogle()">
+                <svg viewBox="0 0 24 24" width="14" height="14" xmlns="http://www.w3.org/2000/svg"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
+                Continue with Google
+              </button>
+            </div>
+          </div>
+
+          <!-- Trading content (shown when authenticated) -->
+          <div id="trading-content" style="display:none;">
+
+            <!-- Scanner control card -->
+            <div class="card">
+              <div class="card-header">
+                <span class="card-title">Trading Scanner</span>
+                <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+                  <span style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text-3)">
+                    <span class="status-dot dot-ok" id="trade-dot"></span>
+                    Mode: <span id="trade-mode-label" style="color:var(--accent)">—</span>
+                    &nbsp;·&nbsp; BTC: <span id="trade-live-price" style="color:var(--accent);font-weight:600">—</span>
+                  </span>
+                  <button class="btn btn-green" id="trade-start-btn">Start Scanner</button>
+                  <button class="btn btn-danger" id="trade-stop-btn" style="display:none">Stop Scanner</button>
+                </div>
+              </div>
+              <div id="levels-row" class="levels-row" style="display:none;margin:0 16px 12px;"></div>
+            </div>
+
+            <!-- Trading Configuration -->
+            <div class="card">
+              <div class="card-header">
+                <span class="card-title">Configuration</span>
+                <div style="display:flex;align-items:center;gap:8px;">
+                  <button class="btn btn-primary" id="trade-save-btn">Save</button>
+                  <span id="trade-save-msg" style="font-size:11px;color:var(--green);display:none">Saved!</span>
+                </div>
+              </div>
+              <div class="settings-grid">
+                <label>Mode
+                  <select id="cfg-mode">
+                    <option value="paper">Paper</option>
+                    <option value="live">Live</option>
+                  </select>
+                </label>
+                <label>TF Min (m) <input id="cfg-tf-min" type="number" min="1" max="1440"></label>
+                <label>TF Max (m) <input id="cfg-tf-max" type="number" min="1" max="1440"></label>
+                <label>Scan Interval (m) <input id="cfg-interval" type="number" min="1"></label>
+                <label>Qty (Contracts) <input id="cfg-qty" type="number" step="1" min="2"></label>
+                <label>Max SL (pts) <input id="cfg-max-sl" type="number" min="1"></label>
+                <label>Min TP (pts) <input id="cfg-min-tp" type="number" min="1"></label>
+                <label>Max Concurrent <input id="cfg-max-conc" type="number" min="0"></label>
+              </div>
+              <div style="padding:0 16px 14px;">
+                <span style="font-size:11px;color:var(--text-3);text-transform:uppercase;letter-spacing:.06em;display:block;margin-bottom:8px;">Patterns to Scan</span>
+                <label style="display:inline-flex;align-items:center;gap:6px;margin-right:16px;font-size:12px;cursor:pointer;">
+                  <input type="checkbox" id="cfg-pattern-4flag"> 4-Flag
+                </label>
+                <label style="display:inline-flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;">
+                  <input type="checkbox" id="cfg-pattern-engulfing"> Engulfing
+                </label>
+              </div>
+            </div>
+
+            <!-- Pending Signals -->
+            <div class="card">
+              <div class="card-header"><span class="card-title">Pending Signals</span></div>
+              <div class="table-wrap">
+                <table>
+                  <thead><tr id="signals-head">
+                    <th>Pattern</th><th>TF</th><th>Direction</th>
+                    <th style="text-align:right">Trigger</th>
+                    <th style="text-align:right">SL (wick)</th>
+                    <th>Expires</th><th>Status</th>
+                  </tr></thead>
+                  <tbody id="trade-signals-body">
+                    <tr class="empty-row"><td colspan="7">No pending signals</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- Open Positions -->
+            <div class="card">
+              <div class="card-header"><span class="card-title">Open Positions</span></div>
+              <div class="table-wrap">
+                <table>
+                  <thead><tr id="positions-head">
+                    <th>Direction</th><th>TF</th><th>Pattern</th>
+                    <th style="text-align:right">Entry</th>
+                    <th style="text-align:right">SL</th><th style="text-align:right">TP1</th>
+                    <th style="text-align:right">Pts</th><th style="text-align:right">Rem Qty</th>
+                    <th>Phase</th><th>Opened</th><th></th>
+                  </tr></thead>
+                  <tbody id="trade-positions-body">
+                    <tr class="empty-row"><td colspan="11">No open positions</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- Trade History -->
+            <div class="card">
+              <div class="card-header"><span class="card-title">Recent Trades</span></div>
+              <div class="table-wrap">
+                <table>
+                  <thead><tr id="history-head">
+                    <th>Direction</th><th>TF</th><th>Pattern</th>
+                    <th style="text-align:right">Entry</th>
+                    <th style="text-align:right">Exit</th>
+                    <th style="text-align:right">Qty</th>
+                    <th style="text-align:right">PnL (USD)</th>
+                    <th>Reason</th><th>Closed</th>
+                  </tr></thead>
+                  <tbody id="trade-history-body">
+                    <tr class="empty-row"><td colspan="9">No completed trades</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+          </div><!-- /trading-content -->
+        </div>
+      </div><!-- /page-trading -->
+
+      <!-- ── Settings ─────────────────────────────────────────────────────── -->
+      <div id="page-settings" class="page">
+        <div class="page-body">
+
+          <!-- General API Keys -->
+          <div class="card" id="s-card-general" style="display:none;">
+            <div class="card-header"><span class="card-title">General API Keys</span></div>
+            <div class="s-section">
+              <div class="s-row">
+                <div class="s-field">
+                  <span class="s-label">Anthropic API Key</span>
+                  <input id="s-anthropic-key" class="s-input" type="password" placeholder="sk-ant-…">
+                </div>
+                <div class="s-field">
+                  <span class="s-label">Anthropic Model</span>
+                  <input id="s-anthropic-model" class="s-input" type="text" placeholder="claude-sonnet-4-6">
+                </div>
+              </div>
+              <div class="s-footer">
+                <button class="btn btn-primary" onclick="saveAppSection('general')">Save</button>
+                <span class="s-ok" id="s-ok-general">Saved!</span>
+                <span class="s-err" id="s-err-general"></span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Coinbase Exchange (app-level) -->
+          <div class="card" id="s-card-coinbase-exchange" style="display:none;">
+            <div class="card-header"><span class="card-title">Coinbase Exchange</span></div>
+            <div class="s-section">
+              <div class="s-row">
+                <div class="s-field">
+                  <span class="s-label">Product ID</span>
+                  <input id="s-cb-product" class="s-input" type="text" placeholder="BTC-USD-INTX">
+                </div>
+                <div class="s-field">
+                  <span class="s-label">Contract Size (BTC)</span>
+                  <input id="s-cb-contract" class="s-input" type="number" step="0.001" placeholder="0.01">
+                </div>
+              </div>
+              <div class="s-footer">
+                <button class="btn btn-primary" onclick="saveAppSection('coinbase-exchange')">Save</button>
+                <span class="s-ok" id="s-ok-coinbase-exchange">Saved!</span>
+                <span class="s-err" id="s-err-coinbase-exchange"></span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Coinbase Credentials (user-level) -->
+          <div class="card" id="s-card-coinbase-creds" style="display:none;">
+            <div class="card-header"><span class="card-title">Coinbase Credentials</span></div>
+            <div class="s-section">
+              <div class="s-field">
+                <span class="s-label">API Key Name</span>
+                <input id="s-cb-key" class="s-input" type="password" placeholder="organizations/…/apiKeys/…">
+              </div>
+              <div class="s-field">
+                <span class="s-label">API Secret (EC Private Key PEM)</span>
+                <textarea id="s-cb-secret" class="s-textarea" rows="4" placeholder="-----BEGIN EC PRIVATE KEY-----&#10;…&#10;-----END EC PRIVATE KEY-----"></textarea>
+              </div>
+              <p style="font-size:11px;color:var(--text-3);margin:0;">Stored in Firestore tied to your UID. Never returned in plain text.</p>
+              <div class="s-footer">
+                <button class="btn btn-primary" onclick="saveUserSection('coinbase-creds')">Save</button>
+                <span class="s-ok" id="s-ok-coinbase-creds">Saved!</span>
+                <span class="s-err" id="s-err-coinbase-creds"></span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Notifications -->
+          <div class="card" id="s-card-notifications" style="display:none;">
+            <div class="card-header"><span class="card-title">Notifications</span></div>
+            <div class="s-section">
+              <div class="s-field">
+                <span class="s-label">Delivery Channels</span>
+                <div class="s-checks">
+                  <label class="s-check"><input type="checkbox" id="s-ch-terminal"> Terminal</label>
+                  <label class="s-check"><input type="checkbox" id="s-ch-telegram"> Telegram</label>
+                  <label class="s-check"><input type="checkbox" id="s-ch-email"> Email</label>
+                </div>
+              </div>
+              <!-- Admin-only: Telegram + Email config -->
+              <div id="s-notif-admin" style="display:none;">
+                <div class="s-row" style="margin-bottom:12px;">
+                  <div class="s-field">
+                    <span class="s-label">Telegram Bot Token</span>
+                    <input id="s-tg-token" class="s-input" type="password" placeholder="123456:ABC…">
+                  </div>
+                  <div class="s-field">
+                    <span class="s-label">Telegram Chat ID</span>
+                    <input id="s-tg-chat" class="s-input" type="text" placeholder="-100123456789">
+                  </div>
+                </div>
+                <div class="s-row-3" style="margin-bottom:12px;">
+                  <div class="s-field">
+                    <span class="s-label">SMTP Host</span>
+                    <input id="s-email-host" class="s-input" type="text" placeholder="smtp.gmail.com">
+                  </div>
+                  <div class="s-field">
+                    <span class="s-label">SMTP Port</span>
+                    <input id="s-email-port" class="s-input" type="number" placeholder="587">
+                  </div>
+                  <div class="s-field">
+                    <span class="s-label">From User</span>
+                    <input id="s-email-user" class="s-input" type="text" placeholder="you@gmail.com">
+                  </div>
+                </div>
+                <div class="s-row" style="margin-bottom:0;">
+                  <div class="s-field">
+                    <span class="s-label">Email Password</span>
+                    <input id="s-email-pass" class="s-input" type="password" placeholder="app password">
+                  </div>
+                  <div class="s-field">
+                    <span class="s-label">Send To</span>
+                    <input id="s-email-to" class="s-input" type="text" placeholder="you@gmail.com">
+                  </div>
+                </div>
+              </div>
+              <div class="s-footer">
+                <button class="btn btn-primary" onclick="saveAppSection('notifications')">Save</button>
+                <span class="s-ok" id="s-ok-notifications">Saved!</span>
+                <span class="s-err" id="s-err-notifications"></span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Scanner -->
+          <div class="card" id="s-card-scanner" style="display:none;">
+            <div class="card-header"><span class="card-title">Scanner</span></div>
+            <div class="s-section">
+              <div class="s-row">
+                <div class="s-field">
+                  <span class="s-label">Briefing Time (HH:MM)</span>
+                  <input id="s-briefing-time" class="s-input" type="text" placeholder="07:30">
+                </div>
+                <div class="s-field">
+                  <span class="s-label">Scanner Time (HH:MM)</span>
+                  <input id="s-scanner-time" class="s-input" type="text" placeholder="08:00">
+                </div>
+              </div>
+              <div class="s-row-3">
+                <div class="s-field">
+                  <span class="s-label">Interval (min)</span>
+                  <input id="s-scanner-interval" class="s-input" type="number" placeholder="—">
+                </div>
+                <div class="s-field">
+                  <span class="s-label">TF Min (min)</span>
+                  <input id="s-scanner-tf-min" class="s-input" type="number" placeholder="30">
+                </div>
+                <div class="s-field">
+                  <span class="s-label">TF Max (min)</span>
+                  <input id="s-scanner-tf-max" class="s-input" type="number" placeholder="1440">
+                </div>
+              </div>
+              <div class="s-field">
+                <span class="s-label">Patterns</span>
+                <div class="s-checks">
+                  <label class="s-check"><input type="checkbox" id="s-pat-4flag"> 4-Flag</label>
+                  <label class="s-check"><input type="checkbox" id="s-pat-morning"> Morning Star</label>
+                  <label class="s-check"><input type="checkbox" id="s-pat-evening"> Evening Star</label>
+                </div>
+              </div>
+              <div class="s-footer">
+                <button class="btn btn-primary" onclick="saveAppSection('scanner')">Save</button>
+                <span class="s-ok" id="s-ok-scanner">Saved!</span>
+                <span class="s-err" id="s-err-scanner"></span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Appearance -->
+          <div class="card">
+            <div class="card-header"><span class="card-title">Appearance</span></div>
+            <div class="setting-row">
+              <span class="setting-label">Theme</span>
+              <select id="settings-theme-select" class="s-select" style="width:auto;">
+                <option value="dark">Dark</option>
+                <option value="midnight">Midnight</option>
+                <option value="light">Light</option>
+              </select>
+            </div>
+            <div class="setting-row">
+              <span class="setting-label">Timezone</span>
+              <select id="settings-tz-select" class="s-select" style="width:auto;">
+                <option value="Asia/Kolkata">IST (UTC+5:30)</option>
+                <option value="UTC">UTC</option>
+                <option value="America/New_York">New York (ET)</option>
+                <option value="America/Chicago">Chicago (CT)</option>
+                <option value="America/Los_Angeles">Los Angeles (PT)</option>
+                <option value="Europe/London">London (GMT/BST)</option>
+                <option value="Europe/Berlin">Frankfurt (CET)</option>
+                <option value="Asia/Singapore">Singapore (SGT)</option>
+                <option value="Asia/Tokyo">Tokyo (JST)</option>
+                <option value="Asia/Dubai">Dubai (GST)</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Account -->
+          <div class="card">
+            <div class="card-header"><span class="card-title">Account</span></div>
+            <div id="settings-signed-in" style="display:none;" class="setting-row">
+              <div style="display:flex;align-items:center;gap:10px;">
+                <img id="settings-avatar" src="" alt="" width="32" height="32" style="border-radius:50%;border:1px solid var(--border);">
+                <div>
+                  <div id="settings-display-name" style="font-size:13px;font-weight:500;color:var(--text)"></div>
+                  <div id="settings-email" style="font-size:11px;color:var(--text-3)"></div>
+                </div>
+              </div>
+              <button class="btn btn-ghost" onclick="signOut()" style="color:var(--red);border-color:rgba(239,68,68,0.3);">Sign Out</button>
+            </div>
+            <div id="settings-signed-out" style="display:none;" class="setting-row">
+              <span class="setting-label">Not signed in</span>
+              <button class="btn btn-primary" onclick="signInWithGoogle()">Sign In with Google</button>
+            </div>
+          </div>
+
+        </div>
+      </div><!-- /page-settings -->
+
+    </div><!-- /main-content -->
+
+    <!-- Mobile bottom tab bar -->
+    <div class="mobile-tabbar">
+      <button class="tab-item active" id="mob-tab-home" onclick="navTo('home')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+        Home
+      </button>
+      <button class="tab-item" id="mob-tab-scanner" onclick="navTo('scanner')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        Scanner
+      </button>
+      <button class="tab-item" id="mob-tab-trading" onclick="navTo('trading')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>
+        Trading
+      </button>
+      <button class="tab-item" id="mob-tab-settings" onclick="navTo('settings')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        Settings
+      </button>
+    </div>
+
+  </div><!-- /main-area -->
+</div><!-- /app-shell -->
+
+<!-- Firebase JS SDK (compat) -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script>
+  firebase.initializeApp({
+    apiKey:            "AIzaSyDDue1K_FPVYFzh3Uqe04mTrXxqehOqQq8",
+    authDomain:        "btc-ai-agent.firebaseapp.com",
+    projectId:         "btc-ai-agent",
+    storageBucket:     "btc-ai-agent.firebasestorage.app",
+    messagingSenderId: "654602808108",
+    appId:             "1:654602808108:web:f9a5272e443560608b9a89",
+  });
+</script>
 <script src="/static/main.js"></script>
 </body>
 </html>
