@@ -317,6 +317,8 @@ body {
   overflow-y: auto;
   overflow-x: hidden;
   min-height: 0;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
 }
 
 .page-body {
@@ -324,6 +326,13 @@ body {
   display: flex;
   flex-direction: column;
   gap: 16px;
+}
+
+@media (max-width: 1023px) {
+  .page-body {
+    padding-bottom: 80px;
+    padding-bottom: calc(56px + env(safe-area-inset-bottom, 0px) + 16px);
+  }
 }
 
 @media (min-width: 1024px) {
@@ -530,8 +539,6 @@ td.mono  { font-variant-numeric: tabular-nums; }
   font-size: 13px;
   line-height: 1.85;
   color: var(--text);
-  max-height: 520px;
-  overflow-y: auto;
   padding: 16px;
 }
 
@@ -735,10 +742,16 @@ td.mono  { font-variant-numeric: tabular-nums; }
 .mobile-tabbar {
   display: flex;
   align-items: stretch;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
   height: 56px;
   border-top: 1px solid var(--border);
   background: var(--bg);
-  flex-shrink: 0;
+  z-index: 100;
+  padding-bottom: env(safe-area-inset-bottom);
+  height: calc(56px + env(safe-area-inset-bottom));
 }
 
 @media (min-width: 1024px) { .mobile-tabbar { display: none; } }
@@ -776,13 +789,18 @@ td.mono  { font-variant-numeric: tabular-nums; }
 @media (max-width: 639px) {
   body { overflow-x: hidden; }
 
-  .page-body { padding: 12px; gap: 12px; }
+  .page-body {
+    padding: 12px;
+    padding-bottom: 80px;
+    padding-bottom: calc(56px + env(safe-area-inset-bottom, 0px) + 16px);
+    gap: 12px;
+  }
 
   .card-header { flex-wrap: wrap; gap: 6px; }
 
   table { display: block; overflow-x: auto; }
 
-  .briefing-content { max-height: 380px; overflow-wrap: break-word; word-break: break-word; }
+  .briefing-content { overflow-wrap: break-word; word-break: break-word; }
 
   /* scanner table: hide Direction (3), Bars Ago (4), Bar Open (5) */
   #scan-body td:nth-child(3), #scan-body td:nth-child(4), #scan-body td:nth-child(5),

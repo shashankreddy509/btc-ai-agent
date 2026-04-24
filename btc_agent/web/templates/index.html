@@ -2,7 +2,7 @@
 <html lang="en" data-theme="dark">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>BTC AI Agent</title>
   <link rel="stylesheet" href="/static/style.css" />
 </head>
@@ -239,36 +239,41 @@
 
             <!-- Trading Configuration -->
             <div class="card">
-              <div class="card-header">
+              <div class="card-header" onclick="toggleCfg()" style="cursor:pointer;user-select:none;">
                 <span class="card-title">Configuration</span>
                 <div style="display:flex;align-items:center;gap:8px;">
-                  <button class="btn btn-primary" id="trade-save-btn">Save</button>
                   <span id="trade-save-msg" style="font-size:11px;color:var(--green);display:none">Saved!</span>
+                  <svg id="cfg-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;color:var(--text-3);transition:transform 0.2s;transform:rotate(-90deg)"><polyline points="6 9 12 15 18 9"/></svg>
                 </div>
               </div>
-              <div class="settings-grid">
-                <label>Mode
-                  <select id="cfg-mode">
-                    <option value="paper">Paper</option>
-                    <option value="live">Live</option>
-                  </select>
-                </label>
-                <label>TF Min (m) <input id="cfg-tf-min" type="number" min="1" max="1440"></label>
-                <label>TF Max (m) <input id="cfg-tf-max" type="number" min="1" max="1440"></label>
-                <label>Scan Interval (m) <input id="cfg-interval" type="number" min="1"></label>
-                <label>Qty (Contracts) <input id="cfg-qty" type="number" step="1" min="2"></label>
-                <label>Max SL (pts) <input id="cfg-max-sl" type="number" min="1"></label>
-                <label>Min TP (pts) <input id="cfg-min-tp" type="number" min="1"></label>
-                <label>Max Concurrent <input id="cfg-max-conc" type="number" min="0"></label>
-              </div>
-              <div style="padding:0 16px 14px;">
-                <span style="font-size:11px;color:var(--text-3);text-transform:uppercase;letter-spacing:.06em;display:block;margin-bottom:8px;">Patterns to Scan</span>
-                <label style="display:inline-flex;align-items:center;gap:6px;margin-right:16px;font-size:12px;cursor:pointer;">
-                  <input type="checkbox" id="cfg-pattern-4flag"> 4-Flag
-                </label>
-                <label style="display:inline-flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;">
-                  <input type="checkbox" id="cfg-pattern-engulfing"> Engulfing
-                </label>
+              <div id="cfg-body" style="display:none;">
+                <div class="settings-grid">
+                  <label>Mode
+                    <select id="cfg-mode">
+                      <option value="paper">Paper</option>
+                      <option value="live">Live</option>
+                    </select>
+                  </label>
+                  <label>TF Min (m) <input id="cfg-tf-min" type="number" min="1" max="1440"></label>
+                  <label>TF Max (m) <input id="cfg-tf-max" type="number" min="1" max="1440"></label>
+                  <label>Scan Interval (m) <input id="cfg-interval" type="number" min="1"></label>
+                  <label>Qty (Contracts) <input id="cfg-qty" type="number" step="1" min="2"></label>
+                  <label>Max SL (pts) <input id="cfg-max-sl" type="number" min="1"></label>
+                  <label>Min TP (pts) <input id="cfg-min-tp" type="number" min="1"></label>
+                  <label>Max Concurrent <input id="cfg-max-conc" type="number" min="0"></label>
+                </div>
+                <div style="padding:0 16px 14px;">
+                  <span style="font-size:11px;color:var(--text-3);text-transform:uppercase;letter-spacing:.06em;display:block;margin-bottom:8px;">Patterns to Scan</span>
+                  <label style="display:inline-flex;align-items:center;gap:6px;margin-right:16px;font-size:12px;cursor:pointer;">
+                    <input type="checkbox" id="cfg-pattern-4flag"> 4-Flag
+                  </label>
+                  <label style="display:inline-flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;">
+                    <input type="checkbox" id="cfg-pattern-engulfing"> Engulfing
+                  </label>
+                </div>
+                <div style="padding:0 16px 14px;display:flex;justify-content:flex-end;">
+                  <button class="btn btn-primary" id="trade-save-btn">Save</button>
+                </div>
               </div>
             </div>
 
@@ -555,28 +560,28 @@
 
     </div><!-- /main-content -->
 
-    <!-- Mobile bottom tab bar -->
-    <div class="mobile-tabbar">
-      <button class="tab-item active" id="mob-tab-home" onclick="navTo('home')">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-        Home
-      </button>
-      <button class="tab-item" id="mob-tab-scanner" onclick="navTo('scanner')">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-        Scanner
-      </button>
-      <button class="tab-item" id="mob-tab-trading" onclick="navTo('trading')">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>
-        Trading
-      </button>
-      <button class="tab-item" id="mob-tab-settings" onclick="navTo('settings')">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-        Settings
-      </button>
-    </div>
-
   </div><!-- /main-area -->
 </div><!-- /app-shell -->
+
+<!-- Mobile bottom tab bar — outside app-shell so position:fixed is never clipped -->
+<div class="mobile-tabbar">
+  <button class="tab-item active" id="mob-tab-home" onclick="navTo('home')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+    Home
+  </button>
+  <button class="tab-item" id="mob-tab-scanner" onclick="navTo('scanner')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+    Scanner
+  </button>
+  <button class="tab-item" id="mob-tab-trading" onclick="navTo('trading')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>
+    Trading
+  </button>
+  <button class="tab-item" id="mob-tab-settings" onclick="navTo('settings')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+    Settings
+  </button>
+</div>
 
 <!-- Firebase JS SDK (compat) -->
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>

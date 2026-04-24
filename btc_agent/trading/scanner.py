@@ -55,14 +55,22 @@ _last_price: float = 0.0
 
 # ── settings (hot-reloadable from JSON) ──────────────────────────────────────
 
+_settings_cache: dict = {}
+_settings_mtime: float = 0.0
+
+
 def _load_settings() -> dict:
-    """Load runtime overrides from trading_settings.json (falls back to config)."""
+    """Load runtime overrides from trading_settings.json, cached by mtime."""
+    global _settings_cache, _settings_mtime
     if _SETTINGS_PATH.exists():
         try:
-            return json.loads(_SETTINGS_PATH.read_text())
+            mtime = _SETTINGS_PATH.stat().st_mtime
+            if mtime != _settings_mtime:
+                _settings_cache = json.loads(_SETTINGS_PATH.read_text())
+                _settings_mtime = mtime
         except Exception:
             pass
-    return {}
+    return _settings_cache
 
 
 def _get(key: str, default):
@@ -267,14 +275,13 @@ def _execute_entry(sig: Signal, current_price: float) -> None:
     entry = current_price
     sl = calc_sl(sig.sl_wick)
     sl_dist = abs(entry - sl)
-    if sl_dist > 500:
-        sig.status = "skipped"
+    cap = max_sl()
+    if sl_dist > cap:
+        # Cap SL at max_sl from entry rather than rejecting — keeps the trade alive
+        sl = round(entry - cap if sig.direction == "long" else entry + cap, 2)
         console.print(
-            f"[yellow]Signal {sig.id} skipped — SL distance {sl_dist:.0f} pts > 500[/yellow]"
+            f"[dim yellow]Signal {sig.id} SL capped at {cap:.0f} pts (wick was {sl_dist:.0f} pts away)[/dim yellow]"
         )
-        if _FS: _fs.update_signal_status(sig.id, "skipped")
-        _save_state()
-        return
     tp, tp_reason = _calc_tp(sig.direction, entry, _current_levels)
     qty = trading_qty()
     sig.status = "triggered"
@@ -678,6 +685,7 @@ _PRICE_TICK_S = 5  # fast price refresh interval for entries and position monito
 
 def run_trading_scanner() -> None:
     global _running, _last_scan_time, _current_levels, _last_price
+    _last_state_save = datetime.now(timezone.utc)
     _load_state()
     _running = True
     console.rule("[bold green]Trading Scanner started[/bold green]")
@@ -759,7 +767,9 @@ def run_trading_scanner() -> None:
                 except Exception as e:
                     console.print(f"[red]Pattern scan error: {e}[/red]")
 
-            _save_state()
+            if (datetime.now(timezone.utc) - _last_state_save).total_seconds() >= 60:
+                _save_state()
+                _last_state_save = datetime.now(timezone.utc)
 
             # ── sleep until next 5-second tick ───────────────────────────────
             elapsed_s = (datetime.now(timezone.utc) - tick_start).total_seconds()

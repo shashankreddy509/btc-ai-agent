@@ -50,6 +50,14 @@ def _mask_dict(d: dict, fields: list[str]) -> dict:
     return out
 
 
+async def _require_admin(token: dict = Depends(verify_token)) -> dict:
+    from btc_agent import config
+    owner = config.FIREBASE_OWNER_UID
+    if not owner or token.get("uid") != owner:
+        raise HTTPException(status_code=403, detail="Admin only")
+    return token
+
+
 # ── Startup: load Firestore settings into config ──────────────────────────────
 
 @app.on_event("startup")
@@ -185,7 +193,7 @@ async def trading_get_settings():
 
 
 @priv.post("/settings")
-async def trading_save_settings(body: dict = Body(...)):
+async def trading_save_settings(body: dict = Body(...), _: dict = Depends(_require_admin)):
     from btc_agent import config
     from btc_agent.trading.firestore_store import save_app_settings
     # Map trading settings keys to Firestore keys and apply to config
@@ -217,7 +225,7 @@ async def trading_save_settings(body: dict = Body(...)):
 
 
 @priv.post("/position/{signal_id}/cancel")
-async def cancel_position(signal_id: str):
+async def cancel_position(signal_id: str, _: dict = Depends(_require_admin)):
     from btc_agent.trading import scanner
     pos = next(
         (p for p in scanner.open_positions if p.signal_id == signal_id and p.status == "open"),
@@ -245,7 +253,7 @@ async def settings_get_app():
 
 
 @priv_cfg.put("/app")
-async def settings_save_app(body: dict = Body(...)):
+async def settings_save_app(body: dict = Body(...), _: dict = Depends(_require_admin)):
     from btc_agent import config
     from btc_agent.trading.firestore_store import save_app_settings
     clean = {k: v for k, v in body.items() if v is not None and "****" not in str(v)}

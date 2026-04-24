@@ -274,13 +274,22 @@ function navTo(section) {
     _setSidebarActive('nav-home');
     _setMobTabActive('mob-tab-scanner');
   } else {
-    _showPage(_currentSubTab);
+    _currentSubTab = 'briefing';
+    _showPage('briefing');
     subTabsEl.style.display = '';
-    _activateSubTab(_currentSubTab);
-    _setTopbarTitle(SECTION_TITLES[_currentSubTab]);
+    _activateSubTab('briefing');
+    _setTopbarTitle(SECTION_TITLES['briefing']);
     _setSidebarActive('nav-home');
     _setMobTabActive('mob-tab-home');
   }
+}
+
+function toggleCfg() {
+  const body = document.getElementById('cfg-body');
+  const chevron = document.getElementById('cfg-chevron');
+  const open = body.style.display === 'none';
+  body.style.display = open ? 'block' : 'none';
+  chevron.style.transform = open ? 'rotate(0deg)' : 'rotate(-90deg)';
 }
 
 function switchSubTab(tab) {
@@ -624,8 +633,10 @@ function renderTrading() {
 
   renderLevels(levels);
 
-  // sync settings inputs (also used by settings page)
-  _syncSettingsInputs(settings);
+  // sync settings inputs only when config panel is collapsed (not being edited)
+  if (document.getElementById('cfg-body')?.style.display === 'none') {
+    _syncSettingsInputs(settings);
+  }
 
   // signals table
   const sigBody = document.getElementById('trade-signals-body');
