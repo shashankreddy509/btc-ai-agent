@@ -33,10 +33,11 @@ def _bg(fn, *args) -> None:
 
 # ── Writes ─────────────────────────────────────────────────────────────────────
 
-def save_signal(d: dict) -> None:
+def save_signal(d: dict, uid: str) -> None:
+    doc = {**d, "uid": uid}
     def _write():
         try:
-            _get_db().collection("trading_signals").document(d["id"]).set(d)
+            _get_db().collection("trading_signals").document(doc["id"]).set(doc)
         except Exception as e:
             console.print(f"[dim yellow]FS signal write failed: {e}[/dim yellow]")
     _bg(_write)
@@ -51,19 +52,21 @@ def update_signal_status(signal_id: str, status: str) -> None:
     _bg(_write)
 
 
-def save_position(d: dict) -> None:
+def save_position(d: dict, uid: str) -> None:
+    doc = {**d, "uid": uid}
     def _write():
         try:
-            _get_db().collection("trading_positions").document(d["signal_id"]).set(d)
+            _get_db().collection("trading_positions").document(doc["signal_id"]).set(doc)
         except Exception as e:
             console.print(f"[dim yellow]FS position write failed: {e}[/dim yellow]")
     _bg(_write)
 
 
-def save_history(d: dict, doc_id: str) -> None:
+def save_history(d: dict, doc_id: str, uid: str) -> None:
+    doc = {**d, "uid": uid}
     def _write():
         try:
-            _get_db().collection("trading_history").document(doc_id).set(d)
+            _get_db().collection("trading_history").document(doc_id).set(doc)
         except Exception as e:
             console.print(f"[dim yellow]FS history write failed: {e}[/dim yellow]")
     _bg(_write)
@@ -111,24 +114,29 @@ def load_user_prefs(uid: str) -> dict | None:
 
 # ── Read ───────────────────────────────────────────────────────────────────────
 
-def load_state() -> dict | None:
+def load_state(uid: str) -> dict | None:
     """
-    Read all three collections and return raw dicts, or None if Firestore is
-    unavailable.  Signals are filtered to 'pending' only; positions to 'open' only;
-    history is sorted by closed_at ascending.
+    Read all three collections for the given uid, or None if Firestore is unavailable.
+    Admin uid (FIREBASE_OWNER_UID) loads all docs for backward compat with untagged records.
     """
     try:
+        from btc_agent import config as _cfg
         db = _get_db()
-        signals = [
-            doc.to_dict()
-            for doc in db.collection("trading_signals").where("status", "==", "pending").stream()
-        ]
-        positions = [
-            doc.to_dict()
-            for doc in db.collection("trading_positions").where("status", "==", "open").stream()
-        ]
-        history = sorted(
-            [doc.to_dict() for doc in db.collection("trading_history").stream()],
+        is_admin = uid == _cfg.FIREBASE_OWNER_UID
+
+        if is_admin:
+            sig_query = db.collection("trading_signals").where("status", "==", "pending")
+            pos_query = db.collection("trading_positions").where("status", "==", "open")
+            hist_query = db.collection("trading_history")
+        else:
+            sig_query  = db.collection("trading_signals").where("uid", "==", uid).where("status", "==", "pending")
+            pos_query  = db.collection("trading_positions").where("uid", "==", uid).where("status", "==", "open")
+            hist_query = db.collection("trading_history").where("uid", "==", uid)
+
+        signals   = [doc.to_dict() for doc in sig_query.stream()]
+        positions = [doc.to_dict() for doc in pos_query.stream()]
+        history   = sorted(
+            [doc.to_dict() for doc in hist_query.stream()],
             key=lambda d: d.get("closed_at", ""),
         )
         return {"signals": signals, "positions": positions, "history": history}

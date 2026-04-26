@@ -69,6 +69,7 @@
             <option value="Asia/Singapore">Singapore</option>
             <option value="Asia/Tokyo">Tokyo</option>
             <option value="Asia/Dubai">Dubai</option>
+            <option value="Australia/Sydney">Sydney</option>
           </select>
         </div>
         <div class="sidebar-select-row">
@@ -225,16 +226,16 @@
               <div class="card-header">
                 <span class="card-title">Trading Scanner</span>
                 <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
-                  <span style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text-3)">
+                  <span style="display:flex;align-items:center;gap:5px;font-size:13px;color:var(--text-3)">
                     <span class="status-dot dot-ok" id="trade-dot"></span>
-                    Mode: <span id="trade-mode-label" style="color:var(--accent)">—</span>
-                    &nbsp;·&nbsp; BTC: <span id="trade-live-price" style="color:var(--accent);font-weight:600">—</span>
+                    Mode: <span id="trade-mode-label" style="color:var(--accent);font-weight:600">—</span>
+                    &nbsp;·&nbsp; BTC: <span id="trade-live-price" style="color:var(--accent);font-weight:700;font-size:15px">—</span>
                   </span>
                   <button class="btn btn-green" id="trade-start-btn">Start Scanner</button>
                   <button class="btn btn-danger" id="trade-stop-btn" style="display:none">Stop Scanner</button>
                 </div>
               </div>
-              <div id="levels-row" class="levels-row" style="display:none;margin:0 16px 12px;"></div>
+              <div id="levels-row" class="levels-row" style="display:none;margin:8px 16px 12px;"></div>
             </div>
 
             <!-- Trading Configuration -->
@@ -257,7 +258,7 @@
                   <label>TF Min (m) <input id="cfg-tf-min" type="number" min="1" max="1440"></label>
                   <label>TF Max (m) <input id="cfg-tf-max" type="number" min="1" max="1440"></label>
                   <label>Scan Interval (m) <input id="cfg-interval" type="number" min="1"></label>
-                  <label>Qty (Contracts) <input id="cfg-qty" type="number" step="1" min="2"></label>
+                  <label>Qty (Contracts) <input id="cfg-qty" type="number" step="2" min="2"></label>
                   <label>Max SL (pts) <input id="cfg-max-sl" type="number" min="1"></label>
                   <label>Min TP (pts) <input id="cfg-min-tp" type="number" min="1"></label>
                   <label>Max Concurrent <input id="cfg-max-conc" type="number" min="0"></label>
@@ -407,6 +408,112 @@
             </div>
           </div>
 
+          <!-- Broker Selection -->
+          <div class="card" id="s-card-broker" style="display:none;">
+            <div class="card-header"><span class="card-title">Broker</span></div>
+            <div class="s-section">
+              <div class="s-field">
+                <span class="s-label">Active Broker</span>
+                <select id="s-broker-select" class="s-input" onchange="onBrokerChange(this.value)">
+                  <option value="coinbase">Coinbase Advanced Trade</option>
+                  <option value="binance">Binance Futures</option>
+                  <option value="bybit">Bybit</option>
+                  <option value="delta">Delta Exchange</option>
+                  <option value="coindcx">CoinDCX</option>
+                </select>
+              </div>
+              <div class="s-footer">
+                <button class="btn btn-primary" onclick="saveBrokerChoice()">Save</button>
+                <span class="s-ok" id="s-ok-broker">Saved!</span>
+                <span class="s-err" id="s-err-broker"></span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Binance Credentials -->
+          <div class="card" id="s-card-broker-binance" style="display:none;">
+            <div class="card-header"><span class="card-title">Binance API Keys</span></div>
+            <div class="s-section">
+              <div class="s-field">
+                <span class="s-label">API Key</span>
+                <input id="s-binance-key" class="s-input" type="password" placeholder="Binance API Key">
+              </div>
+              <div class="s-field">
+                <span class="s-label">API Secret</span>
+                <input id="s-binance-secret" class="s-input" type="password" placeholder="Binance API Secret">
+              </div>
+              <p style="font-size:11px;color:var(--text-3);margin:0;">Stored in Firestore tied to your UID. Never returned in plain text.</p>
+              <div class="s-footer">
+                <button class="btn btn-primary" onclick="saveBrokerCreds('binance')">Save</button>
+                <span class="s-ok" id="s-ok-broker-binance">Saved!</span>
+                <span class="s-err" id="s-err-broker-binance"></span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Bybit Credentials -->
+          <div class="card" id="s-card-broker-bybit" style="display:none;">
+            <div class="card-header"><span class="card-title">Bybit API Keys</span></div>
+            <div class="s-section">
+              <div class="s-field">
+                <span class="s-label">API Key</span>
+                <input id="s-bybit-key" class="s-input" type="password" placeholder="Bybit API Key">
+              </div>
+              <div class="s-field">
+                <span class="s-label">API Secret</span>
+                <input id="s-bybit-secret" class="s-input" type="password" placeholder="Bybit API Secret">
+              </div>
+              <p style="font-size:11px;color:var(--text-3);margin:0;">Stored in Firestore tied to your UID. Never returned in plain text.</p>
+              <div class="s-footer">
+                <button class="btn btn-primary" onclick="saveBrokerCreds('bybit')">Save</button>
+                <span class="s-ok" id="s-ok-broker-bybit">Saved!</span>
+                <span class="s-err" id="s-err-broker-bybit"></span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Delta Exchange Credentials -->
+          <div class="card" id="s-card-broker-delta" style="display:none;">
+            <div class="card-header"><span class="card-title">Delta Exchange API Keys</span></div>
+            <div class="s-section">
+              <div class="s-field">
+                <span class="s-label">API Key</span>
+                <input id="s-delta-key" class="s-input" type="password" placeholder="Delta Exchange API Key">
+              </div>
+              <div class="s-field">
+                <span class="s-label">API Secret</span>
+                <input id="s-delta-secret" class="s-input" type="password" placeholder="Delta Exchange API Secret">
+              </div>
+              <p style="font-size:11px;color:var(--text-3);margin:0;">Stored in Firestore tied to your UID. Never returned in plain text.</p>
+              <div class="s-footer">
+                <button class="btn btn-primary" onclick="saveBrokerCreds('delta')">Save</button>
+                <span class="s-ok" id="s-ok-broker-delta">Saved!</span>
+                <span class="s-err" id="s-err-broker-delta"></span>
+              </div>
+            </div>
+          </div>
+
+          <!-- CoinDCX Credentials -->
+          <div class="card" id="s-card-broker-coindcx" style="display:none;">
+            <div class="card-header"><span class="card-title">CoinDCX API Keys</span></div>
+            <div class="s-section">
+              <div class="s-field">
+                <span class="s-label">API Key</span>
+                <input id="s-coindcx-key" class="s-input" type="password" placeholder="CoinDCX API Key">
+              </div>
+              <div class="s-field">
+                <span class="s-label">API Secret</span>
+                <input id="s-coindcx-secret" class="s-input" type="password" placeholder="CoinDCX API Secret">
+              </div>
+              <p style="font-size:11px;color:var(--text-3);margin:0;">Stored in Firestore tied to your UID. Never returned in plain text.</p>
+              <div class="s-footer">
+                <button class="btn btn-primary" onclick="saveBrokerCreds('coindcx')">Save</button>
+                <span class="s-ok" id="s-ok-broker-coindcx">Saved!</span>
+                <span class="s-err" id="s-err-broker-coindcx"></span>
+              </div>
+            </div>
+          </div>
+
           <!-- Notifications -->
           <div class="card" id="s-card-notifications" style="display:none;">
             <div class="card-header"><span class="card-title">Notifications</span></div>
@@ -532,6 +639,7 @@
                 <option value="Asia/Singapore">Singapore (SGT)</option>
                 <option value="Asia/Tokyo">Tokyo (JST)</option>
                 <option value="Asia/Dubai">Dubai (GST)</option>
+                <option value="Australia/Sydney">Sydney (AEST/AEDT)</option>
               </select>
             </div>
           </div>

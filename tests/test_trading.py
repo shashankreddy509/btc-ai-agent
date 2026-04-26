@@ -205,3 +205,36 @@ class TestTrailSL:
             opened_at=datetime.now(timezone.utc),
         )
         assert _trail_sl(pos, 81000) == 79500
+
+
+# ── Qty (Contracts) validation ────────────────────────────────────────────────
+class TestQtyValidation:
+    def _v(self, qty) -> bool:
+        from btc_agent.web.app import _is_valid_qty
+        return _is_valid_qty(qty)
+
+    def test_even_integers_are_valid(self):
+        assert self._v(2)
+        assert self._v(4)
+        assert self._v(10)
+        assert self._v(100)
+
+    def test_odd_integers_are_invalid(self):
+        assert not self._v(1)
+        assert not self._v(3)
+        assert not self._v(7)
+
+    def test_zero_is_invalid(self):
+        assert not self._v(0)
+
+    def test_negative_even_is_invalid(self):
+        assert not self._v(-2)
+        assert not self._v(-4)
+
+    def test_float_whole_multiple_of_2_is_valid(self):
+        assert self._v(4.0)
+        assert self._v(6.0)
+
+    def test_non_integer_float_is_invalid(self):
+        assert not self._v(3.5)
+        assert not self._v(2.1)

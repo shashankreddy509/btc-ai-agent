@@ -75,10 +75,17 @@ function _renderAccountCard() {
   _show('settings-auth-note',  !signedIn);
 
   // Cards visible to all signed-in users
-  ['s-card-coinbase-exchange','s-card-coinbase-creds'].forEach(id => {
+  ['s-card-coinbase-exchange','s-card-coinbase-creds','s-card-broker'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.style.display = signedIn ? '' : 'none';
   });
+  // Broker credential panels: visibility controlled by onBrokerChange
+  if (!signedIn) {
+    ['binance','bybit','delta','coindcx'].forEach(b => {
+      const el = document.getElementById(`s-card-broker-${b}`);
+      if (el) el.style.display = 'none';
+    });
+  }
 
   // Admin-only cards
   ['s-card-general','s-card-notifications','s-card-scanner'].forEach(id => {
@@ -143,7 +150,48 @@ async function loadUserSettings() {
     const sp = (id, v) => { const el = document.getElementById(id); if (el && v) el.placeholder = v; };
     sp('s-cb-key',    d.coinbase_api_key);
     sp('s-cb-secret', d.coinbase_api_secret);
+    if (d.broker) {
+      const sel = document.getElementById('s-broker-select');
+      if (sel) sel.value = d.broker;
+      onBrokerChange(d.broker);
+    }
   } catch (_) {}
+}
+
+const _BROKER_CRED_CARDS = ['binance','bybit','delta','coindcx'];
+
+function onBrokerChange(broker) {
+  _BROKER_CRED_CARDS.forEach(b => {
+    const el = document.getElementById(`s-card-broker-${b}`);
+    if (el) el.style.display = (b === broker && _currentUser) ? '' : 'none';
+  });
+}
+
+async function saveBrokerChoice() {
+  if (!_currentUser) return;
+  const broker = _gv('s-broker-select');
+  if (!broker) return;
+  await _saveSettings('/api/trading/settings', { broker }, 'broker');
+  onBrokerChange(broker);
+}
+
+async function saveBrokerCreds(broker) {
+  if (!_currentUser) return;
+  const keyEl    = document.getElementById(`s-${broker}-key`);
+  const secretEl = document.getElementById(`s-${broker}-secret`);
+  const key    = keyEl    ? keyEl.value.trim()    : '';
+  const secret = secretEl ? secretEl.value.trim() : '';
+  if (!key || !secret) {
+    const errEl = document.getElementById(`s-err-broker-${broker}`);
+    if (errEl) { errEl.textContent = 'Both fields are required.'; errEl.style.display = 'inline'; }
+    return;
+  }
+  await _saveSettings('/api/settings/user',
+    { [`${broker}_api_key`]: key, [`${broker}_api_secret`]: secret },
+    `broker-${broker}`
+  );
+  if (keyEl)    keyEl.value    = '';
+  if (secretEl) secretEl.value = '';
 }
 
 // ── Settings save ─────────────────────────────────────────────────────────────
@@ -580,12 +628,10 @@ function fmtPrice(v) {
     : '—';
 }
 
-function renderLevels(levels) {
+function renderLevels(levels, running) {
   const el = document.getElementById('levels-row');
   if (!el) return;
-  if (!levels || (!levels.mrp && !levels.daily_poc && !levels.weekly_poc)) {
-    el.style.display = 'none'; return;
-  }
+  if (!running) { el.style.display = 'none'; return; }
   el.style.display = '';
   const mrpStr  = levels.mrp       ? `<span style="color:var(--accent)">$${fmtPrice(levels.mrp)}</span>`      : '<span style="color:var(--text-3)">—</span>';
   const dpocStr = levels.daily_poc  ? `<span style="color:var(--green)">$${fmtPrice(levels.daily_poc)}</span>` : '<span style="color:var(--text-3)">—</span>';
@@ -617,6 +663,13 @@ function renderTrading() {
   _setText('trade-mode-label', (settings.mode || 'paper').toUpperCase());
   const liveEl = document.getElementById('trade-live-price');
   if (liveEl) liveEl.textContent = current_price ? `$${fmtPrice(current_price)}` : '—';
+  if (current_price && running) {
+    const fmt = '$' + current_price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    ['btc-price', 'btc-price-mobile'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.textContent = fmt;
+    });
+  }
 
   const startBtn = document.getElementById('trade-start-btn');
   const stopBtn  = document.getElementById('trade-stop-btn');
@@ -631,7 +684,7 @@ function renderTrading() {
     if (dot)      dot.className = 'status-dot dot-ok';
   }
 
-  renderLevels(levels);
+  renderLevels(levels, running);
 
   // sync settings inputs only when config panel is collapsed (not being edited)
   if (document.getElementById('cfg-body')?.style.display === 'none') {
@@ -787,6 +840,11 @@ async function _renderSettingsPage() {
 
 async function saveTradingSettings() {
   if (!_currentUser) return;
+  const qtyVal = parseFloat(document.getElementById('cfg-qty').value);
+  if (!Number.isInteger(qtyVal) || qtyVal % 2 !== 0) {
+    alert('Qty (Contracts) must be a multiple of 2 (e.g. 2, 4, 6, …)');
+    return;
+  }
   const settings = {
     mode:              document.getElementById('cfg-mode').value,
     tf_min:            parseInt(document.getElementById('cfg-tf-min').value),

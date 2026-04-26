@@ -12,7 +12,6 @@ from btc_agent import storage
 from btc_agent.web.auth import verify_token
 
 BASE = Path(__file__).parent
-_TRADING_SETTINGS_PATH = Path(__file__).parent.parent / "data" / "trading_settings.json"
 
 app = FastAPI(title="BTC AI Agent Dashboard")
 app.mount("/static", StaticFiles(directory=BASE / "static"), name="static")
@@ -30,11 +29,8 @@ priv_cfg = APIRouter(prefix="/api/settings", dependencies=[Depends(verify_token)
 # Background task state
 _scan_running    = False
 _brief_running   = False
-_trading_running = False
-_scan_lock     = threading.Lock()
-_brief_lock    = threading.Lock()
-_trading_lock  = threading.Lock()
-_trading_thread: threading.Thread | None = None
+_scan_lock  = threading.Lock()
+_brief_lock = threading.Lock()
 
 
 def _mask(s: str) -> str:
@@ -48,6 +44,15 @@ def _mask_dict(d: dict, fields: list[str]) -> dict:
         if out.get(f):
             out[f] = _mask(out[f])
     return out
+
+
+def _is_valid_qty(qty) -> bool:
+    """qty must be a positive integer that is a multiple of 2."""
+    try:
+        n = int(qty)
+    except (TypeError, ValueError):
+        return False
+    return n == qty and n > 0 and n % 2 == 0
 
 
 async def _require_admin(token: dict = Depends(verify_token)) -> dict:
@@ -142,107 +147,110 @@ async def trigger_brief():
 
 @pub.get("/status")
 async def status():
+    from btc_agent.trading.scanner import is_any_running
     return JSONResponse(
         {"scan_running": _scan_running, "brief_running": _brief_running,
-         "trading_running": _trading_running}
+         "trading_running": is_any_running()}
     )
 
 
 # ── Private API: live trading (auth required) ─────────────────────────────────
 
 @priv.get("/state")
-async def trading_state():
+async def trading_state(token: dict = Depends(verify_token)):
     from btc_agent.trading.scanner import get_state
-    return JSONResponse(get_state())
+    return JSONResponse(get_state(token["uid"]))
 
 
 @priv.post("/start")
-async def trading_start():
-    global _trading_running, _trading_thread
-    with _trading_lock:
-        if _trading_running:
-            return JSONResponse({"status": "already_running"})
-        _trading_running = True
+async def trading_start(token: dict = Depends(verify_token)):
+    from btc_agent.trading.scanner import get_state, run_trading_scanner
+    uid = token["uid"]
+    state = get_state(uid)
+    if state["running"]:
+        return JSONResponse({"status": "already_running"})
 
-    def _run():
-        global _trading_running
-        try:
-            from btc_agent.trading.scanner import run_trading_scanner
-            run_trading_scanner()
-        finally:
-            _trading_running = False
+    # Load user's trading settings from Firestore to seed the scanner
+    user_settings: dict = {}
+    try:
+        from btc_agent.trading.firestore_store import load_user_prefs
+        prefs = load_user_prefs(uid) or {}
+        setting_keys = {"mode", "tf_min", "tf_max", "scan_interval_min", "qty",
+                        "max_sl", "min_tp", "max_concurrent", "patterns", "broker"}
+        user_settings = {k: v for k, v in prefs.items() if k in setting_keys}
+    except Exception as e:
+        pass
 
-    _trading_thread = threading.Thread(target=_run, daemon=True, name="trading")
-    _trading_thread.start()
+    threading.Thread(
+        target=run_trading_scanner,
+        args=(uid,),
+        kwargs={"user_settings": user_settings},
+        daemon=True,
+        name=f"trading-{uid[:8]}",
+    ).start()
     return JSONResponse({"status": "started"})
 
 
 @priv.post("/stop")
-async def trading_stop():
-    global _trading_running
+async def trading_stop(token: dict = Depends(verify_token)):
     from btc_agent.trading.scanner import stop_trading_scanner
-    stop_trading_scanner()
-    _trading_running = False
+    stop_trading_scanner(token["uid"])
     return JSONResponse({"status": "stopped"})
 
 
 @priv.get("/settings")
-async def trading_get_settings():
+async def trading_get_settings(token: dict = Depends(verify_token)):
     from btc_agent.trading.scanner import get_state
-    return JSONResponse(get_state()["settings"])
+    return JSONResponse(get_state(token["uid"])["settings"])
 
 
 @priv.post("/settings")
-async def trading_save_settings(body: dict = Body(...), _: dict = Depends(_require_admin)):
-    from btc_agent import config
-    from btc_agent.trading.firestore_store import save_app_settings
-    # Map trading settings keys to Firestore keys and apply to config
-    fs_body = {
-        "trading_mode":             body.get("mode"),
-        "trading_tf_min":           body.get("tf_min"),
-        "trading_tf_max":           body.get("tf_max"),
-        "trading_scan_interval_min": body.get("scan_interval_min"),
-        "trading_qty":              body.get("qty"),
-        "trading_max_sl":           body.get("max_sl"),
-        "trading_min_tp":           body.get("min_tp"),
-        "trading_max_concurrent":   body.get("max_concurrent"),
-        "trading_patterns":         body.get("patterns"),
-    }
-    fs_body = {k: v for k, v in fs_body.items() if v is not None}
-    save_app_settings(fs_body)
-    config.apply_settings(fs_body)
-    # Also keep local JSON for backward compat with scanner get_state()
-    _TRADING_SETTINGS_PATH.parent.mkdir(parents=True, exist_ok=True)
-    existing = {}
-    if _TRADING_SETTINGS_PATH.exists():
-        try:
-            existing = json.loads(_TRADING_SETTINGS_PATH.read_text())
-        except Exception:
-            pass
-    existing.update(body)
-    _TRADING_SETTINGS_PATH.write_text(json.dumps(existing, indent=2))
-    return JSONResponse({"status": "saved", "settings": existing})
+async def trading_save_settings(body: dict = Body(...), token: dict = Depends(verify_token)):
+    from btc_agent.trading.firestore_store import save_user_prefs
+    from btc_agent.trading.scanner import _scanners
+    qty = body.get("qty")
+    if qty is not None and not _is_valid_qty(qty):
+        raise HTTPException(status_code=422, detail="Qty must be a multiple of 2")
+    uid = token["uid"]
+    setting_keys = {"mode", "tf_min", "tf_max", "scan_interval_min", "qty",
+                    "max_sl", "min_tp", "max_concurrent", "patterns"}
+    clean = {k: v for k, v in body.items() if k in setting_keys and v is not None}
+    save_user_prefs(uid, clean)
+    # Update live scanner if running
+    sc = _scanners.get(uid)
+    if sc is not None:
+        sc.settings.update(clean)
+    return JSONResponse({"status": "saved", "settings": clean})
 
 
 @priv.post("/position/{signal_id}/cancel")
-async def cancel_position(signal_id: str, _: dict = Depends(_require_admin)):
+async def cancel_position(signal_id: str, token: dict = Depends(_require_admin)):
     from btc_agent.trading import scanner
+    sc = scanner._scanners.get(token["uid"])
+    if sc is None:
+        return JSONResponse({"error": "scanner not running"}, status_code=404)
     pos = next(
-        (p for p in scanner.open_positions if p.signal_id == signal_id and p.status == "open"),
+        (p for p in sc.open_positions if p.signal_id == signal_id and p.status == "open"),
         None,
     )
     if not pos:
         return JSONResponse({"error": "position not found"}, status_code=404)
-    price = scanner._last_price or pos.entry_price
-    scanner._close_position(pos, price, "manual")
-    scanner._save_state()
+    price = sc.last_price or pos.entry_price
+    scanner._close_position(sc, pos, price, "manual")
+    scanner._save_state(sc)
     return JSONResponse({"status": "cancelled"})
 
 
 # ── Settings API ──────────────────────────────────────────────────────────────
 
 _SENSITIVE_APP = ["anthropic_api_key", "telegram_bot_token", "email_pass"]
-_SENSITIVE_USER = ["coinbase_api_key", "coinbase_api_secret"]
+_SENSITIVE_USER = [
+    "coinbase_api_key", "coinbase_api_secret",
+    "binance_api_key", "binance_api_secret",
+    "bybit_api_key", "bybit_api_secret",
+    "delta_api_key", "delta_api_secret",
+    "coindcx_api_key", "coindcx_api_secret",
+]
 
 
 @priv_cfg.get("/app")

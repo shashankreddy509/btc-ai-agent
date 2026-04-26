@@ -57,11 +57,30 @@ WEEKLY_ADJ                = float(os.getenv("WEEKLY_ADJ", "0.0324"))
 # Firebase owner UID — Coinbase keys stored in Firestore are tied to this UID
 FIREBASE_OWNER_UID        = os.getenv("FIREBASE_OWNER_UID", "")
 
+# Broker selection
+TRADING_BROKER            = os.getenv("TRADING_BROKER", "coinbase")
+
 # Coinbase Advanced Trade
 COINBASE_API_KEY          = os.getenv("COINBASE_API_KEY", "")
 COINBASE_API_SECRET       = os.getenv("COINBASE_API_SECRET", "")
 COINBASE_PRODUCT_ID       = os.getenv("COINBASE_PRODUCT_ID", "BTC-PERP-INTX")
 COINBASE_CONTRACT_SIZE    = float(os.getenv("COINBASE_CONTRACT_SIZE", "0.01"))   # BTC per contract
+
+# Binance Futures
+BINANCE_API_KEY           = os.getenv("BINANCE_API_KEY", "")
+BINANCE_API_SECRET        = os.getenv("BINANCE_API_SECRET", "")
+
+# Bybit
+BYBIT_API_KEY             = os.getenv("BYBIT_API_KEY", "")
+BYBIT_API_SECRET          = os.getenv("BYBIT_API_SECRET", "")
+
+# Delta Exchange
+DELTA_API_KEY             = os.getenv("DELTA_API_KEY", "")
+DELTA_API_SECRET          = os.getenv("DELTA_API_SECRET", "")
+
+# CoinDCX
+COINDCX_API_KEY           = os.getenv("COINDCX_API_KEY", "")
+COINDCX_API_SECRET        = os.getenv("COINDCX_API_SECRET", "")
 
 # DEPO parameters
 DEPO_START = 126208
@@ -100,9 +119,13 @@ def apply_settings(d: dict) -> None:
         "email_smtp_host": "EMAIL_SMTP_HOST", "email_user": "EMAIL_USER",
         "email_pass": "EMAIL_PASS", "email_to": "EMAIL_TO",
         "briefing_time": "BRIEFING_TIME", "scanner_time": "SCANNER_TIME",
-        "trading_mode": "TRADING_MODE",
+        "trading_mode": "TRADING_MODE", "trading_broker": "TRADING_BROKER",
         "coinbase_api_key": "COINBASE_API_KEY", "coinbase_api_secret": "COINBASE_API_SECRET",
         "coinbase_product_id": "COINBASE_PRODUCT_ID",
+        "binance_api_key": "BINANCE_API_KEY", "binance_api_secret": "BINANCE_API_SECRET",
+        "bybit_api_key": "BYBIT_API_KEY", "bybit_api_secret": "BYBIT_API_SECRET",
+        "delta_api_key": "DELTA_API_KEY", "delta_api_secret": "DELTA_API_SECRET",
+        "coindcx_api_key": "COINDCX_API_KEY", "coindcx_api_secret": "COINDCX_API_SECRET",
     }
     _int = {
         "email_smtp_port": "EMAIL_SMTP_PORT",
