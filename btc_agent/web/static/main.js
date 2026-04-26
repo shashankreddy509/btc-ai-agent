@@ -74,18 +74,13 @@ function _renderAccountCard() {
   _show('settings-signed-out', !signedIn);
   _show('settings-auth-note',  !signedIn);
 
-  // Cards visible to all signed-in users
-  ['s-card-coinbase-exchange','s-card-coinbase-creds','s-card-broker'].forEach(id => {
-    const el = document.getElementById(id);
-    if (el) el.style.display = signedIn ? '' : 'none';
-  });
-  // Broker credential panels: visibility controlled by onBrokerChange
-  if (!signedIn) {
-    ['binance','bybit','delta','coindcx'].forEach(b => {
-      const el = document.getElementById(`s-card-broker-${b}`);
-      if (el) el.style.display = 'none';
-    });
-  }
+  // Only broker selector card is always visible to signed-in users
+  // All credential cards are controlled by onBrokerChange
+  const brokerCard = document.getElementById('s-card-broker');
+  if (brokerCard) brokerCard.style.display = signedIn ? '' : 'none';
+  if (!signedIn) onBrokerChange('');
+  // Re-gate Vishal page when auth state changes
+  if (document.getElementById('page-vishal')?.classList.contains('active')) _showVishalContent();
 
   // Admin-only cards
   ['s-card-general','s-card-notifications','s-card-scanner'].forEach(id => {
@@ -150,20 +145,26 @@ async function loadUserSettings() {
     const sp = (id, v) => { const el = document.getElementById(id); if (el && v) el.placeholder = v; };
     sp('s-cb-key',    d.coinbase_api_key);
     sp('s-cb-secret', d.coinbase_api_secret);
-    if (d.broker) {
-      const sel = document.getElementById('s-broker-select');
-      if (sel) sel.value = d.broker;
-      onBrokerChange(d.broker);
-    }
+    const broker = d.broker || '';
+    const sel = document.getElementById('s-broker-select');
+    if (sel) sel.value = broker;
+    onBrokerChange(broker);
   } catch (_) {}
 }
 
 const _BROKER_CRED_CARDS = ['binance','bybit','delta','coindcx'];
 
 function onBrokerChange(broker) {
+  // Non-Coinbase credential panels
   _BROKER_CRED_CARDS.forEach(b => {
     const el = document.getElementById(`s-card-broker-${b}`);
     if (el) el.style.display = (b === broker && _currentUser) ? '' : 'none';
+  });
+  // Coinbase-specific cards
+  const isCoinbase = broker === 'coinbase' && !!_currentUser;
+  ['s-card-coinbase-exchange','s-card-coinbase-creds'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = isCoinbase ? '' : 'none';
   });
 }
 
@@ -186,12 +187,14 @@ async function saveBrokerCreds(broker) {
     if (errEl) { errEl.textContent = 'Both fields are required.'; errEl.style.display = 'inline'; }
     return;
   }
-  await _saveSettings('/api/settings/user',
-    { [`${broker}_api_key`]: key, [`${broker}_api_secret`]: secret },
-    `broker-${broker}`
-  );
+  const contractEl = document.getElementById(`s-${broker}-contract`);
+  const contractSize = contractEl ? _gn(`s-${broker}-contract`) : null;
+  const payload = { [`${broker}_api_key`]: key, [`${broker}_api_secret`]: secret };
+  if (contractSize) payload[`${broker}_contract_size`] = contractSize;
+  await _saveSettings('/api/settings/user', payload, `broker-${broker}`);
   if (keyEl)    keyEl.value    = '';
   if (secretEl) secretEl.value = '';
+  if (contractEl) contractEl.value = '';
 }
 
 // ── Settings save ─────────────────────────────────────────────────────────────
@@ -278,6 +281,81 @@ function _showTradingContent() {
   }
 }
 
+function _showVishalContent() {
+  const gate    = document.getElementById('vishal-auth-gate');
+  const content = document.getElementById('vishal-content');
+  if (_currentUser) {
+    if (gate)    gate.style.display    = 'none';
+    if (content) content.style.display = '';
+    loadVishalSettings();
+  } else {
+    if (gate)    gate.style.display    = '';
+    if (content) content.style.display = 'none';
+  }
+}
+
+// ── Vishal Sir Strategy settings ──────────────────────────────────────────────
+async function loadVishalSettings() {
+  if (!_currentUser) return;
+  try {
+    const d = await fetchJSON('/api/trading/settings');
+    const vs = d.vishal || {};
+    const sv = (id, v) => { const el = document.getElementById(id); if (el && v != null) el.value = v; };
+    const sc = (id, v) => { const el = document.getElementById(id); if (el) el.checked = !!v; };
+    sc('v-pp-enabled',    vs.pingpong_enabled);
+    sv('v-pp-tf',         vs.pingpong_tf   ?? '4h');
+    sv('v-pp-tp',         vs.pingpong_tp   ?? 1000);
+    sv('v-pp-sl',         vs.pingpong_sl   ?? 500);
+    sc('v-esc-enabled',   vs.escalator_enabled);
+    sv('v-esc-trigger',   vs.escalator_trigger ?? 200);
+    sv('v-esc-max-sl',    vs.escalator_max_sl  ?? 3);
+    sc('v-hwt-enabled',   vs.hwt_enabled);
+    sv('v-hwt-target',    vs.hwt_target ?? 450);
+    sv('v-hwt-sl',        vs.hwt_sl     ?? 100);
+    sv('v-hwt-sz',        vs.hwt_sz     || '');
+    sv('v-hwt-dz',        vs.hwt_dz     || '');
+    sc('v-cpc-enabled',   vs.cpc_enabled);
+    sv('v-cpc-target',    vs.cpc_target ?? 1950);
+    sv('v-cpc-sz',        vs.cpc_sz || '');
+    sv('v-cpc-dz',        vs.cpc_dz || '');
+    sc('v-rain-enabled',  vs.rain_enabled);
+    sv('v-rain-tp',       vs.rain_tp ?? 500);
+    sv('v-rain-sz',       vs.rain_sz || '');
+    sv('v-rain-dz',       vs.rain_dz || '');
+    sc('v-dp-enabled',    vs.dp_enabled);
+    sv('v-dp-t1-pct',     vs.dp_t1_pct ?? 50);
+    sv('v-dp-sz',         vs.dp_sz || '');
+    sv('v-dp-dz',         vs.dp_dz || '');
+  } catch (e) { console.error('loadVishalSettings', e); }
+}
+
+async function saveVishalStrategy(id) {
+  if (!_currentUser) return;
+  const gn = elId => { const el = document.getElementById(elId); return el ? Number(el.value) || 0 : 0; };
+  const gb = elId => { const el = document.getElementById(elId); return el ? el.checked : false; };
+  const existing = await fetchJSON('/api/trading/settings').catch(() => ({}));
+  const vs = Object.assign({}, existing.vishal || {});
+  if (id === 'pingpong') {
+    const ppTf = document.getElementById('v-pp-tf')?.value || '4h';
+    Object.assign(vs, { pingpong_enabled: gb('v-pp-enabled'), pingpong_tf: ppTf, pingpong_tp: gn('v-pp-tp'), pingpong_sl: gn('v-pp-sl') });
+  } else if (id === 'escalator') {
+    Object.assign(vs, { escalator_enabled: gb('v-esc-enabled'), escalator_trigger: gn('v-esc-trigger'), escalator_max_sl: gn('v-esc-max-sl') });
+  } else if (id === 'hwt') {
+    Object.assign(vs, { hwt_enabled: gb('v-hwt-enabled'), hwt_target: gn('v-hwt-target'), hwt_sl: gn('v-hwt-sl'), hwt_sz: gn('v-hwt-sz'), hwt_dz: gn('v-hwt-dz') });
+  } else if (id === 'cpc') {
+    Object.assign(vs, { cpc_enabled: gb('v-cpc-enabled'), cpc_target: gn('v-cpc-target'), cpc_sz: gn('v-cpc-sz'), cpc_dz: gn('v-cpc-dz') });
+  } else if (id === 'rain') {
+    Object.assign(vs, { rain_enabled: gb('v-rain-enabled'), rain_tp: gn('v-rain-tp'), rain_sz: gn('v-rain-sz'), rain_dz: gn('v-rain-dz') });
+  } else if (id === 'dp') {
+    Object.assign(vs, { dp_enabled: gb('v-dp-enabled'), dp_t1_pct: gn('v-dp-t1-pct'), dp_sz: gn('v-dp-sz'), dp_dz: gn('v-dp-dz') });
+  }
+  try {
+    await fetchJSON('/api/trading/settings', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ vishal: vs }) });
+    const btn = document.querySelector(`#v-card-${id === 'pingpong' ? 'pingpong' : id === 'escalator' ? 'escalator' : id === 'hwt' ? 'hwt' : id === 'cpc' ? 'cpc' : id === 'rain' ? 'rain' : 'dp'} .btn`);
+    if (btn) { const orig = btn.textContent; btn.textContent = 'Saved ✓'; setTimeout(() => { btn.textContent = orig; }, 1500); }
+  } catch (e) { console.error('saveVishalStrategy', e); }
+}
+
 // ── Utility helpers ────────────────────────────────────────────────────────────
 function _show(id, visible) {
   const el = document.getElementById(id);
@@ -299,7 +377,13 @@ function navTo(section) {
   _currentSection = section;
   const subTabsEl = document.getElementById('sub-tabs');
 
-  if (section === 'trading') {
+  if (section === 'vishal') {
+    _showPage('vishal');
+    subTabsEl.style.display = 'none';
+    _setTopbarTitle('Vishal Sir Strategy');
+    _setSidebarActive('nav-vishal');
+    _showVishalContent();
+  } else if (section === 'trading') {
     _showPage('trading');
     subTabsEl.style.display = 'none';
     _setTopbarTitle('Live Trading');
@@ -330,6 +414,26 @@ function navTo(section) {
     _setSidebarActive('nav-home');
     _setMobTabActive('mob-tab-home');
   }
+}
+
+const _PP_PRESETS = { '1h': {tp:400,sl:200}, '4h': {tp:1000,sl:500}, '6h': {tp:1200,sl:600}, '12h': {tp:2000,sl:200} };
+function onPingPongTfChange() {
+  const tf = document.getElementById('v-pp-tf')?.value;
+  const p  = _PP_PRESETS[tf];
+  if (!p) return;
+  const tp = document.getElementById('v-pp-tp');
+  const sl = document.getElementById('v-pp-sl');
+  if (tp) tp.value = p.tp;
+  if (sl) sl.value = p.sl;
+}
+
+function toggleVishal(id) {
+  const body    = document.getElementById('v-body-' + id);
+  const chevron = document.getElementById('v-chevron-' + id);
+  if (!body) return;
+  const open = body.style.display === 'none';
+  body.style.display = open ? 'block' : 'none';
+  if (chevron) chevron.style.transform = open ? 'rotate(0deg)' : 'rotate(-90deg)';
 }
 
 function toggleCfg() {

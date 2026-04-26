@@ -17,9 +17,10 @@ _CONTRACT_SIZE = 0.001  # 1 contract ≈ 0.001 BTC on CoinDCX Futures
 class CoinDCXAdapter(BrokerAdapter):
     """CoinDCX Futures via REST API."""
 
-    def __init__(self, api_key: str, api_secret: str):
+    def __init__(self, api_key: str, api_secret: str, contract_size_val: float | None = None):
         self._api_key = api_key
         self._api_secret = api_secret
+        self._contract_size = contract_size_val if contract_size_val else _CONTRACT_SIZE
 
     def _sign(self, body: str) -> str:
         return hmac.new(self._api_secret.encode(), body.encode(), hashlib.sha256).hexdigest()
@@ -69,4 +70,4 @@ class CoinDCXAdapter(BrokerAdapter):
 
     @property
     def contract_size(self) -> float:
-        return _CONTRACT_SIZE
+        return self._contract_size

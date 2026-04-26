@@ -213,7 +213,7 @@ async def trading_save_settings(body: dict = Body(...), token: dict = Depends(ve
         raise HTTPException(status_code=422, detail="Qty must be a multiple of 2")
     uid = token["uid"]
     setting_keys = {"mode", "tf_min", "tf_max", "scan_interval_min", "qty",
-                    "max_sl", "min_tp", "max_concurrent", "patterns"}
+                    "max_sl", "min_tp", "max_concurrent", "patterns", "vishal"}
     clean = {k: v for k, v in body.items() if k in setting_keys and v is not None}
     save_user_prefs(uid, clean)
     # Update live scanner if running

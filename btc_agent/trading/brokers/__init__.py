@@ -28,12 +28,13 @@ def get_broker(name: str, creds: dict) -> BrokerAdapter:
             product_id=creds.get("product_id", "BTC-PERP-INTX"),
             contract_size_val=float(creds.get("contract_size", 0.01)),
         )
+    contract_size = float(creds.get("contract_size", 0.001)) or None
     if name == "binance":
-        return BinanceAdapter(api_key=api_key, api_secret=api_secret)
+        return BinanceAdapter(api_key=api_key, api_secret=api_secret, contract_size_val=contract_size)
     if name == "bybit":
-        return BybitAdapter(api_key=api_key, api_secret=api_secret)
+        return BybitAdapter(api_key=api_key, api_secret=api_secret, contract_size_val=contract_size)
     if name == "delta":
-        return DeltaAdapter(api_key=api_key, api_secret=api_secret)
+        return DeltaAdapter(api_key=api_key, api_secret=api_secret, contract_size_val=contract_size)
     if name == "coindcx":
-        return CoinDCXAdapter(api_key=api_key, api_secret=api_secret)
+        return CoinDCXAdapter(api_key=api_key, api_secret=api_secret, contract_size_val=contract_size)
     raise ValueError(f"Unknown broker: {name!r}. Valid: {list(BROKER_NAMES)}")

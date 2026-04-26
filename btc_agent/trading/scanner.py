@@ -24,6 +24,7 @@ from btc_agent.scanner.data import fetch_1m_candles, fetch_current_price
 from btc_agent.scanner.levels import compute_levels
 from btc_agent.scanner.patterns import detect_4flag, detect_engulfing
 from btc_agent.trading.models import Position, Signal, TradeResult
+from btc_agent.trading.vishal_strategies import _tick_vishal
 
 console = Console()
 
@@ -52,6 +53,7 @@ class _Scanner:
     last_price: float = 0.0
     settings: dict = field(default_factory=dict)
     broker: object = field(default=None, repr=False)
+    vishal_state: dict = field(default_factory=dict)
 
     @property
     def state_path(self) -> Path:
@@ -107,11 +109,12 @@ def _build_broker(sc: _Scanner):
     """Instantiate the broker adapter for this user from their saved settings."""
     from btc_agent.trading.brokers import get_broker
     name = sc.settings.get("broker", config.TRADING_BROKER)
+    default_cs = getattr(config, f"{name.upper()}_CONTRACT_SIZE", 0.001)
     creds = {
         "api_key":       sc.settings.get(f"{name}_api_key") or getattr(config, f"{name.upper()}_API_KEY", ""),
         "api_secret":    sc.settings.get(f"{name}_api_secret") or getattr(config, f"{name.upper()}_API_SECRET", ""),
         "product_id":    sc.settings.get("coinbase_product_id", config.COINBASE_PRODUCT_ID),
-        "contract_size": sc.settings.get("coinbase_contract_size", config.COINBASE_CONTRACT_SIZE),
+        "contract_size": sc.settings.get(f"{name}_contract_size", default_cs),
     }
     return get_broker(name, creds)
 
@@ -262,7 +265,10 @@ def _execute_entry(sc: _Scanner, sig: Signal, current_price: float) -> None:
     if sl_dist > sl_cap:
         sl = round(entry - sl_cap if sig.direction == "long" else entry + sl_cap, 2)
         console.print(f"[dim yellow]Signal {sig.id} SL capped at {sl_cap:.0f} pts[/dim yellow]")
-    tp, tp_reason = _calc_tp(sc, sig.direction, entry)
+    if sig.custom_tp > 0:
+        tp, tp_reason = sig.custom_tp, sig.pattern
+    else:
+        tp, tp_reason = _calc_tp(sc, sig.direction, entry)
     qty = _trading_qty(sc)
     sig.status = "triggered"
 
@@ -675,6 +681,7 @@ def run_trading_scanner(uid: str, user_settings: dict | None = None) -> None:
                 continue
 
             _monitor_positions(sc, current_price)
+            _tick_vishal(sc, current_price, now)
 
             for sig in sc.pending_signals:
                 if sig.status != "pending":

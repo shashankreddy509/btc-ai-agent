@@ -69,18 +69,22 @@ COINBASE_CONTRACT_SIZE    = float(os.getenv("COINBASE_CONTRACT_SIZE", "0.01"))  
 # Binance Futures
 BINANCE_API_KEY           = os.getenv("BINANCE_API_KEY", "")
 BINANCE_API_SECRET        = os.getenv("BINANCE_API_SECRET", "")
+BINANCE_CONTRACT_SIZE     = float(os.getenv("BINANCE_CONTRACT_SIZE", "0.001"))
 
 # Bybit
 BYBIT_API_KEY             = os.getenv("BYBIT_API_KEY", "")
 BYBIT_API_SECRET          = os.getenv("BYBIT_API_SECRET", "")
+BYBIT_CONTRACT_SIZE       = float(os.getenv("BYBIT_CONTRACT_SIZE", "0.001"))
 
 # Delta Exchange
 DELTA_API_KEY             = os.getenv("DELTA_API_KEY", "")
 DELTA_API_SECRET          = os.getenv("DELTA_API_SECRET", "")
+DELTA_CONTRACT_SIZE       = float(os.getenv("DELTA_CONTRACT_SIZE", "0.001"))
 
 # CoinDCX
 COINDCX_API_KEY           = os.getenv("COINDCX_API_KEY", "")
 COINDCX_API_SECRET        = os.getenv("COINDCX_API_SECRET", "")
+COINDCX_CONTRACT_SIZE     = float(os.getenv("COINDCX_CONTRACT_SIZE", "0.001"))
 
 # DEPO parameters
 DEPO_START = 126208
@@ -138,6 +142,8 @@ def apply_settings(d: dict) -> None:
     _float = {
         "trading_max_sl": "TRADING_MAX_SL", "trading_min_tp": "TRADING_MIN_TP",
         "weekly_adj": "WEEKLY_ADJ", "coinbase_contract_size": "COINBASE_CONTRACT_SIZE",
+        "binance_contract_size": "BINANCE_CONTRACT_SIZE", "bybit_contract_size": "BYBIT_CONTRACT_SIZE",
+        "delta_contract_size": "DELTA_CONTRACT_SIZE", "coindcx_contract_size": "COINDCX_CONTRACT_SIZE",
     }
     _list = {
         "delivery_channels": "DELIVERY_CHANNELS",

@@ -18,9 +18,10 @@ _CONTRACT_SIZE = 0.001  # 1 contract = 0.001 BTC on Binance USDT-M Futures
 class BinanceAdapter(BrokerAdapter):
     """Binance USDT-M Perpetual Futures via REST API."""
 
-    def __init__(self, api_key: str, api_secret: str):
+    def __init__(self, api_key: str, api_secret: str, contract_size_val: float | None = None):
         self._api_key = api_key
         self._api_secret = api_secret
+        self._contract_size = contract_size_val if contract_size_val else _CONTRACT_SIZE
 
     def _sign(self, params: dict) -> str:
         query = urllib.parse.urlencode(params)
@@ -79,4 +80,4 @@ class BinanceAdapter(BrokerAdapter):
 
     @property
     def contract_size(self) -> float:
-        return _CONTRACT_SIZE
+        return self._contract_size
