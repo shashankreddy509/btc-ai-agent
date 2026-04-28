@@ -54,6 +54,7 @@ class _Scanner:
     settings: dict = field(default_factory=dict)
     broker: object = field(default=None, repr=False)
     vishal_state: dict = field(default_factory=dict)
+    current_bias: str = ""
 
     @property
     def state_path(self) -> Path:
@@ -160,6 +161,10 @@ def _calc_tp(sc: _Scanner, direction: str, entry: float) -> tuple[float, str]:
         tp_reason = "500_cap"
 
     return round(tp_price, 2), tp_reason
+
+
+def _bias_filter_enabled(sc: _Scanner) -> bool:
+    return bool(sc.settings.get("bias_filter", config.TRADING_BIAS_FILTER))
 
 
 def _trend_bias(price: float, levels: dict) -> str:
@@ -612,6 +617,7 @@ def get_state(uid: str | None = None) -> dict:
         "history":   [_result_to_dict(r) for r in sc.trade_history[-50:]],
         "running":       sc.running,
         "current_price": sc.last_price,
+        "current_bias":  sc.current_bias,
         "levels":        sc.current_levels,
         "settings": {
             "mode":              _trading_mode(sc),
@@ -727,6 +733,7 @@ def run_trading_scanner(uid: str, user_settings: dict | None = None) -> None:
                     arr, ts_arr, minutes_of_day, unix_days = df_to_numpy(df)
                     sc.current_levels = compute_levels(df, weekly_adj=config.WEEKLY_ADJ)
                     bias = _trend_bias(current_price, sc.current_levels)
+                    sc.current_bias = bias
                     mrp_str  = f"{sc.current_levels['mrp']:.1f}"       if sc.current_levels.get("mrp")       else "—"
                     dpoc_str = f"{sc.current_levels['daily_poc']:.1f}"  if sc.current_levels.get("daily_poc")  else "—"
                     wpoc_str = f"{sc.current_levels['weekly_poc']:.1f}" if sc.current_levels.get("weekly_poc") else "—"
@@ -739,6 +746,12 @@ def run_trading_scanner(uid: str, user_settings: dict | None = None) -> None:
                         f"({', '.join(_active_patterns(sc))})…[/cyan]"
                     )
                     new_sigs = _scan_patterns(sc, arr, ts_arr, minutes_of_day, unix_days)
+                    if new_sigs and _bias_filter_enabled(sc):
+                        allowed = "long" if "bullish" in bias else "short"
+                        filtered = [s for s in new_sigs if s.direction != allowed]
+                        for s in filtered:
+                            console.print(f"[dim]Bias filter dropped {s.direction} {s.pattern} ({bias})[/dim]")
+                        new_sigs = [s for s in new_sigs if s.direction == allowed]
                     if new_sigs:
                         sc.pending_signals.extend(new_sigs)
                         if _FS:

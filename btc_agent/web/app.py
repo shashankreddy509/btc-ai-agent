@@ -124,14 +124,26 @@ def _auto_restart_scanner(uid: str, user_data: dict) -> None:
 
 # ── Public pages ──────────────────────────────────────────────────────────────
 
+def _firebase_web_config() -> dict:
+    from btc_agent import config
+    return {
+        "fb_api_key":            config.FIREBASE_WEB_API_KEY,
+        "fb_auth_domain":        config.FIREBASE_AUTH_DOMAIN,
+        "fb_project_id":         config.FIREBASE_PROJECT_ID,
+        "fb_storage_bucket":     config.FIREBASE_STORAGE_BUCKET,
+        "fb_messaging_sender_id": config.FIREBASE_MESSAGING_SENDER_ID,
+        "fb_app_id":             config.FIREBASE_APP_ID,
+    }
+
+
 @app.get("/", response_class=HTMLResponse)
 async def index(request: Request):
-    return templates.TemplateResponse(request=request, name="index.html")
+    return templates.TemplateResponse(request=request, name="index.html", context=_firebase_web_config())
 
 
 @app.get("/login", response_class=HTMLResponse)
 async def login_page(request: Request):
-    return templates.TemplateResponse(request=request, name="login.html")
+    return templates.TemplateResponse(request=request, name="login.html", context=_firebase_web_config())
 
 
 # ── Public API: scan + briefing ───────────────────────────────────────────────
@@ -218,7 +230,7 @@ async def trading_start(token: dict = Depends(verify_token)):
         from btc_agent.trading.firestore_store import load_user_prefs
         prefs = load_user_prefs(uid) or {}
         setting_keys = {"mode", "tf_min", "tf_max", "scan_interval_min", "qty",
-                        "max_sl", "min_tp", "max_concurrent", "patterns", "broker"}
+                        "max_sl", "min_tp", "max_concurrent", "patterns", "broker", "bias_filter"}
         user_settings = {k: v for k, v in prefs.items() if k in setting_keys}
     except Exception as e:
         pass
@@ -255,7 +267,7 @@ async def trading_save_settings(body: dict = Body(...), token: dict = Depends(ve
         raise HTTPException(status_code=422, detail="Qty must be a multiple of 2")
     uid = token["uid"]
     setting_keys = {"mode", "tf_min", "tf_max", "scan_interval_min", "qty",
-                    "max_sl", "min_tp", "max_concurrent", "patterns", "vishal"}
+                    "max_sl", "min_tp", "max_concurrent", "patterns", "vishal", "bias_filter"}
     clean = {k: v for k, v in body.items() if k in setting_keys and v is not None}
     save_user_prefs(uid, clean)
     # Update live scanner if running

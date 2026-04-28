@@ -172,7 +172,11 @@ async function saveBrokerChoice() {
   if (!_currentUser) return;
   const broker = _gv('s-broker-select');
   if (!broker) return;
-  await _saveSettings('/api/trading/settings', { broker }, 'broker');
+  await fetchJSON('/api/trading/settings', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ broker }),
+  });
   onBrokerChange(broker);
 }
 
@@ -673,6 +677,9 @@ function _setDot(id, running) {
 function _setRunningBtn(scanRunning, briefRunning) {
   const scanBtn  = document.getElementById('scan-btn');
   const briefBtn = document.getElementById('brief-btn');
+  const adminOnly = _isAdmin();
+  if (scanBtn)  scanBtn.style.display  = adminOnly ? '' : 'none';
+  if (briefBtn) briefBtn.style.display = adminOnly ? '' : 'none';
   if (scanBtn) {
     scanBtn.disabled = scanRunning;
     scanBtn.innerHTML = scanRunning
@@ -887,6 +894,7 @@ function renderTrading() {
         <td style="text-align:right;color:var(--text-3)">${r.qty_closed ?? p.qty}</td>
         <td style="text-align:right" class="${isStopped ? '' : pnlClass}">${pnlStr}</td>
         <td style="color:${reasonColor}">${reasonLabel}</td>
+        <td style="color:var(--text-3);font-size:12px">${formatTs(p.opened_at)}</td>
         <td style="color:var(--text-3);font-size:12px">${formatTs(r.closed_at)}</td>
       </tr>`;
     }).join('');
@@ -937,6 +945,7 @@ function _syncSettingsInputs(settings) {
   const activePatterns = settings.patterns || ['4-Flag', 'Engulfing'];
   document.getElementById('cfg-pattern-4flag').checked    = activePatterns.includes('4-Flag');
   document.getElementById('cfg-pattern-engulfing').checked = activePatterns.includes('Engulfing');
+  document.getElementById('cfg-bias-filter').checked = !!settings.bias_filter;
 }
 
 async function _renderSettingsPage() {
@@ -968,6 +977,7 @@ async function saveTradingSettings() {
       ...(document.getElementById('cfg-pattern-4flag').checked    ? ['4-Flag']    : []),
       ...(document.getElementById('cfg-pattern-engulfing').checked ? ['Engulfing'] : []),
     ],
+    bias_filter: document.getElementById('cfg-bias-filter').checked,
   };
   await fetchJSON('/api/trading/settings', {
     method: 'POST',

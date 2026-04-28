@@ -52,11 +52,20 @@ TRADING_MAX_CONCURRENT    = int(os.getenv("TRADING_MAX_CONCURRENT", "1"))   # 0 
 TRADING_QTY               = max(2, int(float(os.getenv("TRADING_QTY", "2"))))  # contracts (min 2 for partial close)
 TRADING_MAX_SL            = float(os.getenv("TRADING_MAX_SL", "500"))
 TRADING_MIN_TP            = float(os.getenv("TRADING_MIN_TP", "500"))
+TRADING_BIAS_FILTER       = os.getenv("TRADING_BIAS_FILTER", "false").lower() == "true"
 WEEKLY_ADJ                = float(os.getenv("WEEKLY_ADJ", "0.0324"))
 
 # Firebase owner UID — Coinbase keys stored in Firestore are tied to this UID
 FIREBASE_OWNER_UID        = os.getenv("FIREBASE_OWNER_UID", "")
 FIREBASE_ADMIN_EMAIL      = os.getenv("FIREBASE_ADMIN_EMAIL", "shashankreddy509@gmail.com")
+
+# Firebase Web SDK config (client-side, not secret but kept out of source)
+FIREBASE_WEB_API_KEY         = os.getenv("FIREBASE_WEB_API_KEY", "")
+FIREBASE_AUTH_DOMAIN         = os.getenv("FIREBASE_AUTH_DOMAIN", "")
+FIREBASE_PROJECT_ID          = os.getenv("FIREBASE_PROJECT_ID", "")
+FIREBASE_STORAGE_BUCKET      = os.getenv("FIREBASE_STORAGE_BUCKET", "")
+FIREBASE_MESSAGING_SENDER_ID = os.getenv("FIREBASE_MESSAGING_SENDER_ID", "")
+FIREBASE_APP_ID              = os.getenv("FIREBASE_APP_ID", "")
 VISHAL_ENABLED            = False
 
 # Broker selection
@@ -143,6 +152,7 @@ def apply_settings(d: dict) -> None:
     }
     _bool = {
         "vishal_enabled": "VISHAL_ENABLED",
+        "trading_bias_filter": "TRADING_BIAS_FILTER",
     }
     _float = {
         "trading_max_sl": "TRADING_MAX_SL", "trading_min_tp": "TRADING_MIN_TP",

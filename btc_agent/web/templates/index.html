@@ -276,7 +276,11 @@
                     <input type="checkbox" id="cfg-pattern-engulfing"> Engulfing
                   </label>
                 </div>
-                <div style="padding:0 16px 14px;display:flex;justify-content:flex-end;">
+                <div style="padding:0 16px 14px;display:flex;align-items:center;justify-content:space-between;">
+                  <label style="display:inline-flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;">
+                    <input type="checkbox" id="cfg-bias-filter">
+                    <span>Bias Filter <span style="font-size:11px;color:var(--text-3)">(only take trades matching market bias)</span></span>
+                  </label>
                   <button class="btn btn-primary" id="trade-save-btn">Save</button>
                 </div>
               </div>
@@ -330,10 +334,10 @@
                     <th style="text-align:right">Exit</th>
                     <th style="text-align:right">Qty</th>
                     <th style="text-align:right">PnL (USD)</th>
-                    <th>Reason</th><th>Closed</th>
+                    <th>Reason</th><th>Opened</th><th>Closed</th>
                   </tr></thead>
                   <tbody id="trade-history-body">
-                    <tr class="empty-row"><td colspan="9">No completed trades</td></tr>
+                    <tr class="empty-row"><td colspan="10">No completed trades</td></tr>
                   </tbody>
                 </table>
               </div>
@@ -911,12 +915,12 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script>
   firebase.initializeApp({
-    apiKey:            "AIzaSyDDue1K_FPVYFzh3Uqe04mTrXxqehOqQq8",
-    authDomain:        "btc-ai-agent.firebaseapp.com",
-    projectId:         "btc-ai-agent",
-    storageBucket:     "btc-ai-agent.firebasestorage.app",
-    messagingSenderId: "654602808108",
-    appId:             "1:654602808108:web:f9a5272e443560608b9a89",
+    apiKey:            "{{ fb_api_key }}",
+    authDomain:        "{{ fb_auth_domain }}",
+    projectId:         "{{ fb_project_id }}",
+    storageBucket:     "{{ fb_storage_bucket }}",
+    messagingSenderId: "{{ fb_messaging_sender_id }}",
+    appId:             "{{ fb_app_id }}",
   });
 </script>
 <script src="/static/main.js"></script>
