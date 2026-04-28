@@ -30,6 +30,7 @@ async function signInWithGoogle() {
 _auth.onAuthStateChanged(user => {
   _currentUser = user;
   _updateAuthUI();
+  if (user) fetchJSON('/api/trading/autostart', { method: 'POST' }).catch(() => {});
   // Re-render trading page if it's currently visible
   if (document.getElementById('page-trading')?.classList.contains('active')) {
     _showTradingContent();

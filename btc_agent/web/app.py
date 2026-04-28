@@ -245,6 +245,30 @@ async def trading_start(token: dict = Depends(verify_token)):
     return JSONResponse({"status": "started"})
 
 
+@priv.post("/autostart")
+async def trading_autostart(token: dict = Depends(verify_token)):
+    """Called by frontend on login — restarts scanner if Firestore says it was running."""
+    from btc_agent.trading.scanner import get_state, run_trading_scanner
+    from btc_agent.trading.firestore_store import load_user_prefs
+    uid = token["uid"]
+    if get_state(uid)["running"]:
+        return JSONResponse({"status": "already_running"})
+    prefs = load_user_prefs(uid) or {}
+    if not prefs.get("scanner_running"):
+        return JSONResponse({"status": "not_requested"})
+    setting_keys = {"mode", "tf_min", "tf_max", "scan_interval_min", "qty",
+                    "max_sl", "min_tp", "max_concurrent", "patterns", "broker", "bias_filter"}
+    user_settings = {k: v for k, v in prefs.items() if k in setting_keys}
+    threading.Thread(
+        target=run_trading_scanner,
+        args=(uid,),
+        kwargs={"user_settings": user_settings},
+        daemon=True,
+        name=f"trading-{uid[:8]}-autostart",
+    ).start()
+    return JSONResponse({"status": "started"})
+
+
 @priv.post("/stop")
 async def trading_stop(token: dict = Depends(verify_token)):
     from btc_agent.trading.scanner import stop_trading_scanner
