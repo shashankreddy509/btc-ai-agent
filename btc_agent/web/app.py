@@ -1,5 +1,6 @@
 import json
 import threading
+import time
 from pathlib import Path
 
 from fastapi import FastAPI, Body, Depends, APIRouter, HTTPException
@@ -32,6 +33,25 @@ _brief_running   = False
 _scan_lock  = threading.Lock()
 _brief_lock = threading.Lock()
 
+# Feature flag cache — re-reads Firestore at most once every 30 s
+_flag_cache: dict = {}
+_flag_cache_ts: float = 0.0
+_FLAG_TTL = 30.0
+
+
+def _get_feature_flags() -> dict:
+    global _flag_cache, _flag_cache_ts
+    if time.time() - _flag_cache_ts < _FLAG_TTL:
+        return _flag_cache
+    try:
+        from btc_agent.trading.firestore_store import load_app_settings
+        data = load_app_settings() or {}
+        _flag_cache = {"vishal_enabled": bool(data.get("vishal_enabled", False))}
+    except Exception:
+        pass
+    _flag_cache_ts = time.time()
+    return _flag_cache
+
 
 def _mask(s: str) -> str:
     s = str(s)
@@ -58,8 +78,12 @@ def _is_valid_qty(qty) -> bool:
 async def _require_admin(token: dict = Depends(verify_token)) -> dict:
     from btc_agent import config
     owner = config.FIREBASE_OWNER_UID
-    if not owner or token.get("uid") != owner:
-        raise HTTPException(status_code=403, detail="Admin only")
+    if owner:
+        if token.get("uid") != owner:
+            raise HTTPException(status_code=403, detail="Admin only")
+    else:
+        if token.get("email") != config.FIREBASE_ADMIN_EMAIL:
+            raise HTTPException(status_code=403, detail="Admin only")
     return token
 
 
@@ -77,8 +101,25 @@ async def _load_firestore_settings():
             user_data = load_user_prefs(config.FIREBASE_OWNER_UID)
             if user_data:
                 config.apply_settings(user_data)
+                if user_data.get("scanner_running"):
+                    _auto_restart_scanner(config.FIREBASE_OWNER_UID, user_data)
     except Exception as e:
         print(f"[startup] Firestore settings load skipped: {e}")
+
+
+def _auto_restart_scanner(uid: str, user_data: dict) -> None:
+    from btc_agent.trading.scanner import run_trading_scanner
+    setting_keys = {"mode", "tf_min", "tf_max", "scan_interval_min", "qty",
+                    "max_sl", "min_tp", "max_concurrent", "patterns", "broker"}
+    user_settings = {k: v for k, v in user_data.items() if k in setting_keys}
+    threading.Thread(
+        target=run_trading_scanner,
+        args=(uid,),
+        kwargs={"user_settings": user_settings},
+        daemon=True,
+        name=f"trading-{uid[:8]}-autostart",
+    ).start()
+    print(f"[startup] Auto-restarting trading scanner for uid={uid[:8]}…")
 
 
 # ── Public pages ──────────────────────────────────────────────────────────────
@@ -148,9 +189,10 @@ async def trigger_brief():
 @pub.get("/status")
 async def status():
     from btc_agent.trading.scanner import is_any_running
+    flags = _get_feature_flags()
     return JSONResponse(
         {"scan_running": _scan_running, "brief_running": _brief_running,
-         "trading_running": is_any_running()}
+         "trading_running": is_any_running(), "vishal_enabled": flags.get("vishal_enabled", False)}
     )
 
 

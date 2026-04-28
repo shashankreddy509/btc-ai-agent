@@ -629,9 +629,31 @@ def get_state(uid: str | None = None) -> dict:
 
 # ── public API ────────────────────────────────────────────────────────────────
 
+def _clear_on_stop(sc: _Scanner) -> None:
+    """Move all open positions to history as 'stopped_by_user'. No PnL calculated."""
+    now = datetime.now(timezone.utc)
+    price = sc.last_price or 0.0
+    for pos in list(sc.open_positions):
+        if pos.status != "open":
+            continue
+        pos.status = "closed_stopped_by_user"
+        close_result = TradeResult(
+            position=pos, close_price=price, close_reason="stopped_by_user",
+            closed_at=now, qty_closed=int(pos.qty), pnl_closed=0.0,
+        )
+        sc.trade_history.append(close_result)
+        if _FS:
+            _fs.save_position(_position_to_dict(pos), sc.uid)
+            _fs.save_history(_result_to_dict(close_result), f"{pos.signal_id}_stopped", sc.uid)
+        console.print(f"[yellow]Position {pos.signal_id[:8]} moved to history (stopped_by_user)[/yellow]")
+    sc.open_positions.clear()
+    sc.pending_signals.clear()
+
+
 def stop_trading_scanner(uid: str) -> None:
     sc = _scanners.get(uid)
     if sc:
+        _clear_on_stop(sc)
         sc.running = False
 
 
@@ -650,6 +672,8 @@ def run_trading_scanner(uid: str, user_settings: dict | None = None) -> None:
         sc.settings.update(user_settings)
     _load_state(sc)
     sc.running = True
+    if _FS:
+        _fs.save_user_prefs(uid, {"scanner_running": True})
     console.rule("[bold green]Trading Scanner started[/bold green]")
     mode = _trading_mode(sc)
     qty = _trading_qty(sc)
@@ -738,3 +762,5 @@ def run_trading_scanner(uid: str, user_settings: dict | None = None) -> None:
     finally:
         sc.running = False
         _save_state(sc)
+        if _FS:
+            _fs.save_user_prefs(uid, {"scanner_running": False})

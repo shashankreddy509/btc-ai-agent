@@ -56,6 +56,8 @@ WEEKLY_ADJ                = float(os.getenv("WEEKLY_ADJ", "0.0324"))
 
 # Firebase owner UID — Coinbase keys stored in Firestore are tied to this UID
 FIREBASE_OWNER_UID        = os.getenv("FIREBASE_OWNER_UID", "")
+FIREBASE_ADMIN_EMAIL      = os.getenv("FIREBASE_ADMIN_EMAIL", "shashankreddy509@gmail.com")
+VISHAL_ENABLED            = False
 
 # Broker selection
 TRADING_BROKER            = os.getenv("TRADING_BROKER", "coinbase")
@@ -139,6 +141,9 @@ def apply_settings(d: dict) -> None:
         "trading_scan_interval_min": "TRADING_SCAN_INTERVAL_MIN",
         "trading_max_concurrent": "TRADING_MAX_CONCURRENT", "trading_qty": "TRADING_QTY",
     }
+    _bool = {
+        "vishal_enabled": "VISHAL_ENABLED",
+    }
     _float = {
         "trading_max_sl": "TRADING_MAX_SL", "trading_min_tp": "TRADING_MIN_TP",
         "weekly_adj": "WEEKLY_ADJ", "coinbase_contract_size": "COINBASE_CONTRACT_SIZE",
@@ -163,6 +168,10 @@ def apply_settings(d: dict) -> None:
         if v is not None:
             try: setattr(mod, attr, float(v))
             except (ValueError, TypeError): pass
+    for key, attr in _bool.items():
+        v = d.get(key)
+        if v is not None:
+            setattr(mod, attr, bool(v))
     for key, attr in _list.items():
         v = d.get(key)
         if isinstance(v, list) and v:

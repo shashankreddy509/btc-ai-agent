@@ -162,10 +162,10 @@ function onBrokerChange(broker) {
   });
   // Coinbase-specific cards
   const isCoinbase = broker === 'coinbase' && !!_currentUser;
-  ['s-card-coinbase-exchange','s-card-coinbase-creds'].forEach(id => {
-    const el = document.getElementById(id);
-    if (el) el.style.display = isCoinbase ? '' : 'none';
-  });
+  const el_exchange = document.getElementById('s-card-coinbase-exchange');
+  if (el_exchange) el_exchange.style.display = (isCoinbase && _isAdmin()) ? '' : 'none';
+  const el_creds = document.getElementById('s-card-coinbase-creds');
+  if (el_creds) el_creds.style.display = isCoinbase ? '' : 'none';
 }
 
 async function saveBrokerChoice() {
@@ -219,7 +219,7 @@ function _gn(id) { const v = _gv(id); return v ? Number(v) : null; }
 function _gc(id) { const el = document.getElementById(id); return el ? el.checked : false; }
 
 async function saveAppSection(section) {
-  if (!_currentUser) return;
+  if (!_currentUser || !_isAdmin()) return;
   let data = {};
   if (section === 'general') {
     data = { anthropic_api_key: _gv('s-anthropic-key'), anthropic_model: _gv('s-anthropic-model') };
@@ -658,6 +658,10 @@ async function pollStatus() {
     _setDot('scan-dot',  s.scan_running);
     _setDot('brief-dot', s.brief_running);
     _setRunningBtn(s.scan_running, s.brief_running);
+    const navVishal  = document.getElementById('nav-vishal');
+    const pageVishal = document.getElementById('page-vishal');
+    if (navVishal)  navVishal.style.display  = s.vishal_enabled ? '' : 'none';
+    if (pageVishal) pageVishal.style.display = s.vishal_enabled ? '' : 'none';
   } catch (_) {}
 }
 
@@ -865,22 +869,24 @@ function renderTrading() {
     histBody.innerHTML = [...history].reverse().slice(0, 40).map(r => {
       const p          = r.position;
       const isPartial  = r.close_reason === 'tp_partial';
+      const isStopped  = r.close_reason === 'stopped_by_user';
       const dirBadge   = p.direction === 'long'
         ? '<span class="badge badge-bull">▲ Long</span>'
         : '<span class="badge badge-bear">▼ Short</span>';
       const pnl        = r.pnl_closed ?? 0;
       const pnlClass   = pnl >= 0 ? 'pnl-pos' : 'pnl-neg';
-      const pnlStr     = (pnl >= 0 ? '+' : '') + pnl.toFixed(4);
-      const reasonColor = r.close_reason === 'sl' ? 'var(--red)' : 'var(--green)';
-      return `<tr style="${isPartial ? 'opacity:0.75' : ''}">
+      const pnlStr     = isStopped ? '—' : (pnl >= 0 ? '+' : '') + pnl.toFixed(4);
+      const reasonColor = isStopped ? 'var(--text-3)' : r.close_reason === 'sl' ? 'var(--red)' : 'var(--green)';
+      const reasonLabel = isPartial ? 'TP 50%' : isStopped ? 'Stopped by user' : r.close_reason.toUpperCase();
+      return `<tr style="${isPartial || isStopped ? 'opacity:0.75' : ''}">
         <td>${dirBadge}</td>
         <td><span class="badge badge-neutral">${p.tf ? p.tf + 'm' : '—'}</span></td>
         <td>${p.pattern || '—'}</td>
         <td style="text-align:right;font-variant-numeric:tabular-nums">$${fmtPrice(p.entry_price)}</td>
-        <td style="text-align:right;font-variant-numeric:tabular-nums">$${fmtPrice(r.close_price)}</td>
+        <td style="text-align:right;font-variant-numeric:tabular-nums">${isStopped ? '—' : '$' + fmtPrice(r.close_price)}</td>
         <td style="text-align:right;color:var(--text-3)">${r.qty_closed ?? p.qty}</td>
-        <td style="text-align:right" class="${pnlClass}">${pnlStr}</td>
-        <td style="color:${reasonColor}">${isPartial ? 'TP 50%' : r.close_reason.toUpperCase()}</td>
+        <td style="text-align:right" class="${isStopped ? '' : pnlClass}">${pnlStr}</td>
+        <td style="color:${reasonColor}">${reasonLabel}</td>
         <td style="color:var(--text-3);font-size:12px">${formatTs(r.closed_at)}</td>
       </tr>`;
     }).join('');
