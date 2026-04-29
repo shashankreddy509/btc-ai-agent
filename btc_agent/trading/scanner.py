@@ -408,21 +408,25 @@ def _execute_entry(sc: _Scanner, sig: Signal, current_price: float) -> None:
 
 # ── position monitoring ───────────────────────────────────────────────────────
 
-def _trail_sl(pos: Position, current_price: float) -> float:
+def _trail_offset(sc: "_Scanner") -> int:
+    return max(1, int(sc.settings.get("trail_offset", 50)))
+
+
+def _trail_sl(pos: Position, current_price: float, offset: int = 50) -> float:
     """
     Compute the new trailing SL price after partial TP.
-    SL = entry ± 50 + floor((price - anchor) / 100) × 50.
+    SL = entry ± offset + floor((price - anchor) / 100) × offset.
     Only ever moves in the trade's favour (ratchets, never reverses).
     """
     if pos.trail_anchor is None:
         return pos.sl
     if pos.direction == "long":
         steps = max(0, int((current_price - pos.trail_anchor) / 100))
-        new_sl = round(pos.entry_price + 50 + steps * 50, 2)
+        new_sl = round(pos.entry_price + offset + steps * offset, 2)
         return max(pos.sl, new_sl)
     else:
         steps = max(0, int((pos.trail_anchor - current_price) / 100))
-        new_sl = round(pos.entry_price - 50 - steps * 50, 2)
+        new_sl = round(pos.entry_price - offset - steps * offset, 2)
         return min(pos.sl, new_sl)
 
 
@@ -449,20 +453,22 @@ def _partial_close(sc: _Scanner, pos: Position, price: float) -> None:
     pos.partial_pnl = round(pnl_pts * half_contracts * sc.broker.contract_size, 4)
     pos.partial_closed = True
     pos.trail_anchor = price
-    old_sl = pos.sl
-    new_sl = round(pos.entry_price + 50 if pos.direction == "long" else pos.entry_price - 50, 2)
-    pos.sl = new_sl
+    old_sl  = pos.sl
+    offset  = _trail_offset(sc)
+    new_sl  = round(pos.entry_price + offset if pos.direction == "long" else pos.entry_price - offset, 2)
+    pos.sl  = new_sl
 
     console.print(
         f"[bold cyan]PARTIAL TP {pos.direction.upper()}[/bold cyan] "
         f"@ {price:.1f}  half={half_contracts} contracts  PnL={pos.partial_pnl:+.4f}  "
-        f"SL: {old_sl:.1f} → {new_sl:.1f}  (trailing begins)"
+        f"SL: {old_sl:.1f} → {new_sl:.1f}  (trailing begins, offset={offset}pts)"
     )
 
     partial_result = TradeResult(
         position=pos, close_price=price, close_reason="tp_partial",
         closed_at=datetime.now(timezone.utc),
         qty_closed=half_contracts, pnl_closed=pos.partial_pnl,
+        mode=_trading_mode(sc),
     )
     sc.trade_history.append(partial_result)
     if _FS:
@@ -517,6 +523,7 @@ def _close_position(sc: _Scanner, pos: Position, price: float, reason: str) -> N
         position=pos, close_price=price, close_reason=reason,
         closed_at=datetime.now(timezone.utc),
         qty_closed=remaining, pnl_closed=remain_pnl,
+        mode=_trading_mode(sc),
     )
     sc.trade_history.append(close_result)
     if _FS:
@@ -525,6 +532,7 @@ def _close_position(sc: _Scanner, pos: Position, price: float, reason: str) -> N
 
 
 def _monitor_positions(sc: _Scanner, current_price: float) -> None:
+    offset = _trail_offset(sc)
     for pos in sc.open_positions:
         if pos.status != "open":
             continue
@@ -534,11 +542,15 @@ def _monitor_positions(sc: _Scanner, current_price: float) -> None:
             hit_sl = (pos.direction == "long"  and current_price <= pos.sl) or \
                      (pos.direction == "short" and current_price >= pos.sl)
             if hit_tp:
-                _partial_close(sc, pos, current_price)
+                if pos.tf < 30:
+                    # Short TF: exit full position at TP — no partial/trail
+                    _close_position(sc, pos, current_price, "tp")
+                else:
+                    _partial_close(sc, pos, current_price)
             elif hit_sl:
                 _close_position(sc, pos, current_price, "sl")
         else:
-            new_sl = _trail_sl(pos, current_price)
+            new_sl = _trail_sl(pos, current_price, offset)
             if new_sl != pos.sl:
                 console.print(f"[dim]Trail SL {pos.direction} {pos.sl:.1f} → {new_sl:.1f}[/dim]")
                 if _trading_mode(sc) == "live":
@@ -593,6 +605,7 @@ def _result_to_dict(r: TradeResult) -> dict:
         "closed_at":   r.closed_at.isoformat(),
         "qty_closed":  r.qty_closed,
         "pnl_closed":  r.pnl_closed,
+        "mode":        r.mode,
     }
 
 
@@ -656,6 +669,7 @@ def _load_state(sc: _Scanner) -> None:
                 closed_at=datetime.fromisoformat(d["closed_at"]),
                 qty_closed=d.get("qty_closed", 0.0),
                 pnl_closed=d.get("pnl_closed", 0.0),
+                mode=d.get("mode", "paper"),
             ))
             restored_hist += 1
         except Exception as e:
@@ -719,6 +733,8 @@ def get_state(uid: str | None = None) -> dict:
             "min_tp":            _min_tp(sc),
             "max_concurrent":    _max_concurrent(sc),
             "patterns":          _active_patterns(sc),
+            "bias_filter":       _bias_filter_enabled(sc),
+            "trail_offset":      _trail_offset(sc),
         },
     }
 
@@ -736,6 +752,7 @@ def _clear_on_stop(sc: _Scanner) -> None:
         close_result = TradeResult(
             position=pos, close_price=price, close_reason="stopped_by_user",
             closed_at=now, qty_closed=int(pos.qty), pnl_closed=0.0,
+            mode=_trading_mode(sc),
         )
         sc.trade_history.append(close_result)
         if _FS:
@@ -757,7 +774,7 @@ def is_any_running() -> bool:
     return any(sc.running for sc in _scanners.values())
 
 
-_PRICE_TICK_S = 5
+_PRICE_TICK_S = 2
 
 
 def run_trading_scanner(uid: str, user_settings: dict | None = None) -> None:

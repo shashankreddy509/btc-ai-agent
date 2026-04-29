@@ -70,6 +70,10 @@ function _updateAuthUI() {
   const briefBtn = document.getElementById('brief-btn');
   if (scanBtn)  scanBtn.style.display  = admin ? '' : 'none';
   if (briefBtn) briefBtn.style.display = admin ? '' : 'none';
+
+  // Admin-only trail offset input
+  const trailRow = document.getElementById('cfg-trail-offset-row');
+  if (trailRow) trailRow.style.display = admin ? 'flex' : 'none';
 }
 
 const ADMIN_EMAIL = 'shashankreddy509@gmail.com';
@@ -746,6 +750,8 @@ async function fetchBTCPrice() {
 
 // ── Trading scanner ────────────────────────────────────────────────────────────
 let _tradingData = null;
+let _histPage    = 0;
+const _HIST_PAGE_SIZE = 20;
 
 function fmtPrice(v) {
   return v != null
@@ -893,11 +899,25 @@ function renderTrading() {
   }
 
   // history table
-  const histBody = document.getElementById('trade-history-body');
-  if (!history.length) {
-    histBody.innerHTML = '<tr class="empty-row"><td colspan="9">No completed trades</td></tr>';
+  const histBody  = document.getElementById('trade-history-body');
+  const histPager = document.getElementById('hist-pagination');
+  const sorted    = _applyHistFilters([...history].reverse());
+  const totalPages = Math.max(1, Math.ceil(sorted.length / _HIST_PAGE_SIZE));
+  _histPage = Math.min(_histPage, totalPages - 1);
+  if (!sorted.length) {
+    histBody.innerHTML = '<tr class="empty-row"><td colspan="12">No completed trades</td></tr>';
+    if (histPager) histPager.style.display = 'none';
   } else {
-    histBody.innerHTML = [...history].reverse().slice(0, 40).map(r => {
+    const start = _histPage * _HIST_PAGE_SIZE;
+    const page  = sorted.slice(start, start + _HIST_PAGE_SIZE);
+    const prevBtn = document.getElementById('hist-prev');
+    const nextBtn = document.getElementById('hist-next');
+    const label   = document.getElementById('hist-page-label');
+    if (histPager) histPager.style.display = totalPages > 1 ? 'flex' : 'none';
+    if (label)   label.textContent  = `Page ${_histPage + 1} of ${totalPages}  (${history.length} trades)`;
+    if (prevBtn) prevBtn.disabled   = _histPage === 0;
+    if (nextBtn) nextBtn.disabled   = _histPage >= totalPages - 1;
+    histBody.innerHTML = page.map(r => {
       const p          = r.position;
       const isPartial  = r.close_reason === 'tp_partial';
       const isStopped  = r.close_reason === 'stopped_by_user';
@@ -909,12 +929,22 @@ function renderTrading() {
       const pnlStr     = isStopped ? '—' : (pnl >= 0 ? '+' : '') + pnl.toFixed(4);
       const reasonColor = isStopped ? 'var(--text-3)' : r.close_reason === 'sl' ? 'var(--red)' : 'var(--green)';
       const reasonLabel = isPartial ? 'TP 50%' : isStopped ? 'Stopped by user' : r.close_reason.toUpperCase();
+      const tradeMode  = r.mode || 'paper';
+      const modeBadge  = tradeMode === 'live'
+        ? '<span class="badge badge-bull" style="font-size:10px">Live</span>'
+        : '<span class="badge badge-neutral" style="font-size:10px">Paper</span>';
+      const pts        = isStopped ? null :
+        (p.direction === 'long' ? r.close_price - p.entry_price : p.entry_price - r.close_price);
+      const ptsStr     = pts === null ? '—' : (pts >= 0 ? '+' : '') + pts.toFixed(1);
+      const ptsClass   = pts === null ? '' : pts >= 0 ? 'pnl-pos' : 'pnl-neg';
       return `<tr style="${isPartial || isStopped ? 'opacity:0.75' : ''}">
         <td>${dirBadge}</td>
         <td><span class="badge badge-neutral">${p.tf ? p.tf + 'm' : '—'}</span></td>
         <td>${p.pattern || '—'}</td>
+        <td>${modeBadge}</td>
         <td style="text-align:right;font-variant-numeric:tabular-nums">$${fmtPrice(p.entry_price)}</td>
         <td style="text-align:right;font-variant-numeric:tabular-nums">${isStopped ? '—' : '$' + fmtPrice(r.close_price)}</td>
+        <td style="text-align:right;font-variant-numeric:tabular-nums" class="${ptsClass}">${ptsStr}</td>
         <td style="text-align:right;color:var(--text-3)">${r.qty_closed ?? p.qty}</td>
         <td style="text-align:right" class="${isStopped ? '' : pnlClass}">${pnlStr}</td>
         <td style="color:${reasonColor}">${reasonLabel}</td>
@@ -925,9 +955,34 @@ function renderTrading() {
   }
 }
 
+function histPageNav(delta) {
+  const history = (_tradingData?.history) || [];
+  const totalPages = Math.max(1, Math.ceil(history.length / _HIST_PAGE_SIZE));
+  _histPage = Math.max(0, Math.min(_histPage + delta, totalPages - 1));
+  renderTrading();
+}
+
+function histFilterChanged() {
+  _histPage = 0;
+  renderTrading();
+}
+
+function _applyHistFilters(history) {
+  const modeVal    = document.getElementById('hist-filter-mode')?.value    || 'all';
+  const patternVal = document.getElementById('hist-filter-pattern')?.value || 'all';
+  return history.filter(r => {
+    if (modeVal    !== 'all' && (r.mode || 'paper') !== modeVal)          return false;
+    if (patternVal !== 'all' && (r.position?.pattern || '') !== patternVal) return false;
+    return true;
+  });
+}
+
 async function loadTrading() {
   try {
-    _tradingData = await fetchJSON('/api/trading/state');
+    const fresh  = await fetchJSON('/api/trading/state');
+    const prevLen = (_tradingData?.history || []).length;
+    _tradingData  = fresh;
+    if ((fresh.history || []).length !== prevLen) _histPage = 0;
     renderTrading();
   } catch (e) {
     if (e.status === 401) _showTradingContent();  // re-show gate if token expired
@@ -971,6 +1026,9 @@ function _syncSettingsInputs(settings) {
   document.getElementById('cfg-pattern-engulfing').checked    = activePatterns.includes('Engulfing');
   document.getElementById('cfg-pattern-retracement').checked  = activePatterns.includes('Retracement');
   document.getElementById('cfg-bias-filter').checked = !!settings.bias_filter;
+  const trailEl = document.getElementById('cfg-trail-offset');
+  if (trailEl && document.activeElement !== trailEl)
+    trailEl.value = settings.trail_offset ?? 50;
 }
 
 async function _renderSettingsPage() {
@@ -1003,7 +1061,8 @@ async function saveTradingSettings() {
       ...(document.getElementById('cfg-pattern-engulfing').checked    ? ['Engulfing']   : []),
       ...(document.getElementById('cfg-pattern-retracement').checked  ? ['Retracement'] : []),
     ],
-    bias_filter: document.getElementById('cfg-bias-filter').checked,
+    bias_filter:  document.getElementById('cfg-bias-filter').checked,
+    ...((_isAdmin()) ? { trail_offset: parseInt(document.getElementById('cfg-trail-offset')?.value || '50') } : {}),
   };
   await fetchJSON('/api/trading/settings', {
     method: 'POST',

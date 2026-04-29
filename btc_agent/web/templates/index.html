@@ -286,6 +286,14 @@
                   </label>
                   <button class="btn btn-primary" id="trade-save-btn">Save</button>
                 </div>
+                <div id="cfg-trail-offset-row" style="display:none;padding:0 16px 14px;flex-direction:column;gap:6px;border-top:1px solid var(--border);padding-top:12px">
+                  <span style="font-size:11px;color:var(--text-3);text-transform:uppercase;letter-spacing:.06em">Trail SL Offset (pts) — Admin only</span>
+                  <div style="display:flex;align-items:center;gap:12px">
+                    <input type="number" id="cfg-trail-offset" min="1" max="500" step="1" value="50"
+                      style="width:80px;padding:4px 8px;border-radius:6px;border:1px solid var(--border);background:var(--surface-2);color:var(--text-1);font-size:13px">
+                    <span style="font-size:11px;color:var(--text-3)">After TP hit on TF ≥ 30m: close 50% and move SL to entry ± this value, trails every 100pts. TF &lt; 30m: full exit at TP.</span>
+                  </div>
+                </div>
               </div>
             </div>
 
@@ -328,21 +336,42 @@
 
             <!-- Trade History -->
             <div class="card">
-              <div class="card-header"><span class="card-title">Recent Trades</span></div>
+              <div class="card-header" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
+                <span class="card-title">Recent Trades</span>
+                <div style="display:flex;gap:8px;align-items:center">
+                  <select id="hist-filter-mode" onchange="histFilterChanged()" style="font-size:12px;padding:3px 8px;border-radius:6px;border:1px solid var(--border);background:var(--surface-2);color:var(--text-1)">
+                    <option value="all">All modes</option>
+                    <option value="live">Live</option>
+                    <option value="paper">Paper</option>
+                  </select>
+                  <select id="hist-filter-pattern" onchange="histFilterChanged()" style="font-size:12px;padding:3px 8px;border-radius:6px;border:1px solid var(--border);background:var(--surface-2);color:var(--text-1)">
+                    <option value="all">All patterns</option>
+                    <option value="4-Flag">4-Flag</option>
+                    <option value="Engulfing">Engulfing</option>
+                    <option value="Retracement">Retracement</option>
+                  </select>
+                </div>
+              </div>
               <div class="table-wrap">
                 <table>
                   <thead><tr id="history-head">
-                    <th>Direction</th><th>TF</th><th>Pattern</th>
+                    <th>Direction</th><th>TF</th><th>Pattern</th><th>Mode</th>
                     <th style="text-align:right">Entry</th>
                     <th style="text-align:right">Exit</th>
+                    <th style="text-align:right">Points</th>
                     <th style="text-align:right">Qty</th>
                     <th style="text-align:right">PnL (USD)</th>
                     <th>Reason</th><th>Opened</th><th>Closed</th>
                   </tr></thead>
                   <tbody id="trade-history-body">
-                    <tr class="empty-row"><td colspan="10">No completed trades</td></tr>
+                    <tr class="empty-row"><td colspan="12">No completed trades</td></tr>
                   </tbody>
                 </table>
+              </div>
+              <div id="hist-pagination" style="display:none;padding:10px 16px;display:flex;align-items:center;gap:12px;border-top:1px solid var(--border)">
+                <button id="hist-prev" onclick="histPageNav(-1)" style="padding:4px 12px;border-radius:6px;border:1px solid var(--border);background:var(--surface-2);color:var(--text-1);cursor:pointer;font-size:12px">← Prev</button>
+                <span id="hist-page-label" style="font-size:12px;color:var(--text-3)"></span>
+                <button id="hist-next" onclick="histPageNav(1)" style="padding:4px 12px;border-radius:6px;border:1px solid var(--border);background:var(--surface-2);color:var(--text-1);cursor:pointer;font-size:12px">Next →</button>
               </div>
             </div>
 

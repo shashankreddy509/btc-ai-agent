@@ -53,3 +53,4 @@ class TradeResult:
     closed_at: datetime
     qty_closed: float = 0.0   # how much BTC was closed in this event
     pnl_closed: float = 0.0   # PnL for this specific close event (USD)
+    mode: str = "paper"       # "live" | "paper"
