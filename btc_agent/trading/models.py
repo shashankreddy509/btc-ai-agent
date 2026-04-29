@@ -21,6 +21,7 @@ class Signal:
     expires_at: datetime      # created_at + tf minutes (signal valid for 1 bar)
     status: str = "pending"   # "pending" | "triggered" | "expired" | "skipped"
     custom_tp: float = 0.0    # 0 = use market structure TP; > 0 = fixed TP price (Vishal strategies)
+    meta: dict = field(default_factory=dict)  # extra display data (e.g. Retracement fib levels)
 
 
 @dataclass

@@ -216,6 +216,79 @@ def _is_duplicate(sc: _Scanner, tf: int, pattern: str, direction: str, bar_open_
     )
 
 
+def _last_swing_high(highs: np.ndarray, n: int = 3):
+    for i in range(len(highs) - n - 1, n - 1, -1):
+        if all(highs[i] >= highs[i - j] for j in range(1, n + 1)) and \
+           all(highs[i] >= highs[i + j] for j in range(1, n + 1)):
+            return i, float(highs[i])
+    return None, None
+
+
+def _last_swing_low(lows: np.ndarray, n: int = 3):
+    for i in range(len(lows) - n - 1, n - 1, -1):
+        if all(lows[i] <= lows[i - j] for j in range(1, n + 1)) and \
+           all(lows[i] <= lows[i + j] for j in range(1, n + 1)):
+            return i, float(lows[i])
+    return None, None
+
+
+def _check_retracement(sc: _Scanner, bars: np.ndarray, bar_ts, tf: int, now: datetime) -> "Signal | None":
+    if len(bars) < 5:
+        return None
+    if any(s.pattern == "Retracement" and s.tf == tf and s.status == "pending" for s in sc.pending_signals):
+        return None
+
+    SL_PTS    = 300
+    MIN_SWING = 500
+
+    closed    = bars[:-1]
+    sw_hi_idx, sw_hi = _last_swing_high(closed[:, 1], n=3)
+    sw_lo_idx, sw_lo = _last_swing_low(closed[:, 2], n=3)
+    if sw_hi_idx is None or sw_lo_idx is None:
+        return None
+    fib_range = sw_hi - sw_lo
+
+    if fib_range < MIN_SWING:
+        return None
+
+    last  = bars[-1]
+    bar_h = float(last[1])
+    bar_l = float(last[2])
+    bar_c = float(last[3])
+    ts    = int(bar_ts[-1]) if len(bar_ts) else int(now.timestamp())
+    bar_open_iso = datetime.fromtimestamp(ts, tz=timezone.utc).isoformat()
+
+    if sw_hi_idx > sw_lo_idx:
+        fib_50  = round(sw_hi - 0.500 * fib_range, 1)
+        fib_618 = round(sw_hi - 0.618 * fib_range, 1)
+        if bar_l <= fib_50 and bar_c > fib_50:
+            return Signal(
+                id=uuid.uuid4().hex[:8], pattern="Retracement", direction="long",
+                tf=tf, bar_open_time=bar_open_iso,
+                entry_trigger=round(bar_c - 1.0, 2),
+                sl_wick=round(bar_c - SL_PTS, 2), sl_body=round(bar_c - SL_PTS, 2),
+                created_at=now, expires_at=now + timedelta(minutes=tf),
+                custom_tp=round(sw_hi, 2),
+                meta={"sw_hi": round(sw_hi, 1), "sw_lo": round(sw_lo, 1),
+                      "fib_50": fib_50, "fib_618": fib_618},
+            )
+    else:
+        fib_50  = round(sw_hi - 0.500 * fib_range, 1)
+        fib_618 = round(sw_hi - 0.618 * fib_range, 1)
+        if bar_h >= fib_618 and bar_c < fib_618:
+            return Signal(
+                id=uuid.uuid4().hex[:8], pattern="Retracement", direction="short",
+                tf=tf, bar_open_time=bar_open_iso,
+                entry_trigger=round(bar_c + 1.0, 2),
+                sl_wick=round(bar_c + SL_PTS, 2), sl_body=round(bar_c + SL_PTS, 2),
+                created_at=now, expires_at=now + timedelta(minutes=tf),
+                custom_tp=round(sw_lo, 2),
+                meta={"sw_hi": round(sw_hi, 1), "sw_lo": round(sw_lo, 1),
+                      "fib_50": fib_50, "fib_618": fib_618},
+            )
+    return None
+
+
 def _scan_patterns(sc: _Scanner, arr, ts_arr, minutes_of_day, unix_days) -> list[Signal]:
     new_signals: list[Signal] = []
     patterns = _active_patterns(sc)
@@ -248,6 +321,22 @@ def _scan_patterns(sc: _Scanner, arr, ts_arr, minutes_of_day, unix_days) -> list
                         f"[bold cyan]Engulfing ({direction})[/bold cyan] on [green]{tf}m[/green] "
                         f"→ {direction.upper()}  trigger={sig.entry_trigger:.1f}"
                     )
+
+    if "Retracement" in patterns:
+        ret_now = datetime.now(timezone.utc)
+        for tf in (15, 30):
+            bars, bar_ts = aggregate_tf(arr, ts_arr, minutes_of_day, unix_days, tf, last_n=61)
+            if bars is None:
+                continue
+            sig = _check_retracement(sc, bars, bar_ts, tf, ret_now)
+            if sig:
+                new_signals.append(sig)
+                console.print(
+                    f"[bold magenta]Retracement ({sig.direction})[/bold magenta] on "
+                    f"[green]{tf}m[/green]  trigger={sig.entry_trigger:.1f}  "
+                    f"SH={sig.meta['sw_hi']:.0f}  SL={sig.meta['sw_lo']:.0f}"
+                )
+
     return new_signals
 
 
@@ -473,6 +562,7 @@ def _signal_to_dict(s: Signal) -> dict:
         "created_at": s.created_at.isoformat(),
         "expires_at": s.expires_at.isoformat(),
         "status": s.status,
+        "meta": s.meta,
     }
 
 

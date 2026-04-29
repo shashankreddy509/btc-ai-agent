@@ -63,6 +63,13 @@ function _updateAuthUI() {
     const mav = document.getElementById('mob-avatar');
     if (mav) mav.src = photo;
   }
+
+  // Admin-only buttons — re-evaluate once auth state is known
+  const admin = _isAdmin();
+  const scanBtn  = document.getElementById('scan-btn');
+  const briefBtn = document.getElementById('brief-btn');
+  if (scanBtn)  scanBtn.style.display  = admin ? '' : 'none';
+  if (briefBtn) briefBtn.style.display = admin ? '' : 'none';
 }
 
 const ADMIN_EMAIL = 'shashankreddy509@gmail.com';
@@ -667,6 +674,8 @@ async function pollStatus() {
     const pageVishal = document.getElementById('page-vishal');
     if (navVishal)  navVishal.style.display  = s.vishal_enabled ? '' : 'none';
     if (pageVishal) pageVishal.style.display = s.vishal_enabled ? '' : 'none';
+    const labelRetracement = document.getElementById('label-pattern-retracement');
+    if (labelRetracement) labelRetracement.style.display = s.retracement_enabled ? '' : 'none';
   } catch (_) {}
 }
 
@@ -817,8 +826,22 @@ function renderTrading() {
       const dirBadge = s.direction === 'long'
         ? '<span class="badge badge-bull">▲ Long</span>'
         : '<span class="badge badge-bear">▼ Short</span>';
+      const m = s.meta || {};
+      const patternCell = (s.pattern === 'Retracement' && m.sw_hi)
+        ? `<td>
+            <div style="font-weight:500">Retracement</div>
+            <div style="font-size:10px;margin-top:3px;display:flex;gap:10px">
+              <span style="color:var(--green)">▲ SW High: ${Math.round(m.sw_hi).toLocaleString('en-US')}</span>
+              <span style="color:var(--red)">▼ SW Low: ${Math.round(m.sw_lo).toLocaleString('en-US')}</span>
+            </div>
+            <div style="font-size:10px;color:var(--text-3);margin-top:1px;display:flex;gap:10px">
+              <span>50%: ${Math.round(m.fib_50).toLocaleString('en-US')}</span>
+              <span>61.8%: ${Math.round(m.fib_618).toLocaleString('en-US')}</span>
+            </div>
+           </td>`
+        : `<td>${s.pattern}</td>`;
       return `<tr>
-        <td>${s.pattern}</td>
+        ${patternCell}
         <td><span class="badge badge-neutral">${s.tf}m</span></td>
         <td>${dirBadge}</td>
         <td style="text-align:right;font-variant-numeric:tabular-nums">${Number(s.entry_trigger).toLocaleString('en-US',{minimumFractionDigits:1,maximumFractionDigits:1})}</td>
@@ -944,8 +967,9 @@ function _syncSettingsInputs(settings) {
     if (el && document.activeElement !== el) el.value = val ?? '';
   }
   const activePatterns = settings.patterns || ['4-Flag', 'Engulfing'];
-  document.getElementById('cfg-pattern-4flag').checked    = activePatterns.includes('4-Flag');
-  document.getElementById('cfg-pattern-engulfing').checked = activePatterns.includes('Engulfing');
+  document.getElementById('cfg-pattern-4flag').checked       = activePatterns.includes('4-Flag');
+  document.getElementById('cfg-pattern-engulfing').checked    = activePatterns.includes('Engulfing');
+  document.getElementById('cfg-pattern-retracement').checked  = activePatterns.includes('Retracement');
   document.getElementById('cfg-bias-filter').checked = !!settings.bias_filter;
 }
 
@@ -975,8 +999,9 @@ async function saveTradingSettings() {
     min_tp:            parseFloat(document.getElementById('cfg-min-tp').value),
     max_concurrent:    parseInt(document.getElementById('cfg-max-conc').value),
     patterns: [
-      ...(document.getElementById('cfg-pattern-4flag').checked    ? ['4-Flag']    : []),
-      ...(document.getElementById('cfg-pattern-engulfing').checked ? ['Engulfing'] : []),
+      ...(document.getElementById('cfg-pattern-4flag').checked       ? ['4-Flag']      : []),
+      ...(document.getElementById('cfg-pattern-engulfing').checked    ? ['Engulfing']   : []),
+      ...(document.getElementById('cfg-pattern-retracement').checked  ? ['Retracement'] : []),
     ],
     bias_filter: document.getElementById('cfg-bias-filter').checked,
   };

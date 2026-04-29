@@ -46,7 +46,10 @@ def _get_feature_flags() -> dict:
     try:
         from btc_agent.trading.firestore_store import load_app_settings
         data = load_app_settings() or {}
-        _flag_cache = {"vishal_enabled": bool(data.get("vishal_enabled", False))}
+        _flag_cache = {
+            "vishal_enabled":      bool(data.get("vishal_enabled", False)),
+            "retracement_enabled": bool(data.get("retracement_enabled", False)),
+        }
     except Exception:
         pass
     _flag_cache_ts = time.time()
@@ -204,7 +207,9 @@ async def status():
     flags = _get_feature_flags()
     return JSONResponse(
         {"scan_running": _scan_running, "brief_running": _brief_running,
-         "trading_running": is_any_running(), "vishal_enabled": flags.get("vishal_enabled", False)}
+         "trading_running": is_any_running(),
+         "vishal_enabled": flags.get("vishal_enabled", False),
+         "retracement_enabled": flags.get("retracement_enabled", False)}
     )
 
 
