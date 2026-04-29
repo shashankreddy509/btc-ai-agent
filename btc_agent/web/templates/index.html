@@ -266,6 +266,14 @@
                   <label>Max SL (pts) <input id="cfg-max-sl" type="number" min="1"></label>
                   <label>Min TP (pts) <input id="cfg-min-tp" type="number" min="1"></label>
                   <label>Max Concurrent <input id="cfg-max-conc" type="number" min="0"></label>
+                  <label>Lookback Candles <input id="cfg-lookback-candles" type="number" min="2" max="20" step="1" value="5"></label>
+                </div>
+                <div style="padding:0 16px 14px;display:flex;align-items:center;gap:12px;">
+                  <span style="font-size:13px;min-width:90px">Entry Mode</span>
+                  <select id="cfg-entry-mode" style="font-size:13px;padding:4px 8px;border-radius:6px;border:1px solid var(--border);background:var(--surface-2);color:var(--text-1);min-width:200px">
+                    <option value="immediate">Immediate (Price Break)</option>
+                    <option value="candle_close">Candle Close</option>
+                  </select>
                 </div>
                 <div style="padding:0 16px 14px;">
                   <span style="font-size:11px;color:var(--text-3);text-transform:uppercase;letter-spacing:.06em;display:block;margin-bottom:8px;">Patterns to Scan</span>
@@ -360,11 +368,10 @@
                     <th style="text-align:right">Exit</th>
                     <th style="text-align:right">Points</th>
                     <th style="text-align:right">Qty</th>
-                    <th style="text-align:right">PnL (USD)</th>
                     <th>Reason</th><th>Opened</th><th>Closed</th>
                   </tr></thead>
                   <tbody id="trade-history-body">
-                    <tr class="empty-row"><td colspan="12">No completed trades</td></tr>
+                    <tr class="empty-row"><td colspan="11">No completed trades</td></tr>
                   </tbody>
                 </table>
               </div>

@@ -113,7 +113,8 @@ async def _load_firestore_settings():
 def _auto_restart_scanner(uid: str, user_data: dict) -> None:
     from btc_agent.trading.scanner import run_trading_scanner
     setting_keys = {"mode", "tf_min", "tf_max", "scan_interval_min", "qty",
-                    "max_sl", "min_tp", "max_concurrent", "patterns", "broker"}
+                    "max_sl", "min_tp", "max_concurrent", "patterns", "broker",
+                    "lookback_candles", "entry_mode"}
     user_settings = {k: v for k, v in user_data.items() if k in setting_keys}
     threading.Thread(
         target=run_trading_scanner,
@@ -235,7 +236,8 @@ async def trading_start(token: dict = Depends(verify_token)):
         from btc_agent.trading.firestore_store import load_user_prefs
         prefs = load_user_prefs(uid) or {}
         setting_keys = {"mode", "tf_min", "tf_max", "scan_interval_min", "qty",
-                        "max_sl", "min_tp", "max_concurrent", "patterns", "broker", "bias_filter"}
+                        "max_sl", "min_tp", "max_concurrent", "patterns", "broker", "bias_filter",
+                        "lookback_candles", "entry_mode"}
         user_settings = {k: v for k, v in prefs.items() if k in setting_keys}
     except Exception as e:
         pass
@@ -262,7 +264,8 @@ async def trading_autostart(token: dict = Depends(verify_token)):
     if not prefs.get("scanner_running"):
         return JSONResponse({"status": "not_requested"})
     setting_keys = {"mode", "tf_min", "tf_max", "scan_interval_min", "qty",
-                    "max_sl", "min_tp", "max_concurrent", "patterns", "broker", "bias_filter"}
+                    "max_sl", "min_tp", "max_concurrent", "patterns", "broker", "bias_filter",
+                    "lookback_candles", "entry_mode"}
     user_settings = {k: v for k, v in prefs.items() if k in setting_keys}
     threading.Thread(
         target=run_trading_scanner,
@@ -297,7 +300,7 @@ async def trading_save_settings(body: dict = Body(...), token: dict = Depends(ve
     uid = token["uid"]
     setting_keys = {"mode", "tf_min", "tf_max", "scan_interval_min", "qty",
                     "max_sl", "min_tp", "max_concurrent", "patterns", "vishal", "bias_filter",
-                    "trail_offset"}
+                    "trail_offset", "lookback_candles", "entry_mode"}
     clean = {k: v for k, v in body.items() if k in setting_keys and v is not None}
     save_user_prefs(uid, clean)
     # Update live scanner if running

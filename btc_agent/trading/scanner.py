@@ -293,7 +293,7 @@ def _scan_patterns(sc: _Scanner, arr, ts_arr, minutes_of_day, unix_days) -> list
     new_signals: list[Signal] = []
     patterns = _active_patterns(sc)
     for tf in range(_tf_min(sc), _tf_max(sc) + 1):
-        bars, bar_open_times = aggregate_tf(arr, ts_arr, minutes_of_day, unix_days, tf, last_n=5)
+        bars, bar_open_times = aggregate_tf(arr, ts_arr, minutes_of_day, unix_days, tf, last_n=_lookback_candles(sc))
         if bars is None or len(bars) < 2:
             continue
         bar_open_ts = int(bar_open_times[-1])
@@ -410,6 +410,12 @@ def _execute_entry(sc: _Scanner, sig: Signal, current_price: float) -> None:
 
 def _trail_offset(sc: "_Scanner") -> int:
     return max(1, int(sc.settings.get("trail_offset", 50)))
+
+def _lookback_candles(sc: "_Scanner") -> int:
+    return max(2, int(sc.settings.get("lookback_candles", 5)))
+
+def _entry_mode(sc: "_Scanner") -> str:
+    return sc.settings.get("entry_mode", "immediate")
 
 
 def _trail_sl(pos: Position, current_price: float, offset: int = 50) -> float:
@@ -735,6 +741,8 @@ def get_state(uid: str | None = None) -> dict:
             "patterns":          _active_patterns(sc),
             "bias_filter":       _bias_filter_enabled(sc),
             "trail_offset":      _trail_offset(sc),
+            "lookback_candles":  _lookback_candles(sc),
+            "entry_mode":        _entry_mode(sc),
         },
     }
 
@@ -820,18 +828,42 @@ def run_trading_scanner(uid: str, user_settings: dict | None = None) -> None:
             _monitor_positions(sc, current_price)
             _tick_vishal(sc, current_price, now)
 
+            emode = _entry_mode(sc)
             for sig in sc.pending_signals:
                 if sig.status != "pending":
                     continue
-                if now > sig.expires_at:
-                    sig.status = "expired"
-                    if _FS: _fs.update_signal_status(sig.id, "expired")
-                    console.print(f"[dim]Signal {sig.id} ({sig.pattern} {sig.tf}m) expired[/dim]")
-                    continue
-                if sig.direction == "long"  and current_price > sig.entry_trigger:
-                    _execute_entry(sc, sig, current_price)
-                elif sig.direction == "short" and current_price < sig.entry_trigger:
-                    _execute_entry(sc, sig, current_price)
+                if emode == "candle_close":
+                    bar_dt = datetime.fromisoformat(sig.bar_open_time.replace('Z', ''))
+                    if bar_dt.tzinfo is None:
+                        bar_dt = bar_dt.replace(tzinfo=timezone.utc)
+                    effective_expiry = bar_dt + timedelta(minutes=sig.tf * 2)
+                    if datetime.now(timezone.utc) > effective_expiry:
+                        sig.status = "expired"
+                        if _FS: _fs.update_signal_status(sig.id, "expired")
+                        console.print(f"[dim]Signal {sig.id} ({sig.pattern} {sig.tf}m) expired[/dim]")
+                        continue
+                else:
+                    if now > sig.expires_at:
+                        sig.status = "expired"
+                        if _FS: _fs.update_signal_status(sig.id, "expired")
+                        console.print(f"[dim]Signal {sig.id} ({sig.pattern} {sig.tf}m) expired[/dim]")
+                        continue
+
+                if emode == "immediate":
+                    if sig.direction == "long"  and current_price > sig.entry_trigger:
+                        _execute_entry(sc, sig, current_price)
+                    elif sig.direction == "short" and current_price < sig.entry_trigger:
+                        _execute_entry(sc, sig, current_price)
+                else:  # candle_close
+                    bar_dt = datetime.fromisoformat(sig.bar_open_time.replace('Z', ''))
+                    if bar_dt.tzinfo is None:
+                        bar_dt = bar_dt.replace(tzinfo=timezone.utc)
+                    candle_close_dt = bar_dt + timedelta(minutes=sig.tf * 2)
+                    if datetime.now(timezone.utc) >= candle_close_dt:
+                        if sig.direction == "long"  and current_price > sig.entry_trigger:
+                            _execute_entry(sc, sig, current_price)
+                        elif sig.direction == "short" and current_price < sig.entry_trigger:
+                            _execute_entry(sc, sig, current_price)
 
             elapsed_min = (now - sc.last_scan_time).total_seconds() / 60 if sc.last_scan_time else 999
             if elapsed_min >= _scan_interval(sc):

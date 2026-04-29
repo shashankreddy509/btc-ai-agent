@@ -924,9 +924,6 @@ function renderTrading() {
       const dirBadge   = p.direction === 'long'
         ? '<span class="badge badge-bull">▲ Long</span>'
         : '<span class="badge badge-bear">▼ Short</span>';
-      const pnl        = r.pnl_closed ?? 0;
-      const pnlClass   = pnl >= 0 ? 'pnl-pos' : 'pnl-neg';
-      const pnlStr     = isStopped ? '—' : (pnl >= 0 ? '+' : '') + pnl.toFixed(4);
       const reasonColor = isStopped ? 'var(--text-3)' : r.close_reason === 'sl' ? 'var(--red)' : 'var(--green)';
       const reasonLabel = isPartial ? 'TP 50%' : isStopped ? 'Stopped by user' : r.close_reason.toUpperCase();
       const tradeMode  = r.mode || 'paper';
@@ -946,7 +943,6 @@ function renderTrading() {
         <td style="text-align:right;font-variant-numeric:tabular-nums">${isStopped ? '—' : '$' + fmtPrice(r.close_price)}</td>
         <td style="text-align:right;font-variant-numeric:tabular-nums" class="${ptsClass}">${ptsStr}</td>
         <td style="text-align:right;color:var(--text-3)">${r.qty_closed ?? p.qty}</td>
-        <td style="text-align:right" class="${isStopped ? '' : pnlClass}">${pnlStr}</td>
         <td style="color:${reasonColor}">${reasonLabel}</td>
         <td style="color:var(--text-3);font-size:12px">${formatTs(p.opened_at)}</td>
         <td style="color:var(--text-3);font-size:12px">${formatTs(r.closed_at)}</td>
@@ -1029,6 +1025,11 @@ function _syncSettingsInputs(settings) {
   const trailEl = document.getElementById('cfg-trail-offset');
   if (trailEl && document.activeElement !== trailEl)
     trailEl.value = settings.trail_offset ?? 50;
+  const lcEl = document.getElementById('cfg-lookback-candles');
+  if (lcEl && document.activeElement !== lcEl)
+    lcEl.value = settings.lookback_candles ?? 5;
+  const emEl = document.getElementById('cfg-entry-mode');
+  if (emEl) emEl.value = settings.entry_mode ?? 'immediate';
 }
 
 async function _renderSettingsPage() {
@@ -1061,7 +1062,9 @@ async function saveTradingSettings() {
       ...(document.getElementById('cfg-pattern-engulfing').checked    ? ['Engulfing']   : []),
       ...(document.getElementById('cfg-pattern-retracement').checked  ? ['Retracement'] : []),
     ],
-    bias_filter:  document.getElementById('cfg-bias-filter').checked,
+    bias_filter:      document.getElementById('cfg-bias-filter').checked,
+    lookback_candles: parseInt(document.getElementById('cfg-lookback-candles')?.value) || 5,
+    entry_mode:       document.getElementById('cfg-entry-mode')?.value || 'immediate',
     ...((_isAdmin()) ? { trail_offset: parseInt(document.getElementById('cfg-trail-offset')?.value || '50') } : {}),
   };
   await fetchJSON('/api/trading/settings', {
