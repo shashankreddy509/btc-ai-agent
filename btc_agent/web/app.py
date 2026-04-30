@@ -114,7 +114,12 @@ def _auto_restart_scanner(uid: str, user_data: dict) -> None:
     from btc_agent.trading.scanner import run_trading_scanner
     setting_keys = {"mode", "tf_min", "tf_max", "scan_interval_min", "qty",
                     "max_sl", "min_tp", "max_concurrent", "patterns", "broker",
-                    "lookback_candles", "entry_mode"}
+                    "lookback_candles", "entry_mode",
+                    "coinbase_api_key", "coinbase_api_secret",
+                    "binance_api_key", "binance_api_secret",
+                    "bybit_api_key", "bybit_api_secret",
+                    "delta_api_key", "delta_api_secret",
+                    "coindcx_api_key", "coindcx_api_secret"}
     user_settings = {k: v for k, v in user_data.items() if k in setting_keys}
     threading.Thread(
         target=run_trading_scanner,
@@ -237,7 +242,12 @@ async def trading_start(token: dict = Depends(verify_token)):
         prefs = load_user_prefs(uid) or {}
         setting_keys = {"mode", "tf_min", "tf_max", "scan_interval_min", "qty",
                         "max_sl", "min_tp", "max_concurrent", "patterns", "broker", "bias_filter",
-                        "lookback_candles", "entry_mode"}
+                        "lookback_candles", "entry_mode",
+                        "coinbase_api_key", "coinbase_api_secret",
+                        "binance_api_key", "binance_api_secret",
+                        "bybit_api_key", "bybit_api_secret",
+                        "delta_api_key", "delta_api_secret",
+                        "coindcx_api_key", "coindcx_api_secret"}
         user_settings = {k: v for k, v in prefs.items() if k in setting_keys}
     except Exception as e:
         pass
@@ -265,7 +275,12 @@ async def trading_autostart(token: dict = Depends(verify_token)):
         return JSONResponse({"status": "not_requested"})
     setting_keys = {"mode", "tf_min", "tf_max", "scan_interval_min", "qty",
                     "max_sl", "min_tp", "max_concurrent", "patterns", "broker", "bias_filter",
-                    "lookback_candles", "entry_mode"}
+                    "lookback_candles", "entry_mode",
+                    "coinbase_api_key", "coinbase_api_secret",
+                    "binance_api_key", "binance_api_secret",
+                    "bybit_api_key", "bybit_api_secret",
+                    "delta_api_key", "delta_api_secret",
+                    "coindcx_api_key", "coindcx_api_secret"}
     user_settings = {k: v for k, v in prefs.items() if k in setting_keys}
     threading.Thread(
         target=run_trading_scanner,
@@ -374,6 +389,65 @@ async def settings_save_user(body: dict = Body(...), token: dict = Depends(verif
     return JSONResponse({"status": "saved"})
 
 
+# Admin API — owner only
+admin_router = APIRouter(prefix="/api/admin", dependencies=[Depends(_require_admin)])
+
+
+@admin_router.get("/users")
+async def admin_list_users():
+    import firebase_admin.auth as fb_auth
+    from btc_agent.trading.scanner import _scanners
+    from btc_agent.trading.firestore_store import load_user_prefs
+    users = []
+    try:
+        page = fb_auth.list_users()
+        for user in page.users:
+            uid = user.uid
+            sc = _scanners.get(uid)
+            if sc:
+                mode   = sc.settings.get("mode", "paper")
+                broker = sc.settings.get("broker", "coinbase")
+                running = sc.running
+            else:
+                prefs  = load_user_prefs(uid) or {}
+                mode   = prefs.get("mode", "paper")
+                broker = prefs.get("broker", "coinbase")
+                running = False
+            users.append({
+                "uid":          uid,
+                "email":        user.email or "",
+                "display_name": user.display_name or user.email or uid[:8],
+                "mode":         mode,
+                "broker":       broker,
+                "scanner_running": running,
+            })
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    return JSONResponse(users)
+
+
+@admin_router.post("/users/{uid}/stop")
+async def admin_stop_user(uid: str):
+    from btc_agent.trading.scanner import stop_trading_scanner
+    stop_trading_scanner(uid)
+    return JSONResponse({"status": "stopped"})
+
+
+@admin_router.post("/users/{uid}/mode")
+async def admin_set_mode(uid: str, body: dict = Body(...)):
+    from btc_agent.trading.firestore_store import save_user_prefs
+    from btc_agent.trading.scanner import _scanners
+    mode = body.get("mode")
+    if mode not in ("paper", "live"):
+        raise HTTPException(status_code=422, detail="mode must be 'paper' or 'live'")
+    save_user_prefs(uid, {"mode": mode})
+    sc = _scanners.get(uid)
+    if sc:
+        sc.settings["mode"] = mode
+    return JSONResponse({"status": "saved"})
+
+
 app.include_router(pub)
 app.include_router(priv)
 app.include_router(priv_cfg)
+app.include_router(admin_router)

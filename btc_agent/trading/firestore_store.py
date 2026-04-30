@@ -15,6 +15,7 @@ import threading
 from typing import Any
 
 from rich.console import Console
+from google.cloud.firestore_v1.base_query import FieldFilter
 
 console = Console()
 
@@ -125,13 +126,13 @@ def load_state(uid: str) -> dict | None:
         is_admin = uid == _cfg.FIREBASE_OWNER_UID
 
         if is_admin:
-            sig_query = db.collection("trading_signals").where("status", "==", "pending")
-            pos_query = db.collection("trading_positions").where("status", "==", "open")
+            sig_query = db.collection("trading_signals").where(filter=FieldFilter("status", "==", "pending"))
+            pos_query = db.collection("trading_positions").where(filter=FieldFilter("status", "==", "open"))
             hist_query = db.collection("trading_history")
         else:
-            sig_query  = db.collection("trading_signals").where("uid", "==", uid).where("status", "==", "pending")
-            pos_query  = db.collection("trading_positions").where("uid", "==", uid).where("status", "==", "open")
-            hist_query = db.collection("trading_history").where("uid", "==", uid)
+            sig_query  = db.collection("trading_signals").where(filter=FieldFilter("uid", "==", uid)).where(filter=FieldFilter("status", "==", "pending"))
+            pos_query  = db.collection("trading_positions").where(filter=FieldFilter("uid", "==", uid)).where(filter=FieldFilter("status", "==", "open"))
+            hist_query = db.collection("trading_history").where(filter=FieldFilter("uid", "==", uid))
 
         signals   = [doc.to_dict() for doc in sig_query.stream()]
         positions = [doc.to_dict() for doc in pos_query.stream()]

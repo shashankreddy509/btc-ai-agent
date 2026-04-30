@@ -112,8 +112,8 @@ def _build_broker(sc: _Scanner):
     name = sc.settings.get("broker", config.TRADING_BROKER)
     default_cs = getattr(config, f"{name.upper()}_CONTRACT_SIZE", 0.001)
     creds = {
-        "api_key":       sc.settings.get(f"{name}_api_key") or getattr(config, f"{name.upper()}_API_KEY", ""),
-        "api_secret":    sc.settings.get(f"{name}_api_secret") or getattr(config, f"{name.upper()}_API_SECRET", ""),
+        "api_key":       sc.settings.get(f"{name}_api_key", ""),
+        "api_secret":    sc.settings.get(f"{name}_api_secret", ""),
         "product_id":    sc.settings.get("coinbase_product_id", config.COINBASE_PRODUCT_ID),
         "contract_size": sc.settings.get(f"{name}_contract_size", default_cs),
     }
@@ -776,6 +776,8 @@ def stop_trading_scanner(uid: str) -> None:
     if sc:
         _clear_on_stop(sc)
         sc.running = False
+        if _FS:
+            _fs.save_user_prefs(uid, {"scanner_running": False})
 
 
 def is_any_running() -> bool:

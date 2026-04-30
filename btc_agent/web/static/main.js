@@ -74,6 +74,10 @@ function _updateAuthUI() {
   // Admin-only trail offset input
   const trailRow = document.getElementById('cfg-trail-offset-row');
   if (trailRow) trailRow.style.display = admin ? 'flex' : 'none';
+
+  // Admin-only nav items
+  const navUsers = document.getElementById('nav-users');
+  if (navUsers) navUsers.style.display = admin ? '' : 'none';
 }
 
 const ADMIN_EMAIL = 'shashankreddy509@gmail.com';
@@ -387,7 +391,7 @@ function _setText(id, text) {
 let _currentSection = 'home';
 let _currentSubTab  = 'briefing';
 
-const SECTION_TITLES = { briefing: 'Morning Briefing', scanner: 'Pattern Scanner', trading: 'Live Trading', settings: 'Settings' };
+const SECTION_TITLES = { briefing: 'Morning Briefing', scanner: 'Pattern Scanner', trading: 'Live Trading', settings: 'Settings', users: 'Users' };
 
 function navTo(section) {
   _currentSection = section;
@@ -406,6 +410,12 @@ function navTo(section) {
     _setSidebarActive('nav-trading');
     _setMobTabActive('mob-tab-trading');
     _showTradingContent();
+  } else if (section === 'users') {
+    _showPage('users');
+    subTabsEl.style.display = 'none';
+    _setTopbarTitle('Users');
+    _setSidebarActive('nav-users');
+    _showUsersPage();
   } else if (section === 'settings') {
     _showPage('settings');
     subTabsEl.style.display = 'none';
@@ -1134,4 +1144,64 @@ _updateAuthUI();
   setInterval(pollStatus, 3000);
   // Trading polling only when signed in
   setInterval(() => { if (_currentUser) loadTrading(); }, 5000);
+  // Users page auto-refresh when visible
+  setInterval(() => {
+    if (document.getElementById('page-users')?.classList.contains('active')) _showUsersPage();
+  }, 8000);
 })();
+
+// ── Admin Users Page ───────────────────────────────────────────────────────────
+
+async function _showUsersPage() {
+  const tbody = document.getElementById('users-tbody');
+  if (!tbody) return;
+  try {
+    const users = await fetchJSON('/api/admin/users');
+    if (!users.length) {
+      tbody.innerHTML = '<tr class="empty-row"><td colspan="5">No users found</td></tr>';
+      return;
+    }
+    tbody.innerHTML = users.map(u => {
+      const runBadge = u.scanner_running
+        ? '<span class="badge badge-bull">Running</span>'
+        : '<span class="badge" style="background:var(--surface-3);color:var(--text-2)">Stopped</span>';
+      const modeBadge = u.mode === 'live'
+        ? '<span class="badge badge-bear">Live</span>'
+        : '<span class="badge" style="background:var(--surface-3);color:var(--text-2)">Paper</span>';
+      const stopBtn = u.scanner_running
+        ? `<button class="btn btn-danger" style="font-size:11px;padding:3px 10px" onclick="_adminStopUser('${u.uid}')">Stop</button>`
+        : '';
+      const modeBtn = u.mode === 'live'
+        ? `<button class="btn" style="font-size:11px;padding:3px 10px" onclick="_adminSetMode('${u.uid}','paper')">→ Paper</button>`
+        : `<button class="btn" style="font-size:11px;padding:3px 10px" onclick="_adminSetMode('${u.uid}','live')">→ Live</button>`;
+      return `<tr>
+        <td>
+          <div style="font-weight:500">${u.display_name}</div>
+          <div style="font-size:11px;color:var(--text-3)">${u.email}</div>
+        </td>
+        <td>${modeBadge}</td>
+        <td style="text-transform:capitalize">${u.broker}</td>
+        <td>${runBadge}</td>
+        <td style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">${stopBtn}${modeBtn}</td>
+      </tr>`;
+    }).join('');
+  } catch(e) {
+    tbody.innerHTML = `<tr class="empty-row"><td colspan="5">Error: ${e.message}</td></tr>`;
+  }
+}
+
+async function _adminStopUser(uid) {
+  await fetchJSON(`/api/admin/users/${uid}/stop`, { method: 'POST' });
+  _showUsersPage();
+}
+
+async function _adminSetMode(uid, mode) {
+  await fetchJSON(`/api/admin/users/${uid}/mode`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ mode }),
+  });
+  _showUsersPage();
+}
+
+function _refreshUsers() { _showUsersPage(); }
