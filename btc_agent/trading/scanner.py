@@ -55,6 +55,7 @@ class _Scanner:
     broker: object = field(default=None, repr=False)
     vishal_state: dict = field(default_factory=dict)
     current_bias: str = ""
+    broker_account_name: str = ""
 
     @property
     def state_path(self) -> Path:
@@ -181,7 +182,7 @@ def _trend_bias(price: float, levels: dict) -> str:
 
 # ── signal creation ───────────────────────────────────────────────────────────
 
-def _bars_to_signal(pattern: str, direction: str, tf: int, bars: np.ndarray, bar_open_time: str) -> Signal:
+def _bars_to_signal(pattern: str, direction: str, tf: int, bars: np.ndarray, bar_open_time: str, lookback: int = 3) -> Signal:
     o, h, l, c = bars[-1, 0], bars[-1, 1], bars[-1, 2], bars[-1, 3]
     body_hi = max(o, c)
     body_lo = min(o, c)
@@ -191,17 +192,22 @@ def _bars_to_signal(pattern: str, direction: str, tf: int, bars: np.ndarray, bar
         flag_body_his = np.maximum(flag_bars[:, 0], flag_bars[:, 3])
         flag_body_los = np.minimum(flag_bars[:, 0], flag_bars[:, 3])
         entry_trigger = float(flag_body_his.max()) if direction == "long" else float(flag_body_los.min())
+        # SL spans the full consolidation range across all 4 bars, not just the last bar
+        sl_wick = float(flag_bars[:, 2].min()) if direction == "long" else float(flag_bars[:, 1].max())
+        sl_body = float(flag_body_los.min()) if direction == "long" else float(flag_body_his.max())
     else:
         entry_trigger = body_hi if direction == "long" else body_lo
-    sl_wick = l if direction == "long" else h
-    sl_body = body_lo if direction == "long" else body_hi
+        sl_wick = l if direction == "long" else h
+        sl_body = body_lo if direction == "long" else body_hi
+    bar_dt = datetime.fromisoformat(bar_open_time.replace('Z', '')).replace(tzinfo=timezone.utc)
+    expires_at = bar_dt + timedelta(minutes=(lookback + 1) * tf)
     return Signal(
         id=uuid.uuid4().hex[:8],
         pattern=pattern, direction=direction, tf=tf,
         bar_open_time=bar_open_time,
         entry_trigger=round(entry_trigger, 2),
         sl_wick=round(sl_wick, 2), sl_body=round(sl_body, 2),
-        created_at=now, expires_at=now + timedelta(minutes=tf),
+        created_at=now, expires_at=expires_at,
     )
 
 
@@ -292,18 +298,24 @@ def _check_retracement(sc: _Scanner, bars: np.ndarray, bar_ts, tf: int, now: dat
 def _scan_patterns(sc: _Scanner, arr, ts_arr, minutes_of_day, unix_days) -> list[Signal]:
     new_signals: list[Signal] = []
     patterns = _active_patterns(sc)
+    lookback = _lookback_candles(sc)
     for tf in range(_tf_min(sc), _tf_max(sc) + 1):
-        bars, bar_open_times = aggregate_tf(arr, ts_arr, minutes_of_day, unix_days, tf, last_n=_lookback_candles(sc))
+        bars, bar_open_times = aggregate_tf(arr, ts_arr, minutes_of_day, unix_days, tf, last_n=6)
         if bars is None or len(bars) < 2:
             continue
         bar_open_ts = int(bar_open_times[-1])
         bar_open_time = datetime.fromtimestamp(bar_open_ts, tz=timezone.utc).isoformat()
 
         if "4-Flag" in patterns and len(bars) >= 4:
-            if detect_4flag(bars[-4:]):
+            for w in range(len(bars) - 3):
+                window = bars[w:w + 4]
+                if not detect_4flag(window):
+                    continue
+                w_open_ts = int(bar_open_times[w + 3])
+                w_open_time = datetime.fromtimestamp(w_open_ts, tz=timezone.utc).isoformat()
                 for direction in ("long", "short"):
-                    if not _is_duplicate(sc, tf, "4-Flag", direction, bar_open_time):
-                        sig = _bars_to_signal("4-Flag", direction, tf, bars, bar_open_time)
+                    if not _is_duplicate(sc, tf, "4-Flag", direction, w_open_time):
+                        sig = _bars_to_signal("4-Flag", direction, tf, window, w_open_time, lookback)
                         new_signals.append(sig)
                         console.print(
                             f"[bold yellow]4-Flag[/bold yellow] detected on [green]{tf}m[/green] "
@@ -315,7 +327,7 @@ def _scan_patterns(sc: _Scanner, arr, ts_arr, minutes_of_day, unix_days) -> list
             if found:
                 direction = "long" if eng_dir == "bullish" else "short"
                 if not _is_duplicate(sc, tf, "Engulfing", direction, bar_open_time):
-                    sig = _bars_to_signal("Engulfing", direction, tf, bars, bar_open_time)
+                    sig = _bars_to_signal("Engulfing", direction, tf, bars, bar_open_time, lookback)
                     new_signals.append(sig)
                     console.print(
                         f"[bold cyan]Engulfing ({direction})[/bold cyan] on [green]{tf}m[/green] "
@@ -412,7 +424,7 @@ def _trail_offset(sc: "_Scanner") -> int:
     return max(1, int(sc.settings.get("trail_offset", 50)))
 
 def _lookback_candles(sc: "_Scanner") -> int:
-    return max(2, int(sc.settings.get("lookback_candles", 5)))
+    return max(1, int(sc.settings.get("lookback_candles", 3)))
 
 def _entry_mode(sc: "_Scanner") -> str:
     return sc.settings.get("entry_mode", "immediate")
@@ -535,6 +547,15 @@ def _close_position(sc: _Scanner, pos: Position, price: float, reason: str) -> N
     if _FS:
         _fs.save_position(_position_to_dict(pos), sc.uid)
         _fs.save_history(_result_to_dict(close_result), f"{pos.signal_id}_{reason}", sc.uid)
+
+    # Reset the signal to pending so it can re-enter if price comes back within the entry window
+    now_utc = datetime.now(timezone.utc)
+    for sig in sc.pending_signals:
+        if sig.id == pos.signal_id and sig.status == "triggered" and now_utc < sig.expires_at:
+            sig.status = "pending"
+            if _FS:
+                _fs.update_signal_status(sig.id, "pending")
+            break
 
 
 def _monitor_positions(sc: _Scanner, current_price: float) -> None:
@@ -727,8 +748,9 @@ def get_state(uid: str | None = None) -> dict:
         "history":   [_result_to_dict(r) for r in sc.trade_history[-50:]],
         "running":       sc.running,
         "current_price": sc.last_price,
-        "current_bias":  sc.current_bias,
-        "levels":        sc.current_levels,
+        "current_bias":        sc.current_bias,
+        "broker_account_name": sc.broker_account_name,
+        "levels":              sc.current_levels,
         "settings": {
             "mode":              _trading_mode(sc),
             "tf_min":            _tf_min(sc),
@@ -743,6 +765,7 @@ def get_state(uid: str | None = None) -> dict:
             "trail_offset":      _trail_offset(sc),
             "lookback_candles":  _lookback_candles(sc),
             "entry_mode":        _entry_mode(sc),
+            "broker_nickname":   sc.settings.get("broker_nickname", ""),
         },
     }
 
@@ -810,6 +833,11 @@ def run_trading_scanner(uid: str, user_settings: dict | None = None) -> None:
         console.print("[yellow]Warning: qty < 2 — partial close requires at least 2 contracts[/yellow]")
 
     sc.broker = _build_broker(sc)
+    if sc.broker and _trading_mode(sc) == "live":
+        try:
+            sc.broker_account_name = sc.broker.get_display_name()
+        except Exception:
+            sc.broker_account_name = ""
 
     arr = ts_arr = minutes_of_day = unix_days = None
     last_state_save = datetime.now(timezone.utc)
@@ -838,7 +866,7 @@ def run_trading_scanner(uid: str, user_settings: dict | None = None) -> None:
                     bar_dt = datetime.fromisoformat(sig.bar_open_time.replace('Z', ''))
                     if bar_dt.tzinfo is None:
                         bar_dt = bar_dt.replace(tzinfo=timezone.utc)
-                    effective_expiry = bar_dt + timedelta(minutes=sig.tf * 2)
+                    effective_expiry = bar_dt + timedelta(minutes=(_lookback_candles(sc) + 1) * sig.tf)
                     if datetime.now(timezone.utc) > effective_expiry:
                         sig.status = "expired"
                         if _FS: _fs.update_signal_status(sig.id, "expired")
@@ -860,7 +888,7 @@ def run_trading_scanner(uid: str, user_settings: dict | None = None) -> None:
                     bar_dt = datetime.fromisoformat(sig.bar_open_time.replace('Z', ''))
                     if bar_dt.tzinfo is None:
                         bar_dt = bar_dt.replace(tzinfo=timezone.utc)
-                    candle_close_dt = bar_dt + timedelta(minutes=sig.tf * 2)
+                    candle_close_dt = bar_dt + timedelta(minutes=(_lookback_candles(sc) + 1) * sig.tf)
                     if datetime.now(timezone.utc) >= candle_close_dt:
                         if sig.direction == "long"  and current_price > sig.entry_trigger:
                             _execute_entry(sc, sig, current_price)

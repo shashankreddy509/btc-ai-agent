@@ -165,6 +165,8 @@ async function loadUserSettings() {
     const sel = document.getElementById('s-broker-select');
     if (sel) sel.value = broker;
     onBrokerChange(broker);
+    const nickEl = document.getElementById('s-broker-nickname');
+    if (nickEl && d.broker_nickname) nickEl.value = d.broker_nickname;
   } catch (_) {}
 }
 
@@ -186,12 +188,15 @@ function onBrokerChange(broker) {
 
 async function saveBrokerChoice() {
   if (!_currentUser) return;
-  const broker = _gv('s-broker-select');
+  const broker   = _gv('s-broker-select');
   if (!broker) return;
+  const nickname = _gv('s-broker-nickname');
+  const payload  = { broker };
+  if (nickname !== undefined) payload.broker_nickname = nickname;
   await fetchJSON('/api/trading/settings', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ broker }),
+    body: JSON.stringify(payload),
   });
   onBrokerChange(broker);
 }
@@ -799,9 +804,17 @@ function renderLevels(levels, running) {
 
 function renderTrading() {
   if (!_tradingData) return;
-  const { signals = [], positions = [], history = [], running, settings = {}, levels = {}, current_price = 0 } = _tradingData;
+  const { signals = [], positions = [], history = [], running, settings = {}, levels = {}, current_price = 0, broker_account_name = '' } = _tradingData;
 
   _setText('trade-mode-label', (settings.mode || 'paper').toUpperCase());
+  const acctLabel = document.getElementById('trade-account-label');
+  const acctName  = document.getElementById('trade-account-name');
+  if (acctLabel && acctName) {
+    const displayName = settings.broker_nickname || _currentUser?.displayName || _currentUser?.email || broker_account_name;
+    const showAcct = running && settings.mode === 'live' && displayName;
+    acctLabel.style.display = showAcct ? '' : 'none';
+    acctName.textContent = displayName;
+  }
   const liveEl = document.getElementById('trade-live-price');
   if (liveEl) liveEl.textContent = current_price ? `$${fmtPrice(current_price)}` : '—';
   if (current_price && running) {
@@ -1037,7 +1050,7 @@ function _syncSettingsInputs(settings) {
     trailEl.value = settings.trail_offset ?? 50;
   const lcEl = document.getElementById('cfg-lookback-candles');
   if (lcEl && document.activeElement !== lcEl)
-    lcEl.value = settings.lookback_candles ?? 5;
+    lcEl.value = settings.lookback_candles ?? 3;
   const emEl = document.getElementById('cfg-entry-mode');
   if (emEl) emEl.value = settings.entry_mode ?? 'immediate';
 }
@@ -1073,7 +1086,7 @@ async function saveTradingSettings() {
       ...(document.getElementById('cfg-pattern-retracement').checked  ? ['Retracement'] : []),
     ],
     bias_filter:      document.getElementById('cfg-bias-filter').checked,
-    lookback_candles: parseInt(document.getElementById('cfg-lookback-candles')?.value) || 5,
+    lookback_candles: parseInt(document.getElementById('cfg-lookback-candles')?.value) || 3,
     entry_mode:       document.getElementById('cfg-entry-mode')?.value || 'immediate',
     ...((_isAdmin()) ? { trail_offset: parseInt(document.getElementById('cfg-trail-offset')?.value || '50') } : {}),
   };

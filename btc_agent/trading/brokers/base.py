@@ -32,3 +32,7 @@ class BrokerAdapter(ABC):
     @abstractmethod
     def contract_size(self) -> float:
         """BTC equivalent per unit/contract — used for PnL calculation."""
+
+    def get_display_name(self) -> str:
+        """Return a human-readable account name from the broker API."""
+        return ""

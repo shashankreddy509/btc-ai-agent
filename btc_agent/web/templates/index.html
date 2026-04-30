@@ -237,6 +237,7 @@
                   <span style="display:flex;align-items:center;gap:5px;font-size:13px;color:var(--text-3)">
                     <span class="status-dot dot-ok" id="trade-dot"></span>
                     Mode: <span id="trade-mode-label" style="color:var(--accent);font-weight:600">—</span>
+                    <span id="trade-account-label" style="display:none">&nbsp;·&nbsp; Account: <span id="trade-account-name" style="color:var(--green);font-weight:600"></span></span>
                     &nbsp;·&nbsp; BTC: <span id="trade-live-price" style="color:var(--accent);font-weight:700;font-size:15px">—</span>
                   </span>
                   <button class="btn btn-green" id="trade-start-btn">Start Scanner</button>
@@ -270,7 +271,7 @@
                   <label>Max SL (pts) <input id="cfg-max-sl" type="number" min="1"></label>
                   <label>Min TP (pts) <input id="cfg-min-tp" type="number" min="1"></label>
                   <label>Max Concurrent <input id="cfg-max-conc" type="number" min="0"></label>
-                  <label>Lookback Candles <input id="cfg-lookback-candles" type="number" min="2" max="20" step="1" value="5"></label>
+                  <label>Entry Window (candles) <input id="cfg-lookback-candles" type="number" min="1" max="20" step="1" value="3"></label>
                 </div>
                 <div style="padding:0 16px 14px;display:flex;align-items:center;gap:12px;">
                   <span style="font-size:13px;min-width:90px">Entry Mode</span>
@@ -614,16 +615,22 @@
           <div class="card" id="s-card-broker" style="display:none;">
             <div class="card-header"><span class="card-title">Broker</span></div>
             <div class="s-section">
-              <div class="s-field">
-                <span class="s-label">Active Broker</span>
-                <select id="s-broker-select" class="s-input" onchange="onBrokerChange(this.value)">
-                  <option value="">-- Select Broker --</option>
-                  <option value="coinbase">Coinbase Advanced Trade</option>
-                  <option value="binance">Binance Futures</option>
-                  <option value="bybit">Bybit</option>
-                  <option value="delta">Delta Exchange</option>
-                  <option value="coindcx">CoinDCX</option>
-                </select>
+              <div class="s-row">
+                <div class="s-field">
+                  <span class="s-label">Active Broker</span>
+                  <select id="s-broker-select" class="s-input" onchange="onBrokerChange(this.value)">
+                    <option value="">-- Select Broker --</option>
+                    <option value="coinbase">Coinbase Advanced Trade</option>
+                    <option value="binance">Binance Futures</option>
+                    <option value="bybit">Bybit</option>
+                    <option value="delta">Delta Exchange</option>
+                    <option value="coindcx">CoinDCX</option>
+                  </select>
+                </div>
+                <div class="s-field">
+                  <span class="s-label">Nickname</span>
+                  <input id="s-broker-nickname" class="s-input" type="text" placeholder="e.g. Shashank's Account">
+                </div>
               </div>
               <div class="s-footer">
                 <button class="btn btn-primary" onclick="saveBrokerChoice()">Save</button>

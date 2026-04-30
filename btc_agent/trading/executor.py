@@ -41,7 +41,6 @@ def _normalize_pem(raw: str) -> str:
     """
     import base64 as _b64
     raw = raw.strip().strip("\"'")
-    # Unescape literal \n if present
     if "\\n" in raw:
         raw = raw.replace("\\n", "\n")
 
@@ -52,10 +51,8 @@ def _normalize_pem(raw: str) -> str:
 
     header = hm.group()
     footer = fm.group()
-    body   = re.sub(r"\s", "", raw[hm.end():fm.start()])  # strip whitespace/newlines
+    body   = re.sub(r"\s", "", raw[hm.end():fm.start()])
 
-    # Detect dotenv backslash-stripping: if body starts with 'n' and
-    # base64-decoding fails, the 'n' chars are stripped-backslash separators.
     def _try_decode(b: str) -> bool:
         try:
             _b64.b64decode(b + "=" * (-len(b) % 4))
@@ -64,7 +61,6 @@ def _normalize_pem(raw: str) -> str:
             return False
 
     if not _try_decode(body) and body.startswith("n"):
-        # Remove leading n, then strip n separators at every 64-char boundary
         cleaned, i = "", 1
         while i < len(body):
             cleaned += body[i:i+64]
@@ -77,10 +73,10 @@ def _normalize_pem(raw: str) -> str:
     return f"{header}\n{wrapped}\n{footer}\n"
 
 
-def _build_jwt(method: str, path: str) -> str:
-    """Build a short-lived ES256 JWT for a CDP API key."""
-    key_name = config.COINBASE_API_KEY
-    key_pem  = _normalize_pem(config.COINBASE_API_SECRET)
+def _build_jwt(method: str, path: str, api_key: str | None = None, api_secret: str | None = None) -> str:
+    """Build a short-lived ES256 JWT using provided creds (never touches global config)."""
+    key_name = api_key or config.COINBASE_API_KEY
+    key_pem  = _normalize_pem(api_secret or config.COINBASE_API_SECRET)
     private_key = serialization.load_pem_private_key(key_pem.encode(), password=None)
 
     now = int(time.time())
@@ -104,16 +100,26 @@ def _build_jwt(method: str, path: str) -> str:
     return f"{h}.{p}.{sig_b64}"
 
 
-def _auth_headers(method: str, path: str) -> dict[str, str]:
+def _auth_headers(method: str, path: str, api_key: str | None = None, api_secret: str | None = None) -> dict[str, str]:
     return {
-        "Authorization": f"Bearer {_build_jwt(method, path)}",
+        "Authorization": f"Bearer {_build_jwt(method, path, api_key, api_secret)}",
         "Content-Type":  "application/json",
     }
 
 
-def _post(path: str, payload: dict[str, Any]) -> dict[str, Any]:
+def _get(path: str, api_key: str | None = None, api_secret: str | None = None) -> dict[str, Any]:
+    headers = _auth_headers("GET", path, api_key, api_secret)
+    req = urllib.request.Request(_BASE + path, headers=headers, method="GET")
+    try:
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            return json.loads(resp.read())
+    except urllib.error.HTTPError as e:
+        raise RuntimeError(f"Coinbase {path} → HTTP {e.code}: {e.read().decode()}") from e
+
+
+def _post(path: str, payload: dict[str, Any], api_key: str | None = None, api_secret: str | None = None) -> dict[str, Any]:
     body = json.dumps(payload)
-    headers = _auth_headers("POST", path)
+    headers = _auth_headers("POST", path, api_key, api_secret)
     req = urllib.request.Request(
         _BASE + path,
         data=body.encode(),
@@ -127,12 +133,25 @@ def _post(path: str, payload: dict[str, Any]) -> dict[str, Any]:
         raise RuntimeError(f"Coinbase {path} → HTTP {e.code}: {e.read().decode()}") from e
 
 
+def get_portfolio_name(api_key: str | None = None, api_secret: str | None = None) -> str:
+    """Return the name of the user's default Coinbase portfolio."""
+    try:
+        data = _get("/api/v3/brokerage/portfolios", api_key, api_secret)
+        portfolios = data.get("portfolios", [])
+        active = [p for p in portfolios if not p.get("deleted")]
+        return active[0]["name"] if active else ""
+    except Exception:
+        return ""
+
+
 # ── orders ────────────────────────────────────────────────────────────────────
 
 def place_market_order(
-    side: str,            # "BUY" | "SELL"
-    base_size: str,       # BTC quantity as string e.g. "0.001"
+    side: str,
+    base_size: str,
     product_id: str | None = None,
+    api_key: str | None = None,
+    api_secret: str | None = None,
 ) -> dict[str, Any]:
     """Place an immediate market order (IOC)."""
     pid = product_id or config.COINBASE_PRODUCT_ID
@@ -146,20 +165,20 @@ def place_market_order(
             }
         },
     }
-    return _post("/api/v3/brokerage/orders", payload)
+    return _post("/api/v3/brokerage/orders", payload, api_key, api_secret)
 
 
 def place_stop_limit_order(
-    side: str,            # "BUY" (stop for short) | "SELL" (stop for long)
+    side: str,
     base_size: str,
     stop_price: float,
     limit_price: float,
     product_id: str | None = None,
+    api_key: str | None = None,
+    api_secret: str | None = None,
 ) -> dict[str, Any]:
     """Place a GTC stop-limit order for stop-loss."""
     pid = product_id or config.COINBASE_PRODUCT_ID
-    # stop_direction: STOP_DIRECTION_STOP_DOWN for longs (sell when price falls)
-    #                 STOP_DIRECTION_STOP_UP   for shorts (buy when price rises)
     stop_dir = "STOP_DIRECTION_STOP_DOWN" if side == "SELL" else "STOP_DIRECTION_STOP_UP"
     payload = {
         "client_order_id": uuid.uuid4().hex[:16],
@@ -174,12 +193,12 @@ def place_stop_limit_order(
             }
         },
     }
-    return _post("/api/v3/brokerage/orders", payload)
+    return _post("/api/v3/brokerage/orders", payload, api_key, api_secret)
 
 
-def cancel_order(order_id: str) -> dict[str, Any]:
+def cancel_order(order_id: str, api_key: str | None = None, api_secret: str | None = None) -> dict[str, Any]:
     """Cancel a single order. Uses batch_cancel endpoint."""
-    return _post("/api/v3/brokerage/orders/batch_cancel", {"order_ids": [order_id]})
+    return _post("/api/v3/brokerage/orders/batch_cancel", {"order_ids": [order_id]}, api_key, api_secret)
 
 
 def place_take_profit_order(
@@ -188,6 +207,8 @@ def place_take_profit_order(
     stop_price: float,
     limit_price: float,
     product_id: str | None = None,
+    api_key: str | None = None,
+    api_secret: str | None = None,
 ) -> dict[str, Any]:
     """Place a GTC take-profit limit order."""
     pid = product_id or config.COINBASE_PRODUCT_ID
@@ -205,4 +226,4 @@ def place_take_profit_order(
             }
         },
     }
-    return _post("/api/v3/brokerage/orders", payload)
+    return _post("/api/v3/brokerage/orders", payload, api_key, api_secret)
