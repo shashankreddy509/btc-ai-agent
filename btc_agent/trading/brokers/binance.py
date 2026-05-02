@@ -59,16 +59,18 @@ class BinanceAdapter(BrokerAdapter):
             raise RuntimeError(f"Binance DELETE {path} → HTTP {e.code}: {e.read().decode()}") from e
 
     def place_market_order(self, side: str, qty: str) -> dict:
+        btc_qty = f"{int(qty) * self._contract_size:.3f}"
         resp = self._post("/fapi/v1/order", {
             "symbol": _SYMBOL, "side": side,
-            "type": "MARKET", "quantity": qty,
+            "type": "MARKET", "quantity": btc_qty,
         })
         return {"order_id": str(resp.get("orderId", ""))}
 
     def place_stop_limit_order(self, side: str, qty: str, stop_price: float, limit_price: float) -> dict:
+        btc_qty = f"{int(qty) * self._contract_size:.3f}"
         resp = self._post("/fapi/v1/order", {
             "symbol": _SYMBOL, "side": side,
-            "type": "STOP", "quantity": qty,
+            "type": "STOP", "quantity": btc_qty,
             "stopPrice": f"{stop_price:.2f}",
             "price": f"{limit_price:.2f}",
             "timeInForce": "GTC",

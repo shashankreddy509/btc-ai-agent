@@ -47,18 +47,20 @@ class BybitAdapter(BrokerAdapter):
 
     def place_market_order(self, side: str, qty: str) -> dict:
         bybit_side = "Buy" if side == "BUY" else "Sell"
+        btc_qty = f"{int(qty) * self._contract_size:.3f}"
         resp = self._post("/v5/order/create", {
             "category": "linear", "symbol": _SYMBOL,
-            "side": bybit_side, "orderType": "Market", "qty": qty,
+            "side": bybit_side, "orderType": "Market", "qty": btc_qty,
         })
         return {"order_id": resp.get("result", {}).get("orderId", "")}
 
     def place_stop_limit_order(self, side: str, qty: str, stop_price: float, limit_price: float) -> dict:
         bybit_side = "Buy" if side == "BUY" else "Sell"
+        btc_qty = f"{int(qty) * self._contract_size:.3f}"
         resp = self._post("/v5/order/create", {
             "category": "linear", "symbol": _SYMBOL,
             "side": bybit_side, "orderType": "Limit",
-            "qty": qty, "price": f"{limit_price:.2f}",
+            "qty": btc_qty, "price": f"{limit_price:.2f}",
             "triggerPrice": f"{stop_price:.2f}",
             "triggerBy": "LastPrice",
             "triggerDirection": 1 if side == "BUY" else 2,

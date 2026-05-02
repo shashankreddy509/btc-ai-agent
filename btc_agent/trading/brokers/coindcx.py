@@ -45,7 +45,7 @@ class CoinDCXAdapter(BrokerAdapter):
             "side": side.lower(),
             "order_type": "market_order",
             "market": _MARKET,
-            "total_quantity": float(qty),
+            "total_quantity": round(int(qty) * self._contract_size, 6),
             "timestamp": int(time.time() * 1000),
         })
         return {"order_id": str(resp.get("id", ""))}
@@ -55,7 +55,7 @@ class CoinDCXAdapter(BrokerAdapter):
             "side": side.lower(),
             "order_type": "stop_limit_order",
             "market": _MARKET,
-            "total_quantity": float(qty),
+            "total_quantity": round(int(qty) * self._contract_size, 6),
             "price_per_unit": limit_price,
             "stop_price": stop_price,
             "timestamp": int(time.time() * 1000),
