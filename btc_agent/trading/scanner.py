@@ -369,8 +369,11 @@ def _execute_entry(sc: _Scanner, sig: Signal, current_price: float) -> None:
     sl_dist = abs(entry - sl)
     sl_cap = _max_sl(sc)
     if sl_dist > sl_cap:
-        sl = round(entry - sl_cap if sig.direction == "long" else entry + sl_cap, 2)
-        console.print(f"[dim yellow]Signal {sig.id} SL capped at {sl_cap:.0f} pts[/dim yellow]")
+        console.print(f"[yellow]Signal {sig.id} skipped — SL {sl_dist:.0f}pts > {sl_cap:.0f}pt limit[/yellow]")
+        sig.status = "skipped"
+        if _FS: _fs.update_signal_status(sig.id, "skipped")
+        _save_state(sc)
+        return
     if sig.custom_tp > 0:
         tp, tp_reason = sig.custom_tp, sig.pattern
     else:
@@ -592,7 +595,9 @@ def _monitor_positions(sc: _Scanner, current_price: float) -> None:
 
 # ── state persistence ─────────────────────────────────────────────────────────
 
-def _signal_to_dict(s: Signal) -> dict:
+def _signal_to_dict(s: Signal, max_sl: float = 500.0) -> dict:
+    sl_dist = abs(s.entry_trigger - s.sl_wick)
+    note = f"SL {sl_dist:.0f}pts > {max_sl:.0f}pt limit — avoiding entry" if sl_dist > max_sl else ""
     return {
         "id": s.id, "pattern": s.pattern, "direction": s.direction,
         "tf": s.tf, "bar_open_time": s.bar_open_time,
@@ -602,6 +607,7 @@ def _signal_to_dict(s: Signal) -> dict:
         "expires_at": s.expires_at.isoformat(),
         "status": s.status,
         "meta": s.meta,
+        "note": note,
     }
 
 
@@ -712,7 +718,7 @@ def _load_state(sc: _Scanner) -> None:
 def _save_state(sc: _Scanner) -> None:
     sc.state_path.parent.mkdir(parents=True, exist_ok=True)
     state = {
-        "signals":   [_signal_to_dict(s) for s in sc.pending_signals],
+        "signals":   [_signal_to_dict(s, _max_sl(sc)) for s in sc.pending_signals],
         "positions": [_position_to_dict(p) for p in sc.open_positions],
         "history":   [_result_to_dict(r) for r in sc.trade_history[-50:]],
         "running":   sc.running,
@@ -743,7 +749,7 @@ def get_state(uid: str | None = None) -> dict:
         }
 
     return {
-        "signals":   [_signal_to_dict(s) for s in sc.pending_signals],
+        "signals":   [_signal_to_dict(s, _max_sl(sc)) for s in sc.pending_signals],
         "positions": [_position_to_dict(p) for p in sc.open_positions],
         "history":   [_result_to_dict(r) for r in sc.trade_history[-50:]],
         "running":       sc.running,

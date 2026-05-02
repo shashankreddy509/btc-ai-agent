@@ -876,7 +876,10 @@ function renderTrading() {
         <td style="text-align:right;font-variant-numeric:tabular-nums">${Number(s.entry_trigger).toLocaleString('en-US',{minimumFractionDigits:1,maximumFractionDigits:1})}</td>
         <td style="text-align:right;color:var(--red);font-variant-numeric:tabular-nums">${Number(s.sl_wick).toLocaleString('en-US',{minimumFractionDigits:1,maximumFractionDigits:1})}</td>
         <td style="color:var(--text-3);font-size:12px">${formatTs(s.expires_at)}</td>
-        <td style="color:var(--accent)">${s.status}</td>
+        <td style="color:var(--accent)">
+          ${s.status}
+          ${s.note ? `<div style="font-size:10px;color:#f5a623;margin-top:2px">${s.note}</div>` : ''}
+        </td>
       </tr>`;
     }).join('');
   }
