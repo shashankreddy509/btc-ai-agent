@@ -121,10 +121,16 @@ def _auto_restart_scanner(uid: str, user_data: dict) -> None:
                     "delta_api_key", "delta_api_secret",
                     "coindcx_api_key", "coindcx_api_secret"}
     user_settings = {k: v for k, v in user_data.items() if k in setting_keys}
+    user_email = ""
+    try:
+        from firebase_admin import auth as fb_auth
+        user_email = fb_auth.get_user(uid).email or ""
+    except Exception:
+        pass
     threading.Thread(
         target=run_trading_scanner,
         args=(uid,),
-        kwargs={"user_settings": user_settings},
+        kwargs={"user_settings": user_settings, "email": user_email},
         daemon=True,
         name=f"trading-{uid[:8]}-autostart",
     ).start()
@@ -255,7 +261,7 @@ async def trading_start(token: dict = Depends(verify_token)):
     threading.Thread(
         target=run_trading_scanner,
         args=(uid,),
-        kwargs={"user_settings": user_settings},
+        kwargs={"user_settings": user_settings, "email": token.get("email", "")},
         daemon=True,
         name=f"trading-{uid[:8]}",
     ).start()
@@ -285,7 +291,7 @@ async def trading_autostart(token: dict = Depends(verify_token)):
     threading.Thread(
         target=run_trading_scanner,
         args=(uid,),
-        kwargs={"user_settings": user_settings},
+        kwargs={"user_settings": user_settings, "email": token.get("email", "")},
         daemon=True,
         name=f"trading-{uid[:8]}-autostart",
     ).start()

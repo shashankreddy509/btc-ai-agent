@@ -60,7 +60,7 @@ def _normalize_pem(raw: str) -> str:
         except Exception:
             return False
 
-    if not _try_decode(body) and body.startswith("n"):
+    if body.startswith("n"):
         cleaned, i = "", 1
         while i < len(body):
             cleaned += body[i:i+64]

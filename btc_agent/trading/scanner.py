@@ -56,6 +56,7 @@ class _Scanner:
     vishal_state: dict = field(default_factory=dict)
     current_bias: str = ""
     broker_account_name: str = ""
+    user_email: str = ""
 
     @property
     def state_path(self) -> Path:
@@ -816,10 +817,12 @@ def is_any_running() -> bool:
 _PRICE_TICK_S = 2
 
 
-def run_trading_scanner(uid: str, user_settings: dict | None = None) -> None:
+def run_trading_scanner(uid: str, user_settings: dict | None = None, email: str = "") -> None:
     sc = _get_or_create(uid)
     if sc.running:
         return
+    if email:
+        sc.user_email = email
     if user_settings:
         sc.settings.update(user_settings)
     _load_state(sc)
@@ -827,6 +830,8 @@ def run_trading_scanner(uid: str, user_settings: dict | None = None) -> None:
     if _FS:
         _fs.save_user_prefs(uid, {"scanner_running": True})
     console.rule("[bold green]Trading Scanner started[/bold green]")
+    if sc.user_email:
+        console.print(f"[dim]----------{sc.user_email}----------[/dim]")
     mode = _trading_mode(sc)
     qty = _trading_qty(sc)
     console.print(
