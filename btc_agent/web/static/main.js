@@ -983,6 +983,29 @@ function renderTrading() {
       </tr>`;
     }).join('');
   }
+
+  // BSG alerts
+  const bsgAlerts  = _tradingData?.bsg_alerts || [];
+  const bsgEnabled = !!_tradingData?.settings?.bsg_enabled;
+  const bsgSection = document.getElementById('bsg-section');
+  if (bsgSection) {
+    bsgSection.style.display = bsgEnabled ? '' : 'none';
+    const tbody = document.getElementById('bsg-alerts-body');
+    if (tbody) {
+      if (!bsgAlerts.length) {
+        tbody.innerHTML = '<tr class="empty-row"><td colspan="4">No crossovers detected yet — waiting for 15m or 30m SuperTrend flip</td></tr>';
+      } else {
+        tbody.innerHTML = [...bsgAlerts].reverse().map(a => `<tr>
+          <td>${a.direction === 'long'
+            ? '<span class="badge badge-bull">▲ Long</span>'
+            : '<span class="badge badge-bear">▼ Short</span>'}</td>
+          <td><span class="badge badge-neutral">${a.tf}m</span></td>
+          <td style="text-align:right;font-variant-numeric:tabular-nums">$${fmtPrice(a.price)}</td>
+          <td style="color:var(--text-3);font-size:12px">${formatTs(a.bar_time)}</td>
+        </tr>`).join('');
+      }
+    }
+  }
 }
 
 function histPageNav(delta) {
@@ -1056,6 +1079,8 @@ function _syncSettingsInputs(settings) {
   document.getElementById('cfg-pattern-engulfing').checked    = activePatterns.includes('Engulfing');
   document.getElementById('cfg-pattern-retracement').checked  = activePatterns.includes('Retracement');
   document.getElementById('cfg-bias-filter').checked = !!settings.bias_filter;
+  const bsgEl = document.getElementById('cfg-bsg-enabled');
+  if (bsgEl) bsgEl.checked = !!settings.bsg_enabled;
   const trailEl = document.getElementById('cfg-trail-offset');
   if (trailEl && document.activeElement !== trailEl)
     trailEl.value = settings.trail_offset ?? 50;
@@ -1097,6 +1122,7 @@ async function saveTradingSettings() {
       ...(document.getElementById('cfg-pattern-retracement').checked  ? ['Retracement'] : []),
     ],
     bias_filter:      document.getElementById('cfg-bias-filter').checked,
+    bsg_enabled:      !!document.getElementById('cfg-bsg-enabled')?.checked,
     lookback_candles: parseInt(document.getElementById('cfg-lookback-candles')?.value) || 3,
     entry_mode:       document.getElementById('cfg-entry-mode')?.value || 'immediate',
     ...((_isAdmin()) ? { trail_offset: parseInt(document.getElementById('cfg-trail-offset')?.value || '50') } : {}),

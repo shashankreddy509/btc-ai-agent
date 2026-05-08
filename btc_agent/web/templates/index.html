@@ -297,6 +297,10 @@
                     <input type="checkbox" id="cfg-bias-filter">
                     <span>Bias Filter <span style="font-size:11px;color:var(--text-3)">(only take trades matching market bias)</span></span>
                   </label>
+                  <label style="display:inline-flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;margin-top:8px">
+                    <input type="checkbox" id="cfg-bsg-enabled">
+                    <span>Buy Sell Guide <span style="font-size:11px;color:var(--text-3)">(alert only — no trades, scans 15m &amp; 30m)</span></span>
+                  </label>
                   <button class="btn btn-primary" id="trade-save-btn">Save</button>
                 </div>
                 <div id="cfg-trail-offset-row" style="display:none;padding:0 16px 14px;flex-direction:column;gap:6px;border-top:1px solid var(--border);padding-top:12px">
@@ -343,6 +347,19 @@
                   <tbody id="trade-positions-body">
                     <tr class="empty-row"><td colspan="11">No open positions</td></tr>
                   </tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- Buy Sell Guide Alerts -->
+            <div class="card" id="bsg-section" style="display:none">
+              <div class="card-header"><span class="card-title">Buy Sell Guide Alerts</span><span style="font-size:11px;color:var(--text-3);margin-left:8px">alert only — no trades taken</span></div>
+              <div style="overflow-x:auto">
+                <table class="data-table">
+                  <thead><tr>
+                    <th>Direction</th><th>TF</th><th style="text-align:right">Price</th><th>Time</th>
+                  </tr></thead>
+                  <tbody id="bsg-alerts-body"></tbody>
                 </table>
               </div>
             </div>

@@ -47,6 +47,7 @@ class _Scanner:
     pending_signals: list = field(default_factory=list)
     open_positions: list = field(default_factory=list)
     trade_history: list = field(default_factory=list)
+    bsg_alerts: list = field(default_factory=list)
     running: bool = False
     last_scan_time: Optional[datetime] = None
     current_levels: dict = field(default_factory=dict)
@@ -351,6 +352,76 @@ def _scan_patterns(sc: _Scanner, arr, ts_arr, minutes_of_day, unix_days) -> list
                 )
 
     return new_signals
+
+
+# ── Buy Sell Guide (Dual SuperTrend, alert-only) ──────────────────────────────
+
+_BSG_TFS = (15, 30)
+
+
+def _supertrend(closes: np.ndarray, highs: np.ndarray, lows: np.ndarray,
+                period: int, mult: float):
+    n = len(closes)
+    prev_close = np.empty(n)
+    prev_close[0] = closes[0]
+    prev_close[1:] = closes[:-1]
+    tr = np.maximum(highs - lows,
+         np.maximum(np.abs(highs - prev_close), np.abs(lows - prev_close)))
+    atr = np.zeros(n)
+    atr[0] = tr[0]
+    for i in range(1, n):                              # Wilder RMA
+        atr[i] = (atr[i - 1] * (period - 1) + tr[i]) / period
+    lb = closes - mult * atr
+    ub = closes + mult * atr
+    trail = np.zeros(n)
+    bull = np.zeros(n, dtype=bool)
+    trail[0] = lb[0]
+    bull[0] = True
+    for i in range(1, n):
+        if bull[i - 1]:
+            trail[i] = max(trail[i - 1], lb[i]) if closes[i] > trail[i - 1] else ub[i]
+        else:
+            trail[i] = min(trail[i - 1], ub[i]) if closes[i] < trail[i - 1] else lb[i]
+        bull[i] = closes[i] > trail[i]
+    return trail, bull
+
+
+def _bsg_enabled(sc: _Scanner) -> bool:
+    return bool(sc.settings.get("bsg_enabled", getattr(config, "BSG_ENABLED", False)))
+
+
+def _tick_bsg(sc: _Scanner, arr, ts_arr, minutes_of_day, unix_days) -> None:
+    if not _bsg_enabled(sc):
+        return
+    for tf in _BSG_TFS:
+        try:
+            bars, bar_open_times = aggregate_tf(arr, ts_arr, minutes_of_day, unix_days, tf, last_n=200)
+            if len(bars) < 10:
+                continue
+            c = bars[:, 3].astype(float)
+            h = bars[:, 1].astype(float)
+            l = bars[:, 2].astype(float)
+            _, buy_bull  = _supertrend(c, h, l, 50, 1.0)
+            _, sell_bull = _supertrend(c, h, l,  3, 1.0)
+            buy_sig  = bool(buy_bull[-2]  and not buy_bull[-3])
+            sell_sig = bool(not sell_bull[-2] and sell_bull[-3])
+            bar_time = datetime.fromtimestamp(int(bar_open_times[-2]), tz=timezone.utc).isoformat()
+            price    = float(c[-2])
+            for direction, fired in (("long", buy_sig), ("short", sell_sig)):
+                if not fired:
+                    continue
+                if any(a["bar_time"] == bar_time and a["direction"] == direction
+                       and a["tf"] == tf for a in sc.bsg_alerts):
+                    continue
+                sc.bsg_alerts.append({
+                    "direction": direction, "bar_time": bar_time,
+                    "tf": tf, "price": price,
+                })
+                console.print(f"[bold magenta]BSG {direction.upper()}[/bold magenta] "
+                              f"alert on {tf}m @ {price:.1f}")
+            sc.bsg_alerts = sc.bsg_alerts[-20:]
+        except Exception as e:
+            console.print(f"[dim]BSG {tf}m error: {e}[/dim]")
 
 
 # ── entry execution ───────────────────────────────────────────────────────────
@@ -780,6 +851,7 @@ def get_state(uid: str | None = None) -> dict:
         "current_bias":        sc.current_bias,
         "broker_account_name": sc.broker_account_name,
         "levels":              sc.current_levels,
+        "bsg_alerts":          sc.bsg_alerts[-5:],
         "settings": {
             "mode":              _trading_mode(sc),
             "tf_min":            _tf_min(sc),
@@ -795,6 +867,7 @@ def get_state(uid: str | None = None) -> dict:
             "lookback_candles":  _lookback_candles(sc),
             "entry_mode":        _entry_mode(sc),
             "broker_nickname":   sc.settings.get("broker_nickname", ""),
+            "bsg_enabled":       _bsg_enabled(sc),
         },
     }
 
@@ -966,6 +1039,7 @@ def run_trading_scanner(uid: str, user_settings: dict | None = None, email: str 
                                 _fs.save_signal(_signal_to_dict(sig), sc.uid)
                     else:
                         console.print("[dim]No new patterns found[/dim]")
+                    _tick_bsg(sc, arr, ts_arr, minutes_of_day, unix_days)
                     sc.last_scan_time = now
                 except Exception as e:
                     console.print(f"[red]Pattern scan error: {e}[/red]")
