@@ -396,20 +396,23 @@ def _tick_bsg(sc: _Scanner, arr, ts_arr, minutes_of_day, unix_days) -> None:
     for tf in _BSG_TFS:
         try:
             bars, bar_open_times = aggregate_tf(arr, ts_arr, minutes_of_day, unix_days, tf, last_n=200)
-            if len(bars) < 10:
+            if len(bars) < 4:
                 continue
             c = bars[:, 3].astype(float)
             h = bars[:, 1].astype(float)
             l = bars[:, 2].astype(float)
             _, buy_bull  = _supertrend(c, h, l, 50, 1.0)
             _, sell_bull = _supertrend(c, h, l,  3, 1.0)
-            buy_sig  = bool(buy_bull[-2]  and not buy_bull[-3])
-            sell_sig = bool(not sell_bull[-2] and sell_bull[-3])
-            bar_time = datetime.fromtimestamp(int(bar_open_times[-2]), tz=timezone.utc).isoformat()
-            price    = float(c[-2])
-            for direction, fired in (("long", buy_sig), ("short", sell_sig)):
-                if not fired:
+            n = len(c)
+            # Scan all completed bars (exclude last which may be in-progress)
+            for i in range(1, n - 1):
+                buy_sig  = bool(buy_bull[i]  and not buy_bull[i - 1])
+                sell_sig = bool(not sell_bull[i] and sell_bull[i - 1])
+                if not (buy_sig or sell_sig):
                     continue
+                bar_time  = datetime.fromtimestamp(int(bar_open_times[i]), tz=timezone.utc).isoformat()
+                price     = float(c[i])
+                direction = "long" if buy_sig else "short"
                 if any(a["bar_time"] == bar_time and a["direction"] == direction
                        and a["tf"] == tf for a in sc.bsg_alerts):
                     continue
@@ -417,8 +420,9 @@ def _tick_bsg(sc: _Scanner, arr, ts_arr, minutes_of_day, unix_days) -> None:
                     "direction": direction, "bar_time": bar_time,
                     "tf": tf, "price": price,
                 })
-                console.print(f"[bold magenta]BSG {direction.upper()}[/bold magenta] "
-                              f"alert on {tf}m @ {price:.1f}")
+                if i >= n - 3:  # only log for fresh crossovers, not backfill
+                    console.print(f"[bold magenta]BSG {direction.upper()}[/bold magenta] "
+                                  f"alert on {tf}m @ {price:.1f}")
             sc.bsg_alerts = sc.bsg_alerts[-20:]
         except Exception as e:
             console.print(f"[dim]BSG {tf}m error: {e}[/dim]")
@@ -851,7 +855,7 @@ def get_state(uid: str | None = None) -> dict:
         "current_bias":        sc.current_bias,
         "broker_account_name": sc.broker_account_name,
         "levels":              sc.current_levels,
-        "bsg_alerts":          sc.bsg_alerts[-5:],
+        "bsg_alerts":          sc.bsg_alerts[-2:],
         "settings": {
             "mode":              _trading_mode(sc),
             "tf_min":            _tf_min(sc),
