@@ -297,10 +297,18 @@
                     <input type="checkbox" id="cfg-bias-filter">
                     <span>Bias Filter <span style="font-size:11px;color:var(--text-3)">(only take trades matching market bias)</span></span>
                   </label>
-                  <label style="display:inline-flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;margin-top:8px">
-                    <input type="checkbox" id="cfg-bsg-enabled">
-                    <span>Buy Sell Guide <span style="font-size:11px;color:var(--text-3)">(alert only — no trades, scans 15m &amp; 30m)</span></span>
-                  </label>
+                  <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin-top:8px">
+                    <label style="display:inline-flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;">
+                      <input type="checkbox" id="cfg-bsg-enabled">
+                      <span>Buy Sell Guide <span style="font-size:11px;color:var(--text-3)">(alert only)</span></span>
+                    </label>
+                    <label style="display:inline-flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;color:var(--text-2)">
+                      <input type="checkbox" id="cfg-bsg-tf-15"> 15m
+                    </label>
+                    <label style="display:inline-flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;color:var(--text-2)">
+                      <input type="checkbox" id="cfg-bsg-tf-30"> 30m
+                    </label>
+                  </div>
                   <button class="btn btn-primary" id="trade-save-btn">Save</button>
                 </div>
                 <div id="cfg-trail-offset-row" style="display:none;padding:0 16px 14px;flex-direction:column;gap:6px;border-top:1px solid var(--border);padding-top:12px">

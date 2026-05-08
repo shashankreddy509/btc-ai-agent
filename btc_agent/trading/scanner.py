@@ -359,6 +359,15 @@ def _scan_patterns(sc: _Scanner, arr, ts_arr, minutes_of_day, unix_days) -> list
 _BSG_TFS = (15, 30)
 
 
+def _bsg_tfs(sc: _Scanner) -> tuple:
+    tfs = []
+    if sc.settings.get("bsg_tf_15", True):
+        tfs.append(15)
+    if sc.settings.get("bsg_tf_30", True):
+        tfs.append(30)
+    return tuple(tfs)
+
+
 def _supertrend(closes: np.ndarray, highs: np.ndarray, lows: np.ndarray,
                 period: int, mult: float):
     n = len(closes)
@@ -395,7 +404,7 @@ def _tick_bsg(sc: _Scanner, arr, ts_arr, minutes_of_day, unix_days) -> None:
     console.print(f"[dim]BSG tick: enabled={enabled}[/dim]")
     if not enabled:
         return
-    for tf in _BSG_TFS:
+    for tf in _bsg_tfs(sc):
         try:
             bars, bar_open_times = aggregate_tf(arr, ts_arr, minutes_of_day, unix_days, tf, last_n=200)
             console.print(f"[dim]BSG {tf}m: bars={None if bars is None else len(bars)}[/dim]")
@@ -875,6 +884,8 @@ def get_state(uid: str | None = None) -> dict:
             "entry_mode":        _entry_mode(sc),
             "broker_nickname":   sc.settings.get("broker_nickname", ""),
             "bsg_enabled":       _bsg_enabled(sc),
+            "bsg_tf_15":         sc.settings.get("bsg_tf_15", True),
+            "bsg_tf_30":         sc.settings.get("bsg_tf_30", True),
         },
     }
 
