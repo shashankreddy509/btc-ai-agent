@@ -356,6 +356,14 @@ def _scan_patterns(sc: _Scanner, arr, ts_arr, minutes_of_day, unix_days) -> list
 # ── entry execution ───────────────────────────────────────────────────────────
 
 def _execute_entry(sc: _Scanner, sig: Signal, current_price: float) -> None:
+    same_dir = any(p.status == "open" and p.direction == sig.direction for p in sc.open_positions)
+    if same_dir:
+        sig.status = "skipped"
+        console.print(f"[yellow]Signal {sig.id} skipped — already have open {sig.direction} position[/yellow]")
+        if _FS: _fs.update_signal_status(sig.id, "skipped")
+        _save_state(sc)
+        return
+
     n_open = sum(1 for p in sc.open_positions if p.status == "open")
     cap = _max_concurrent(sc)
     if cap > 0 and n_open >= cap:
@@ -390,24 +398,29 @@ def _execute_entry(sc: _Scanner, sig: Signal, current_price: float) -> None:
 
     mode = _trading_mode(sc)
     if mode == "live":
+        broker = sc.broker
+        side = "BUY" if sig.direction == "long" else "SELL"
+        stop_side = "SELL" if sig.direction == "long" else "BUY"
+        qty_str = _qty_str(qty)
+        # Entry order — abort entirely if this fails (no position created)
         try:
-            broker = sc.broker
-            side = "BUY" if sig.direction == "long" else "SELL"
-            stop_side = "SELL" if sig.direction == "long" else "BUY"
-            qty_str = _qty_str(qty)
             order = broker.place_market_order(side, qty_str)
             pos.coinbase_order_id = order.get("order_id", "")
-            limit_sl = round(sl * 0.995 if sig.direction == "long" else sl * 1.005, 2)
-            sl_resp = broker.place_stop_limit_order(stop_side, qty_str, sl, limit_sl)
-            pos.sl_order_id = sl_resp.get("order_id", "")
-            console.print(
-                f"[bold green]LIVE {side}[/bold green] {qty} contracts @ ~{entry:.1f}  "
-                f"SL={sl:.1f}  TP={tp:.1f} [dim]({tp_reason})[/dim]"
-            )
         except Exception as e:
             console.print(f"[red]Broker order failed: {e}[/red]")
             sig.status = "pending"
             return
+        # SL order — warn but still track the position so concurrent count is correct
+        try:
+            limit_sl = round(sl * 0.995 if sig.direction == "long" else sl * 1.005, 2)
+            sl_resp = broker.place_stop_limit_order(stop_side, qty_str, sl, limit_sl)
+            pos.sl_order_id = sl_resp.get("order_id", "")
+        except Exception as e:
+            console.print(f"[yellow]SL order failed — position tracked without SL: {e}[/yellow]")
+        console.print(
+            f"[bold green]LIVE {side}[/bold green] {qty} contracts @ ~{entry:.1f}  "
+            f"SL={sl:.1f}  TP={tp:.1f} [dim]({tp_reason})[/dim]"
+        )
     else:
         console.print(
             f"[bold green]PAPER {sig.direction.upper()}[/bold green] "
@@ -596,9 +609,12 @@ def _monitor_positions(sc: _Scanner, current_price: float) -> None:
 
 # ── state persistence ─────────────────────────────────────────────────────────
 
-def _signal_to_dict(s: Signal, max_sl: float = 500.0) -> dict:
+def _signal_to_dict(s: Signal, max_sl: float = 500.0, bias_note: str = "") -> dict:
     sl_dist = abs(s.entry_trigger - s.sl_wick)
-    note = f"SL {sl_dist:.0f}pts > {max_sl:.0f}pt limit — avoiding entry" if sl_dist > max_sl else ""
+    if sl_dist > max_sl:
+        note = f"SL {sl_dist:.0f}pts > {max_sl:.0f}pt limit — avoiding entry"
+    else:
+        note = bias_note
     return {
         "id": s.id, "pattern": s.pattern, "direction": s.direction,
         "tf": s.tf, "bar_open_time": s.bar_open_time,
@@ -749,8 +765,14 @@ def get_state(uid: str | None = None) -> dict:
             },
         }
 
+    def _bias_note(s: Signal) -> str:
+        if not _bias_filter_enabled(sc) or not sc.current_bias:
+            return ""
+        allowed = "long" if "bullish" in sc.current_bias else "short"
+        return f"Bias {sc.current_bias} — entry skipped" if s.direction != allowed else ""
+
     return {
-        "signals":   [_signal_to_dict(s, _max_sl(sc)) for s in sc.pending_signals],
+        "signals":   [_signal_to_dict(s, _max_sl(sc), _bias_note(s)) for s in sc.pending_signals],
         "positions": [_position_to_dict(p) for p in sc.open_positions],
         "history":   [_result_to_dict(r) for r in sc.trade_history[-50:]],
         "running":       sc.running,
@@ -889,6 +911,11 @@ def run_trading_scanner(uid: str, user_settings: dict | None = None, email: str 
                         if _FS: _fs.update_signal_status(sig.id, "expired")
                         console.print(f"[dim]Signal {sig.id} ({sig.pattern} {sig.tf}m) expired[/dim]")
                         continue
+
+                if _bias_filter_enabled(sc) and sc.current_bias:
+                    allowed = "long" if "bullish" in sc.current_bias else "short"
+                    if sig.direction != allowed:
+                        continue  # bias mismatch — keep signal pending, skip entry
 
                 if emode == "immediate":
                     if sig.direction == "long"  and current_price > sig.entry_trigger:

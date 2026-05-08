@@ -758,6 +758,14 @@ async function fetchBTCPrice() {
         const el = document.getElementById(id);
         if (el) el.textContent = fmt;
       });
+      const livePx = document.getElementById('trade-live-price');
+      if (livePx) livePx.textContent = fmt;
+      document.querySelectorAll('[data-pos-pts]').forEach(td => {
+        const entry = parseFloat(td.dataset.entry);
+        const dir   = td.dataset.dir;
+        const pts   = dir === 'long' ? price - entry : entry - price;
+        td.innerHTML = `<span style="color:${pts >= 0 ? 'var(--green)' : 'var(--red)'}">${pts >= 0 ? '+' : ''}${pts.toFixed(1)}</span>`;
+      });
       return;
     } catch (_) {}
   }
@@ -915,7 +923,7 @@ function renderTrading() {
         <td style="text-align:right;font-variant-numeric:tabular-nums">$${fmtPrice(p.entry_price)}</td>
         <td style="text-align:right;color:${slColor};font-variant-numeric:tabular-nums">$${fmtPrice(p.sl)}</td>
         <td style="text-align:right">${tp1Str}</td>
-        <td style="text-align:right">${ptsStr}</td>
+        <td style="text-align:right" data-pos-pts data-entry="${p.entry_price}" data-dir="${p.direction}">${ptsStr}</td>
         <td style="text-align:right;color:var(--text-3)">${remQty}</td>
         <td>${phaseHtml}</td>
         <td style="color:var(--text-3);font-size:12px">${formatTs(p.opened_at)}</td>
@@ -1156,7 +1164,7 @@ _updateAuthUI();
   // Briefing + scanner are public — load immediately
   await Promise.all([loadBriefing(), loadScan(), fetchBTCPrice(), pollStatus()]);
   setInterval(() => Promise.all([loadBriefing(), loadScan()]), REFRESH_MS);
-  setInterval(fetchBTCPrice, 10_000);
+  setInterval(fetchBTCPrice, 2_000);
   setInterval(pollStatus, 3000);
   // Trading polling only when signed in
   setInterval(() => { if (_currentUser) loadTrading(); }, 5000);
@@ -1171,6 +1179,11 @@ _updateAuthUI();
 async function _showUsersPage() {
   const tbody = document.getElementById('users-tbody');
   if (!tbody) return;
+
+  // Skip auto-refresh while any trade panel is open — avoids collapsing expanded rows
+  const anyOpen = [...tbody.querySelectorAll('tr[id^="utr-"]')].some(r => r.style.display !== 'none');
+  if (anyOpen) return;
+
   try {
     const users = await fetchJSON('/api/admin/users');
     if (!users.length) {
@@ -1178,6 +1191,7 @@ async function _showUsersPage() {
       return;
     }
     tbody.innerHTML = users.map(u => {
+      const uid = u.uid;
       const runBadge = u.scanner_running
         ? '<span class="badge badge-bull">Running</span>'
         : '<span class="badge" style="background:var(--surface-3);color:var(--text-2)">Stopped</span>';
@@ -1185,25 +1199,106 @@ async function _showUsersPage() {
         ? '<span class="badge badge-bear">Live</span>'
         : '<span class="badge" style="background:var(--surface-3);color:var(--text-2)">Paper</span>';
       const stopBtn = u.scanner_running
-        ? `<button class="btn btn-danger" style="font-size:11px;padding:3px 10px" onclick="_adminStopUser('${u.uid}')">Stop</button>`
+        ? `<button class="btn btn-danger" style="font-size:11px;padding:3px 10px" onclick="event.stopPropagation();_adminStopUser('${uid}')">Stop</button>`
         : '';
       const modeBtn = u.mode === 'live'
-        ? `<button class="btn" style="font-size:11px;padding:3px 10px" onclick="_adminSetMode('${u.uid}','paper')">→ Paper</button>`
-        : `<button class="btn" style="font-size:11px;padding:3px 10px" onclick="_adminSetMode('${u.uid}','live')">→ Live</button>`;
-      return `<tr>
-        <td>
-          <div style="font-weight:500">${u.display_name}</div>
-          <div style="font-size:11px;color:var(--text-3)">${u.email}</div>
-        </td>
-        <td>${modeBadge}</td>
-        <td style="text-transform:capitalize">${u.broker}</td>
-        <td>${runBadge}</td>
-        <td style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">${stopBtn}${modeBtn}</td>
-      </tr>`;
+        ? `<button class="btn" style="font-size:11px;padding:3px 10px" onclick="event.stopPropagation();_adminSetMode('${uid}','paper')">→ Paper</button>`
+        : `<button class="btn" style="font-size:11px;padding:3px 10px" onclick="event.stopPropagation();_adminSetMode('${uid}','live')">→ Live</button>`;
+      const chevron = `<svg id="uch-${uid}" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="transition:transform 0.2s;transform:rotate(-90deg);flex-shrink:0"><polyline points="6 9 12 15 18 9"/></svg>`;
+      return `
+        <tr style="cursor:pointer" onclick="_toggleUserTrades('${uid}')">
+          <td>
+            <div style="display:flex;align-items:center;gap:8px">
+              ${chevron}
+              <div>
+                <div style="font-weight:500">${u.display_name}</div>
+                <div style="font-size:11px;color:var(--text-3)">${u.email}</div>
+              </div>
+            </div>
+          </td>
+          <td>${modeBadge}</td>
+          <td style="text-transform:capitalize">${u.broker}</td>
+          <td>${runBadge}</td>
+          <td style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">${stopBtn}${modeBtn}</td>
+        </tr>
+        <tr id="utr-${uid}" style="display:none">
+          <td colspan="5" style="padding:0;background:var(--surface-2)">
+            <div id="utd-${uid}" style="padding:14px 18px">
+              <span style="color:var(--text-3);font-size:12px">Loading…</span>
+            </div>
+          </td>
+        </tr>`;
     }).join('');
   } catch(e) {
     tbody.innerHTML = `<tr class="empty-row"><td colspan="5">Error: ${e.message}</td></tr>`;
   }
+}
+
+async function _toggleUserTrades(uid) {
+  const row     = document.getElementById(`utr-${uid}`);
+  const chevron = document.getElementById(`uch-${uid}`);
+  const detail  = document.getElementById(`utd-${uid}`);
+  if (!row) return;
+  const isOpen = row.style.display !== 'none';
+  row.style.display = isOpen ? 'none' : '';
+  if (chevron) chevron.style.transform = isOpen ? 'rotate(-90deg)' : 'rotate(0deg)';
+  if (!isOpen && detail && !detail.dataset.loaded) {
+    detail.dataset.loaded = '1';
+    try {
+      const state = await fetchJSON(`/api/admin/users/${uid}/state`);
+      detail.innerHTML = _renderUserTrades(state);
+    } catch(e) {
+      detail.innerHTML = `<span style="color:var(--bear);font-size:12px">Error loading trades: ${e.message}</span>`;
+    }
+  }
+}
+
+function _renderUserTrades(state) {
+  const fmt    = n => n == null ? '—' : Number(n).toFixed(1);
+  const fmtPnl = n => {
+    if (n == null) return '—';
+    const col = Number(n) >= 0 ? 'var(--bull)' : 'var(--bear)';
+    return `<span style="color:${col}">${Number(n) >= 0 ? '+' : ''}${Number(n).toFixed(4)}</span>`;
+  };
+  const fmtDate = s => s ? new Date(s).toLocaleString([], {month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}) : '—';
+  const dirBadge = d => d === 'long'
+    ? '<span class="badge badge-bull" style="font-size:10px;padding:1px 6px">Long</span>'
+    : '<span class="badge badge-bear" style="font-size:10px;padding:1px 6px">Short</span>';
+
+  const positions = state.positions || [];
+  const posHtml = positions.length
+    ? `<div style="overflow-x:auto"><table class="scan-table" style="font-size:11px">
+        <thead><tr><th>Dir</th><th>Pattern</th><th>TF</th><th>Entry</th><th>SL</th><th>TP</th><th>PnL</th><th>Opened</th></tr></thead>
+        <tbody>${positions.map(p => `<tr>
+          <td>${dirBadge(p.direction)}</td>
+          <td>${p.pattern}</td><td>${p.tf}m</td>
+          <td>${fmt(p.entry_price)}</td><td>${fmt(p.sl)}</td><td>${fmt(p.tp)}</td>
+          <td>${fmtPnl(p.pnl)}</td><td>${fmtDate(p.opened_at)}</td>
+        </tr>`).join('')}</tbody>
+      </table></div>`
+    : '<p style="color:var(--text-3);font-size:12px;margin:4px 0 0">No open positions</p>';
+
+  const history = state.history || [];
+  const histHtml = history.length
+    ? `<div style="overflow-x:auto"><table class="scan-table" style="font-size:11px">
+        <thead><tr><th>Dir</th><th>Pattern</th><th>TF</th><th>Entry</th><th>Close</th><th>Reason</th><th>PnL</th><th>Closed</th></tr></thead>
+        <tbody>${history.map(h => {
+          const p = h.position || {};
+          return `<tr>
+            <td>${dirBadge(p.direction)}</td>
+            <td>${p.pattern || '—'}</td><td>${p.tf ? p.tf + 'm' : '—'}</td>
+            <td>${fmt(p.entry_price)}</td><td>${fmt(h.close_price)}</td>
+            <td style="text-transform:capitalize">${(h.close_reason || '').replace(/_/g,' ')}</td>
+            <td>${fmtPnl(h.pnl_closed)}</td><td>${fmtDate(h.closed_at)}</td>
+          </tr>`;
+        }).join('')}</tbody>
+      </table></div>`
+    : '<p style="color:var(--text-3);font-size:12px;margin:4px 0 0">No completed trades</p>';
+
+  const label = s => `<div style="font-size:10px;font-weight:600;color:var(--text-3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">${s}</div>`;
+  return `
+    <div style="margin-bottom:14px">${label(`Open Positions (${positions.length})`)}${posHtml}</div>
+    <div>${label(`Completed Trades (${history.length})`)}${histHtml}</div>`;
 }
 
 async function _adminStopUser(uid) {

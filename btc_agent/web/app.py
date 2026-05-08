@@ -333,7 +333,7 @@ async def trading_save_settings(body: dict = Body(...), token: dict = Depends(ve
 
 
 @priv.post("/position/{signal_id}/cancel")
-async def cancel_position(signal_id: str, token: dict = Depends(_require_admin)):
+async def cancel_position(signal_id: str, token: dict = Depends(verify_token)):
     from btc_agent.trading import scanner
     sc = scanner._scanners.get(token["uid"])
     if sc is None:
@@ -452,6 +452,26 @@ async def admin_set_mode(uid: str, body: dict = Body(...)):
     if sc:
         sc.settings["mode"] = mode
     return JSONResponse({"status": "saved"})
+
+
+@admin_router.get("/users/{uid}/state")
+async def admin_user_state(uid: str, token: dict = Depends(_require_admin)):
+    from btc_agent.trading.scanner import get_state, _scanners
+    # If scanner is live in memory, return its current state
+    if uid in _scanners:
+        return JSONResponse(get_state(uid))
+    # Scanner not running — load historical data directly from Firestore
+    try:
+        from btc_agent.trading.firestore_store import load_state as fs_load_state
+        state = fs_load_state(uid) or {}
+        return JSONResponse({
+            "signals":   state.get("signals", []),
+            "positions": state.get("positions", []),
+            "history":   state.get("history", []),
+            "running":   False,
+        })
+    except Exception:
+        return JSONResponse({"signals": [], "positions": [], "history": [], "running": False})
 
 
 app.include_router(pub)
