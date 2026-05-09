@@ -68,6 +68,23 @@ class BybitAdapter(BrokerAdapter):
         })
         return {"order_id": resp.get("result", {}).get("orderId", "")}
 
+    def place_take_profit_order(self, side: str, qty: str, stop_price: float, limit_price: float) -> dict:
+        bybit_side = "Buy" if side == "BUY" else "Sell"
+        btc_qty = f"{int(qty) * self._contract_size:.3f}"
+        # TP triggers when price moves INTO the target (opposite direction from SL):
+        # SELL TP (long): price rises to TP → triggerDirection=1
+        # BUY  TP (short): price falls to TP → triggerDirection=2
+        trigger_dir = 1 if bybit_side == "Sell" else 2
+        resp = self._post("/v5/order/create", {
+            "category": "linear", "symbol": _SYMBOL,
+            "side": bybit_side, "orderType": "Limit",
+            "qty": btc_qty, "price": f"{limit_price:.2f}",
+            "triggerPrice": f"{stop_price:.2f}",
+            "triggerBy": "LastPrice", "triggerDirection": trigger_dir,
+            "reduceOnly": True, "timeInForce": "GTC",
+        })
+        return {"order_id": resp.get("result", {}).get("orderId", "")}
+
     def cancel_order(self, order_id: str) -> dict:
         return self._post("/v5/order/cancel", {
             "category": "linear", "symbol": _SYMBOL, "orderId": order_id,

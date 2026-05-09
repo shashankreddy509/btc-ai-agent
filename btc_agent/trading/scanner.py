@@ -504,6 +504,14 @@ def _execute_entry(sc: _Scanner, sig: Signal, current_price: float) -> None:
             pos.sl_order_id = sl_resp.get("order_id", "")
         except Exception as e:
             console.print(f"[yellow]SL order failed — position tracked without SL: {e}[/yellow]")
+        # TP order — half qty for TF ≥ 30m (trail rest), full qty for TF < 30m
+        tp_qty = int(qty) // 2 if sig.tf >= 30 else int(qty)
+        try:
+            limit_tp = round(tp * 0.995 if sig.direction == "long" else tp * 1.005, 2)
+            tp_resp = broker.place_take_profit_order(stop_side, _qty_str(tp_qty), tp, limit_tp)
+            pos.tp_order_id = tp_resp.get("order_id", "")
+        except Exception as e:
+            console.print(f"[yellow]TP order failed — will monitor in memory: {e}[/yellow]")
         console.print(
             f"[bold green]LIVE {side}[/bold green] {qty} contracts @ ~{entry:.1f}  "
             f"SL={sl:.1f}  TP={tp:.1f} [dim]({tp_reason})[/dim]"
@@ -601,7 +609,16 @@ def _partial_close(sc: _Scanner, pos: Position, price: float) -> None:
         try:
             broker = sc.broker
             stop_side = "SELL" if pos.direction == "long" else "BUY"
-            broker.place_market_order(stop_side, _qty_str(half_contracts))
+            if not pos.tp_order_id:
+                # TP order not placed (or failed) — close half at market
+                broker.place_market_order(stop_side, _qty_str(half_contracts))
+            if pos.tp_order_id:
+                # TP order already filled broker-side — cancel it (cleanup)
+                try:
+                    broker.cancel_order(pos.tp_order_id)
+                except Exception:
+                    pass
+                pos.tp_order_id = None
             if pos.sl_order_id:
                 try:
                     broker.cancel_order(pos.sl_order_id)
@@ -636,6 +653,12 @@ def _close_position(sc: _Scanner, pos: Position, price: float, reason: str) -> N
                     broker.cancel_order(pos.sl_order_id)
                 except Exception:
                     pass
+            if pos.tp_order_id:
+                try:
+                    broker.cancel_order(pos.tp_order_id)
+                except Exception:
+                    pass
+                pos.tp_order_id = None
             stop_side = "SELL" if pos.direction == "long" else "BUY"
             broker.place_market_order(stop_side, _qty_str(remaining))
         except Exception as e:
@@ -731,6 +754,7 @@ def _position_to_dict(p: Position) -> dict:
         "remaining_qty": remaining_qty,
         "contract_size": config.COINBASE_CONTRACT_SIZE,
         "sl_order_id": p.sl_order_id,
+        "tp_order_id": p.tp_order_id,
     }
 
 
@@ -759,6 +783,7 @@ def _dict_to_position(d: dict) -> Position:
         trail_anchor=d.get("trail_anchor"),
         partial_pnl=d.get("partial_pnl", 0.0),
         sl_order_id=d.get("sl_order_id"),
+        tp_order_id=d.get("tp_order_id"),
     )
 
 

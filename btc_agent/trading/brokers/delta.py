@@ -75,6 +75,17 @@ class DeltaAdapter(BrokerAdapter):
         })
         return {"order_id": str(resp.get("result", {}).get("id", ""))}
 
+    def place_take_profit_order(self, side: str, qty: str, stop_price: float, limit_price: float) -> dict:
+        resp = self._request("POST", "/v2/orders", {
+            "product_id":  self._resolve_product_id(),
+            "side":        "sell" if side.upper() == "SELL" else "buy",
+            "order_type":  "take_profit_order",
+            "size":        int(qty),
+            "stop_price":  f"{stop_price:.2f}",
+            "limit_price": f"{limit_price:.2f}",
+        })
+        return {"order_id": str(resp.get("result", {}).get("id", ""))}
+
     def cancel_order(self, order_id: str) -> dict:
         return self._request("DELETE", f"/v2/orders/{order_id}", {
             "product_id": self._resolve_product_id(),

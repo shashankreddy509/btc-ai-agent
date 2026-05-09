@@ -25,6 +25,16 @@ class BrokerAdapter(ABC):
         """Place a GTC stop-limit order for stop-loss protection."""
 
     @abstractmethod
+    def place_take_profit_order(
+        self,
+        side: str,
+        qty: str,
+        stop_price: float,
+        limit_price: float,
+    ) -> dict:
+        """Place a GTC take-profit order that closes the position when TP is reached."""
+
+    @abstractmethod
     def cancel_order(self, order_id: str) -> dict:
         """Cancel an open order by its broker-assigned order_id."""
 

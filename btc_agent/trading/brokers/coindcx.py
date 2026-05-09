@@ -62,6 +62,18 @@ class CoinDCXAdapter(BrokerAdapter):
         })
         return {"order_id": str(resp.get("id", ""))}
 
+    def place_take_profit_order(self, side: str, qty: str, stop_price: float, limit_price: float) -> dict:
+        resp = self._post("/exchange/v1/orders/create", {
+            "side":           side.lower(),
+            "order_type":     "take_profit_order",
+            "market":         _MARKET,
+            "total_quantity": round(int(qty) * self._contract_size, 6),
+            "price_per_unit": limit_price,
+            "stop_price":     stop_price,
+            "timestamp":      int(time.time() * 1000),
+        })
+        return {"order_id": str(resp.get("id", ""))}
+
     def cancel_order(self, order_id: str) -> dict:
         return self._post("/exchange/v1/orders/cancel", {
             "id": order_id,

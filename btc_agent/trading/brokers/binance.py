@@ -77,6 +77,19 @@ class BinanceAdapter(BrokerAdapter):
         })
         return {"order_id": str(resp.get("orderId", ""))}
 
+    def place_take_profit_order(self, side: str, qty: str, stop_price: float, limit_price: float) -> dict:
+        btc_qty = f"{int(qty) * self._contract_size:.3f}"
+        resp = self._post("/fapi/v1/order", {
+            "symbol":      _SYMBOL,
+            "side":        side,
+            "type":        "TAKE_PROFIT_MARKET",
+            "quantity":    btc_qty,
+            "stopPrice":   f"{stop_price:.2f}",
+            "reduceOnly":  "true",
+            "workingType": "MARK_PRICE",
+        })
+        return {"order_id": str(resp.get("orderId", ""))}
+
     def cancel_order(self, order_id: str) -> dict:
         return self._delete("/fapi/v1/order", {"symbol": _SYMBOL, "orderId": order_id})
 

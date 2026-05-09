@@ -42,7 +42,8 @@ class Position:
     partial_closed: bool = False # True after TP1 hit and half qty sold
     trail_anchor: float | None = None  # price at which partial TP was hit (trailing reference)
     partial_pnl: float = 0.0     # PnL banked from the partial close
-    sl_order_id: str | None = None     # Coinbase SL order ID (cancel/replace on trail)
+    sl_order_id: str | None = None     # broker SL order ID (cancel/replace on trail)
+    tp_order_id: str | None = None     # broker TP order ID (cancel when SL hits or full close)
 
 
 @dataclass

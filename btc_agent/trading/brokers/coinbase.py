@@ -29,6 +29,14 @@ class CoinbaseAdapter(BrokerAdapter):
         order_id = resp.get("order_id") or resp.get("success_response", {}).get("order_id", "")
         return {"order_id": order_id}
 
+    def place_take_profit_order(self, side: str, qty: str, stop_price: float, limit_price: float) -> dict:
+        from btc_agent.trading.executor import place_take_profit_order as _place_tp
+        resp = _place_tp(side, qty, stop_price, limit_price,
+                         product_id=self._product_id,
+                         api_key=self._api_key, api_secret=self._api_secret)
+        order_id = resp.get("order_id") or resp.get("success_response", {}).get("order_id", "")
+        return {"order_id": order_id}
+
     def cancel_order(self, order_id: str) -> dict:
         from btc_agent.trading.executor import cancel_order
         return cancel_order(order_id, api_key=self._api_key, api_secret=self._api_secret)
