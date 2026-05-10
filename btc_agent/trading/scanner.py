@@ -25,6 +25,7 @@ from btc_agent.scanner.levels import compute_levels
 from btc_agent.scanner.patterns import detect_4flag, detect_engulfing
 from btc_agent.trading.models import Position, Signal, TradeResult
 from btc_agent.trading.vishal_strategies import _tick_vishal
+from btc_agent.notifiers import deliver
 
 console = Console()
 
@@ -417,6 +418,9 @@ def _tick_bsg(sc: _Scanner, arr, ts_arr, minutes_of_day, unix_days) -> None:
                 sell_sig = bool(not sell_bull[i] and sell_bull[i - 1])
                 if not (buy_sig or sell_sig):
                     continue
+                # Sell alert only when slow trail is also red — not a pullback
+                if sell_sig and buy_bull[i]:
+                    continue
                 bar_time  = datetime.fromtimestamp(int(bar_open_times[i]), tz=timezone.utc).isoformat()
                 price     = float(c[i])
                 direction = "long" if buy_sig else "short"
@@ -427,9 +431,21 @@ def _tick_bsg(sc: _Scanner, arr, ts_arr, minutes_of_day, unix_days) -> None:
                     "direction": direction, "bar_time": bar_time,
                     "tf": tf, "price": price,
                 })
-                if i >= n - 3:  # only log for fresh crossovers, not backfill
-                    console.print(f"[bold magenta]BSG {direction.upper()}[/bold magenta] "
-                                  f"alert on {tf}m @ {price:.1f}")
+                if i == n - 2:  # fresh signal — latest completed bar only
+                    sl_val     = float(buy_trail[i]) if direction == "long" else float(sell_trail[i])
+                    alert_name = "BSG_BUY" if direction == "long" else "BSG_SELL"
+                    emoji      = "🟢" if direction == "long" else "🔴"
+                    title      = f"{emoji} {alert_name}"
+                    msg        = (
+                        f"Symbol: BTCUSDT\n"
+                        f"Timeframe: 15m\n"
+                        f"Action: {'BUY' if direction == 'long' else 'SELL'}\n"
+                        f"Price: ${price:,.2f}\n"
+                        f"Trail Stop: ${sl_val:,.2f}\n\n"
+                        f"Alert: {alert_name}"
+                    )
+                    console.print(f"[bold magenta]{title}[/bold magenta] @ {price:.1f}  SL={sl_val:.1f}")
+                    threading.Thread(target=deliver, args=(title, msg), daemon=True).start()
             sc.bsg_alerts = sc.bsg_alerts[-20:]
 
             # ── Trading entries on latest completed bar (15m only) ────────────
