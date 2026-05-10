@@ -451,6 +451,13 @@ def _tick_bsg(sc: _Scanner, arr, ts_arr, minutes_of_day, unix_days) -> None:
                     sell_sig_now = False
                 if buy_sig_now or sell_sig_now:
                     direction = "long" if buy_sig_now else "short"
+                    # Exit opposite BSG position on signal flip (full close, no partial)
+                    close_dir = "short" if direction == "long" else "long"
+                    for _pos in list(sc.open_positions):
+                        if _pos.status == "open" and _pos.pattern == "BSG" and _pos.direction == close_dir:
+                            entry_px_now = sc.last_price or float(c[i_last])
+                            console.print(f"[magenta]BSG opposite signal — closing {close_dir} position[/magenta]")
+                            _close_position(sc, _pos, entry_px_now, "tp")
                     sl_price  = float(buy_trail[i_last]) if direction == "long" else float(sell_trail[i_last])
                     bar_time  = datetime.fromtimestamp(int(bar_open_times[i_last]), tz=timezone.utc).isoformat()
                     already_signalled = any(
@@ -736,8 +743,7 @@ def _monitor_positions(sc: _Scanner, current_price: float) -> None:
             hit_sl = (pos.direction == "long"  and current_price <= pos.sl) or \
                      (pos.direction == "short" and current_price >= pos.sl)
             if hit_tp:
-                if pos.tf < 30:
-                    # Short TF: exit full position at TP — no partial/trail
+                if pos.tf < 30 or pos.pattern == "BSG":
                     _close_position(sc, pos, current_price, "tp")
                 else:
                     _partial_close(sc, pos, current_price)
