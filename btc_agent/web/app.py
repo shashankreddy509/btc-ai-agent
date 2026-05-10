@@ -322,8 +322,7 @@ async def trading_save_settings(body: dict = Body(...), token: dict = Depends(ve
     setting_keys = {"mode", "tf_min", "tf_max", "scan_interval_min", "qty",
                     "max_sl", "min_tp", "max_concurrent", "patterns", "vishal", "bias_filter",
                     "trail_offset", "lookback_candles", "entry_mode",
-                    "broker", "broker_nickname", "bsg_enabled", "bsg_trade_enabled",
-                    "bsg_tf_15", "bsg_tf_30"}
+                    "broker", "broker_nickname", "bsg_enabled", "bsg_trade_enabled"}
     clean = {k: v for k, v in body.items() if k in setting_keys and v is not None}
     save_user_prefs(uid, clean)
     # Update live scanner if running

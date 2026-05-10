@@ -1081,10 +1081,6 @@ function _syncSettingsInputs(settings) {
   document.getElementById('cfg-bias-filter').checked = !!settings.bias_filter;
   const bsgEl = document.getElementById('cfg-bsg-enabled');
   if (bsgEl) bsgEl.checked = !!settings.bsg_enabled;
-  const bsgTf15El = document.getElementById('cfg-bsg-tf-15');
-  if (bsgTf15El) bsgTf15El.checked = settings.bsg_tf_15 !== false;
-  const bsgTf30El = document.getElementById('cfg-bsg-tf-30');
-  if (bsgTf30El) bsgTf30El.checked = settings.bsg_tf_30 !== false;
   const bsgTradeEl = document.getElementById('cfg-bsg-trade-enabled');
   if (bsgTradeEl) bsgTradeEl.checked = !!settings.bsg_trade_enabled;
   const trailEl = document.getElementById('cfg-trail-offset');
@@ -1129,8 +1125,6 @@ async function saveTradingSettings() {
     ],
     bias_filter:      document.getElementById('cfg-bias-filter').checked,
     bsg_enabled:      !!document.getElementById('cfg-bsg-enabled')?.checked,
-    bsg_tf_15:          !!document.getElementById('cfg-bsg-tf-15')?.checked,
-    bsg_tf_30:          !!document.getElementById('cfg-bsg-tf-30')?.checked,
     bsg_trade_enabled:  !!document.getElementById('cfg-bsg-trade-enabled')?.checked,
     lookback_candles: parseInt(document.getElementById('cfg-lookback-candles')?.value) || 3,
     entry_mode:       document.getElementById('cfg-entry-mode')?.value || 'immediate',
