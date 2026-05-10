@@ -399,6 +399,10 @@ def _bsg_enabled(sc: _Scanner) -> bool:
     return bool(sc.settings.get("bsg_enabled", getattr(config, "BSG_ENABLED", False)))
 
 
+def _bsg_trade_enabled(sc: _Scanner) -> bool:
+    return bool(sc.settings.get("bsg_trade_enabled", getattr(config, "BSG_TRADE_ENABLED", False)))
+
+
 def _tick_bsg(sc: _Scanner, arr, ts_arr, minutes_of_day, unix_days) -> None:
     enabled = _bsg_enabled(sc)
     console.print(f"[dim]BSG tick: enabled={enabled}[/dim]")
@@ -413,8 +417,8 @@ def _tick_bsg(sc: _Scanner, arr, ts_arr, minutes_of_day, unix_days) -> None:
             c = bars[:, 3].astype(float)
             h = bars[:, 1].astype(float)
             l = bars[:, 2].astype(float)
-            _, buy_bull  = _supertrend(c, h, l, 50, 1.0)
-            _, sell_bull = _supertrend(c, h, l,  3, 1.0)
+            buy_trail, buy_bull  = _supertrend(c, h, l, 50, 1.0)
+            sell_trail, sell_bull = _supertrend(c, h, l,  3, 1.0)
             n = len(c)
             # Scan all completed bars (exclude last which may be in-progress)
             for i in range(1, n - 1):
@@ -436,6 +440,42 @@ def _tick_bsg(sc: _Scanner, arr, ts_arr, minutes_of_day, unix_days) -> None:
                     console.print(f"[bold magenta]BSG {direction.upper()}[/bold magenta] "
                                   f"alert on {tf}m @ {price:.1f}")
             sc.bsg_alerts = sc.bsg_alerts[-20:]
+
+            # ── Trading entries on latest completed bar (15m only) ────────────
+            if tf == 15 and _bsg_trade_enabled(sc):
+                i_last = n - 2
+                buy_sig_now  = bool(buy_bull[i_last]  and not buy_bull[i_last - 1])
+                sell_sig_now = bool(not sell_bull[i_last] and sell_bull[i_last - 1])
+                # Short only valid when slow trail is also bearish (buy_trail red)
+                if sell_sig_now and buy_bull[i_last]:
+                    sell_sig_now = False
+                if buy_sig_now or sell_sig_now:
+                    direction = "long" if buy_sig_now else "short"
+                    sl_price  = float(buy_trail[i_last]) if direction == "long" else float(sell_trail[i_last])
+                    bar_time  = datetime.fromtimestamp(int(bar_open_times[i_last]), tz=timezone.utc).isoformat()
+                    already_signalled = any(
+                        s.pattern == "BSG" and s.direction == direction and s.bar_open_time == bar_time
+                        for s in sc.pending_signals
+                    )
+                    if not already_signalled:
+                        now_utc = datetime.now(timezone.utc)
+                        entry_px = sc.last_price or float(c[i_last])
+                        sig = Signal(
+                            id=uuid.uuid4().hex[:8],
+                            pattern="BSG", direction=direction, tf=tf,
+                            bar_open_time=bar_time,
+                            entry_trigger=round(entry_px * (0.9999 if direction == "long" else 1.0001), 2),
+                            sl_wick=round(sl_price, 2),
+                            sl_body=round(sl_price, 2),
+                            created_at=now_utc,
+                            expires_at=now_utc + timedelta(minutes=tf),
+                        )
+                        sc.pending_signals.append(sig)
+                        console.print(
+                            f"[bold magenta]BSG TRADE {direction.upper()}[/bold magenta] "
+                            f"@ ~{entry_px:.1f}  SL={sl_price:.1f}"
+                        )
+                        _execute_entry(sc, sig, entry_px)
         except Exception as e:
             console.print(f"[dim]BSG {tf}m error: {e}[/dim]")
 
@@ -909,6 +949,7 @@ def get_state(uid: str | None = None) -> dict:
             "entry_mode":        _entry_mode(sc),
             "broker_nickname":   sc.settings.get("broker_nickname", ""),
             "bsg_enabled":       _bsg_enabled(sc),
+            "bsg_trade_enabled": _bsg_trade_enabled(sc),
             "bsg_tf_15":         sc.settings.get("bsg_tf_15", True),
             "bsg_tf_30":         sc.settings.get("bsg_tf_30", True),
         },
