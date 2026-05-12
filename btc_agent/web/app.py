@@ -249,6 +249,7 @@ async def trading_start(token: dict = Depends(verify_token)):
         setting_keys = {"mode", "tf_min", "tf_max", "scan_interval_min", "qty",
                         "max_sl", "min_tp", "max_concurrent", "patterns", "broker", "broker_nickname",
                         "bias_filter", "lookback_candles", "entry_mode",
+                        "bsg_enabled", "bsg_trade_enabled",
                         "coinbase_api_key", "coinbase_api_secret",
                         "binance_api_key", "binance_api_secret",
                         "bybit_api_key", "bybit_api_secret",
@@ -282,6 +283,7 @@ async def trading_autostart(token: dict = Depends(verify_token)):
     setting_keys = {"mode", "tf_min", "tf_max", "scan_interval_min", "qty",
                     "max_sl", "min_tp", "max_concurrent", "patterns", "broker", "broker_nickname",
                     "bias_filter", "lookback_candles", "entry_mode",
+                    "bsg_enabled", "bsg_trade_enabled",
                     "coinbase_api_key", "coinbase_api_secret",
                     "binance_api_key", "binance_api_secret",
                     "bybit_api_key", "bybit_api_secret",
@@ -308,7 +310,22 @@ async def trading_stop(token: dict = Depends(verify_token)):
 @priv.get("/settings")
 async def trading_get_settings(token: dict = Depends(verify_token)):
     from btc_agent.trading.scanner import get_state
-    return JSONResponse(get_state(token["uid"])["settings"])
+    from btc_agent.trading.firestore_store import load_user_prefs
+    uid = token["uid"]
+    settings = get_state(uid)["settings"]
+    # Merge Firestore prefs so UI shows correct values even when scanner is stopped
+    try:
+        prefs = load_user_prefs(uid) or {}
+        fs_keys = {"mode", "tf_min", "tf_max", "scan_interval_min", "qty",
+                   "max_sl", "min_tp", "max_concurrent", "patterns", "broker",
+                   "broker_nickname", "bias_filter", "lookback_candles",
+                   "entry_mode", "bsg_enabled", "bsg_trade_enabled", "trail_offset"}
+        for k in fs_keys:
+            if k in prefs:
+                settings[k] = prefs[k]
+    except Exception:
+        pass
+    return JSONResponse(settings)
 
 
 @priv.post("/settings")

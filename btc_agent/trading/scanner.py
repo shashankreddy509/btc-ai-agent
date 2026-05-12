@@ -494,30 +494,31 @@ def _tick_bsg(sc: _Scanner, arr, ts_arr, minutes_of_day, unix_days) -> None:
                     )
                     if not already_signalled:
                         now_utc = datetime.now(timezone.utc)
-                        entry_px = sc.last_price or float(c[i_last])
+                        ref_px = sc.last_price or float(c[i_last])
                         # Use slow trail (buy_trail) as SL for both directions — kept constant at entry
                         sl_price = float(buy_trail[i_last])
-                        sl_dist  = abs(entry_px - sl_price)
+                        sl_dist  = abs(ref_px - sl_price)
                         if sl_dist < 100:
-                            sl_price = (entry_px - 150) if direction == "long" else (entry_px + 150)
+                            sl_price = (ref_px - 150) if direction == "long" else (ref_px + 150)
                         sig = Signal(
                             id=uuid.uuid4().hex[:8],
                             pattern="BSG", direction=direction, tf=tf,
                             bar_open_time=bar_time,
-                            entry_trigger=round(entry_px * (0.9999 if direction == "long" else 1.0001), 2),
+                            entry_trigger=round(ref_px, 2),
                             sl_wick=round(sl_price, 2),
                             sl_body=round(sl_price, 2),
                             created_at=now_utc,
-                            expires_at=now_utc + timedelta(minutes=tf),
+                            # Give 2 full bars so signal survives until next bar open
+                            expires_at=now_utc + timedelta(minutes=2 * tf),
                         )
                         sc.pending_signals.append(sig)
                         sc.bsg_traded_bars.append((direction, bar_time, tf))
                         sc.bsg_traded_bars = sc.bsg_traded_bars[-50:]
                         console.print(
-                            f"[bold magenta]BSG TRADE {direction.upper()}[/bold magenta] "
-                            f"@ ~{entry_px:.1f}  SL={sl_price:.1f}  dist={abs(entry_px - sl_price):.1f}"
+                            f"[bold magenta]BSG signal {direction.upper()}[/bold magenta] "
+                            f"bar={bar_time}  SL={sl_price:.1f} — awaiting next bar open"
                         )
-                        _execute_entry(sc, sig, entry_px)
+                        # Entry deferred to next bar open (see main loop BSG entry check)
         except Exception as e:
             console.print(f"[dim]BSG {tf}m error: {e}[/dim]")
 
@@ -1043,15 +1044,21 @@ _PRICE_TICK_S = 2
 
 
 def run_trading_scanner(uid: str, user_settings: dict | None = None, email: str = "") -> None:
-    sc = _get_or_create(uid)
-    if sc.running:
+    sc = _get_or_create(uid)  # acquires+releases lock internally
+    with _scanners_lock:       # re-acquire for atomic check-and-set
+        if sc.running:
+            return
+        sc.running = True
+    try:
+        if email:
+            sc.user_email = email
+        if user_settings:
+            sc.settings.update(user_settings)
+        _load_state(sc)
+    except Exception as e:
+        sc.running = False
+        console.print(f"[red]Scanner setup failed: {e}[/red]")
         return
-    if email:
-        sc.user_email = email
-    if user_settings:
-        sc.settings.update(user_settings)
-    _load_state(sc)
-    sc.running = True
     if _FS:
         _fs.save_user_prefs(uid, {"scanner_running": True})
     console.rule("[bold green]Trading Scanner started[/bold green]")
@@ -1114,6 +1121,15 @@ def run_trading_scanner(uid: str, user_settings: dict | None = None, email: str 
                         if _FS: _fs.update_signal_status(sig.id, "expired")
                         console.print(f"[dim]Signal {sig.id} ({sig.pattern} {sig.tf}m) expired[/dim]")
                         continue
+
+                # BSG enters at next bar open — no price trigger check
+                if sig.pattern == "BSG":
+                    bar_dt = datetime.fromisoformat(sig.bar_open_time.replace('Z', '+00:00'))
+                    if bar_dt.tzinfo is None:
+                        bar_dt = bar_dt.replace(tzinfo=timezone.utc)
+                    if now >= bar_dt + timedelta(minutes=sig.tf):
+                        _execute_entry(sc, sig, current_price)
+                    continue
 
                 if _bias_filter_enabled(sc) and sc.current_bias:
                     allowed = "long" if "bullish" in sc.current_bias else "short"
