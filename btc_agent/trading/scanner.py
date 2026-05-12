@@ -49,6 +49,8 @@ class _Scanner:
     open_positions: list = field(default_factory=list)
     trade_history: list = field(default_factory=list)
     bsg_alerts: list = field(default_factory=list)
+    bsg_traded_bars: list = field(default_factory=list)
+    bsg_alerted_bars: list = field(default_factory=list)
     running: bool = False
     last_scan_time: Optional[datetime] = None
     current_levels: dict = field(default_factory=dict)
@@ -413,26 +415,38 @@ def _tick_bsg(sc: _Scanner, arr, ts_arr, minutes_of_day, unix_days) -> None:
             sell_trail, sell_bull = _supertrend(c, h, l,  3, 1.0)
             n = len(c)
             # Scan all completed bars (exclude last which may be in-progress)
+            # Populate dashboard alerts for all historical bars
             for i in range(1, n - 1):
-                buy_sig  = bool(buy_bull[i]  and not buy_bull[i - 1])
+                buy_sig  = bool(sell_bull[i] and not sell_bull[i - 1])
                 sell_sig = bool(not sell_bull[i] and sell_bull[i - 1])
                 if not (buy_sig or sell_sig):
                     continue
-                # Sell alert only when slow trail is also red — not a pullback
                 if sell_sig and buy_bull[i]:
                     continue
                 bar_time  = datetime.fromtimestamp(int(bar_open_times[i]), tz=timezone.utc).isoformat()
-                price     = float(c[i])
                 direction = "long" if buy_sig else "short"
                 if any(a["bar_time"] == bar_time and a["direction"] == direction
                        and a["tf"] == tf for a in sc.bsg_alerts):
                     continue
                 sc.bsg_alerts.append({
                     "direction": direction, "bar_time": bar_time,
-                    "tf": tf, "price": price,
+                    "tf": tf, "price": float(c[i]),
                 })
-                if i == n - 2:  # fresh signal — latest completed bar only
-                    sl_val     = float(buy_trail[i]) if direction == "long" else float(sell_trail[i])
+            sc.bsg_alerts = sc.bsg_alerts[-20:]
+
+            # Deliver notification exactly once per new signal on the latest completed bar
+            i_sig = n - 2
+            buy_sig_now  = bool(sell_bull[i_sig] and not sell_bull[i_sig - 1])
+            sell_sig_now = bool(not sell_bull[i_sig] and sell_bull[i_sig - 1])
+            if sell_sig_now and buy_bull[i_sig]:
+                sell_sig_now = False
+            if buy_sig_now or sell_sig_now:
+                direction  = "long" if buy_sig_now else "short"
+                bar_time   = datetime.fromtimestamp(int(bar_open_times[i_sig]), tz=timezone.utc).isoformat()
+                already_delivered = (direction, bar_time, tf) in sc.bsg_alerted_bars
+                if not already_delivered:
+                    sl_val     = float(buy_trail[i_sig])
+                    price      = float(c[i_sig])
                     alert_name = "BSG_BUY" if direction == "long" else "BSG_SELL"
                     emoji      = "🟢" if direction == "long" else "🔴"
                     title      = f"{emoji} {alert_name}"
@@ -444,36 +458,48 @@ def _tick_bsg(sc: _Scanner, arr, ts_arr, minutes_of_day, unix_days) -> None:
                         f"Trail Stop: ${sl_val:,.2f}\n\n"
                         f"Alert: {alert_name}"
                     )
+                    sc.bsg_alerted_bars.append((direction, bar_time, tf))
+                    sc.bsg_alerted_bars = sc.bsg_alerted_bars[-50:]
                     console.print(f"[bold magenta]{title}[/bold magenta] @ {price:.1f}  SL={sl_val:.1f}")
                     threading.Thread(target=deliver, args=(title, msg), daemon=True).start()
-            sc.bsg_alerts = sc.bsg_alerts[-20:]
 
             # ── Trading entries on latest completed bar (15m only) ────────────
             if tf == 15 and _bsg_trade_enabled(sc):
                 i_last = n - 2
-                buy_sig_now  = bool(buy_bull[i_last]  and not buy_bull[i_last - 1])
-                sell_sig_now = bool(not sell_bull[i_last] and sell_bull[i_last - 1])
-                # Short only valid when slow trail is also bearish (buy_trail red)
-                if sell_sig_now and buy_bull[i_last]:
-                    sell_sig_now = False
-                if buy_sig_now or sell_sig_now:
-                    direction = "long" if buy_sig_now else "short"
-                    # Exit opposite BSG position on signal flip (full close, no partial)
-                    close_dir = "short" if direction == "long" else "long"
+                # Raw crossovers — closing an existing position needs no slow trail filter
+                raw_buy  = bool(sell_bull[i_last] and not sell_bull[i_last - 1])
+                raw_sell = bool(not sell_bull[i_last] and sell_bull[i_last - 1])
+                # Filtered signals — opening a new Short requires slow trail also bearish
+                buy_sig_now  = raw_buy
+                sell_sig_now = raw_sell and not buy_bull[i_last]
+
+                # Close existing opposite BSG position on any raw crossover
+                if raw_buy or raw_sell:
+                    close_dir = "short" if raw_buy else "long"
                     for _pos in list(sc.open_positions):
                         if _pos.status == "open" and _pos.pattern == "BSG" and _pos.direction == close_dir:
                             entry_px_now = sc.last_price or float(c[i_last])
                             console.print(f"[magenta]BSG opposite signal — closing {close_dir} position[/magenta]")
                             _close_position(sc, _pos, entry_px_now, "tp")
-                    sl_price  = float(buy_trail[i_last]) if direction == "long" else float(sell_trail[i_last])
+
+                # Open new position only on filtered signals
+                if buy_sig_now or sell_sig_now:
+                    direction = "long" if buy_sig_now else "short"
                     bar_time  = datetime.fromtimestamp(int(bar_open_times[i_last]), tz=timezone.utc).isoformat()
-                    already_signalled = any(
-                        s.pattern == "BSG" and s.direction == direction and s.bar_open_time == bar_time
-                        for s in sc.pending_signals
+                    already_signalled = (
+                        any(
+                            s.pattern == "BSG" and s.direction == direction and s.bar_open_time == bar_time
+                            for s in sc.pending_signals
+                        ) or (direction, bar_time, tf) in sc.bsg_traded_bars
                     )
                     if not already_signalled:
                         now_utc = datetime.now(timezone.utc)
                         entry_px = sc.last_price or float(c[i_last])
+                        # Use slow trail (buy_trail) as SL for both directions — kept constant at entry
+                        sl_price = float(buy_trail[i_last])
+                        sl_dist  = abs(entry_px - sl_price)
+                        if sl_dist < 100:
+                            sl_price = (entry_px - 150) if direction == "long" else (entry_px + 150)
                         sig = Signal(
                             id=uuid.uuid4().hex[:8],
                             pattern="BSG", direction=direction, tf=tf,
@@ -485,9 +511,11 @@ def _tick_bsg(sc: _Scanner, arr, ts_arr, minutes_of_day, unix_days) -> None:
                             expires_at=now_utc + timedelta(minutes=tf),
                         )
                         sc.pending_signals.append(sig)
+                        sc.bsg_traded_bars.append((direction, bar_time, tf))
+                        sc.bsg_traded_bars = sc.bsg_traded_bars[-50:]
                         console.print(
                             f"[bold magenta]BSG TRADE {direction.upper()}[/bold magenta] "
-                            f"@ ~{entry_px:.1f}  SL={sl_price:.1f}"
+                            f"@ ~{entry_px:.1f}  SL={sl_price:.1f}  dist={abs(entry_px - sl_price):.1f}"
                         )
                         _execute_entry(sc, sig, entry_px)
         except Exception as e:
@@ -517,14 +545,20 @@ def _execute_entry(sc: _Scanner, sig: Signal, current_price: float) -> None:
     entry = current_price
     sl = calc_sl(sig.sl_wick)
     sl_dist = abs(entry - sl)
-    sl_cap = _max_sl(sc)
-    if sl_dist > sl_cap:
-        console.print(f"[yellow]Signal {sig.id} skipped — SL {sl_dist:.0f}pts > {sl_cap:.0f}pt limit[/yellow]")
-        sig.status = "skipped"
-        if _FS: _fs.update_signal_status(sig.id, "skipped")
-        _save_state(sc)
-        return
-    if sig.custom_tp > 0:
+    is_bsg = sig.pattern == "BSG"
+    if not is_bsg:
+        sl_cap = _max_sl(sc)
+        if sl_dist > sl_cap:
+            console.print(f"[yellow]Signal {sig.id} skipped — SL {sl_dist:.0f}pts > {sl_cap:.0f}pt limit[/yellow]")
+            sig.status = "skipped"
+            if _FS: _fs.update_signal_status(sig.id, "skipped")
+            _save_state(sc)
+            return
+    if is_bsg:
+        # BSG exits only on opposite signal — TP is unreachable sentinel
+        tp = 9_999_999.0 if sig.direction == "long" else 1.0
+        tp_reason = "opposite_signal"
+    elif sig.custom_tp > 0:
         tp, tp_reason = sig.custom_tp, sig.pattern
     else:
         tp, tp_reason = _calc_tp(sc, sig.direction, entry)
@@ -558,14 +592,15 @@ def _execute_entry(sc: _Scanner, sig: Signal, current_price: float) -> None:
             pos.sl_order_id = sl_resp.get("order_id", "")
         except Exception as e:
             console.print(f"[yellow]SL order failed — position tracked without SL: {e}[/yellow]")
-        # TP order — half qty for TF ≥ 30m (trail rest), full qty for TF < 30m
-        tp_qty = int(qty) // 2 if sig.tf >= 30 else int(qty)
-        try:
-            limit_tp = round(tp * 0.995 if sig.direction == "long" else tp * 1.005, 2)
-            tp_resp = broker.place_take_profit_order(stop_side, _qty_str(tp_qty), tp, limit_tp)
-            pos.tp_order_id = tp_resp.get("order_id", "")
-        except Exception as e:
-            console.print(f"[yellow]TP order failed — will monitor in memory: {e}[/yellow]")
+        # TP order — BSG uses no broker TP (exits on opposite signal only)
+        if not is_bsg:
+            tp_qty = int(qty) // 2 if sig.tf >= 30 else int(qty)
+            try:
+                limit_tp = round(tp * 0.995 if sig.direction == "long" else tp * 1.005, 2)
+                tp_resp = broker.place_take_profit_order(stop_side, _qty_str(tp_qty), tp, limit_tp)
+                pos.tp_order_id = tp_resp.get("order_id", "")
+            except Exception as e:
+                console.print(f"[yellow]TP order failed — will monitor in memory: {e}[/yellow]")
         console.print(
             f"[bold green]LIVE {side}[/bold green] {qty} contracts @ ~{entry:.1f}  "
             f"SL={sl:.1f}  TP={tp:.1f} [dim]({tp_reason})[/dim]"
