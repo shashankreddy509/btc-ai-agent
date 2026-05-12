@@ -494,6 +494,16 @@ def _tick_bsg(sc: _Scanner, arr, ts_arr, minutes_of_day, unix_days) -> None:
                     )
                     if not already_signalled:
                         now_utc = datetime.now(timezone.utc)
+                        bar_dt = datetime.fromtimestamp(int(bar_open_times[i_last]), tz=timezone.utc)
+                        bar_close_dt = bar_dt + timedelta(minutes=tf)
+                        if now_utc - bar_close_dt > timedelta(minutes=tf):
+                            sc.bsg_traded_bars.append((direction, bar_time, tf))
+                            sc.bsg_traded_bars = sc.bsg_traded_bars[-50:]
+                            console.print(
+                                f"[yellow]BSG {direction} signal stale "
+                                f"({int((now_utc - bar_close_dt).total_seconds() // 60)}m old), skipping[/yellow]"
+                            )
+                            continue
                         entry_px = sc.last_price or float(c[i_last])
                         # Use slow trail (buy_trail) as SL for both directions — kept constant at entry
                         sl_price = float(buy_trail[i_last])
