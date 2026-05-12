@@ -1200,6 +1200,7 @@ def run_trading_scanner(uid: str, user_settings: dict | None = None, email: str 
     except KeyboardInterrupt:
         console.print("\n[yellow]Trading scanner stopped.[/yellow]")
     finally:
+        _clear_on_stop(sc)
         sc.running = False
         _save_state(sc)
         if _FS:
