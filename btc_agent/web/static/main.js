@@ -829,34 +829,6 @@ function _applyPrice(price) {
   });
 }
 
-function initPriceWS() {
-  let reconnectDelay = 1000;
-  function connect() {
-    const ws = new WebSocket('wss://stream.bybit.com/v5/public/linear');
-    ws.onopen = () => {
-      console.log('[PriceWS] connected');
-      ws.send(JSON.stringify({ op: 'subscribe', args: ['tickers.BTCUSDT'] }));
-    };
-    ws.onmessage = (e) => {
-      try {
-        const d = JSON.parse(e.data);
-        if (d.op === 'ping') { ws.send(JSON.stringify({ op: 'pong' })); return; }
-        const price = parseFloat(d?.data?.lastPrice);
-        if (!price || isNaN(price)) return;
-        reconnectDelay = 1000;
-        _applyPrice(price);
-      } catch (err) {
-        console.error('[PriceWS] error', err);
-      }
-    };
-    ws.onclose = ws.onerror = () => {
-      console.warn('[PriceWS] disconnected, retry in', reconnectDelay, 'ms');
-      reconnectDelay = Math.min(reconnectDelay * 2, 30000);
-      setTimeout(connect, reconnectDelay);
-    };
-  }
-  connect();
-}
 
 // ── Trading scanner ────────────────────────────────────────────────────────────
 let _tradingData = null;
@@ -1321,7 +1293,7 @@ _updateAuthUI();
   // Briefing + scanner are public — load immediately
   await Promise.all([loadBriefing(), loadScan(), fetchBTCPrice(), pollStatus()]);
   setInterval(() => Promise.all([loadBriefing(), loadScan()]), REFRESH_MS);
-  initPriceWS();
+  setInterval(fetchBTCPrice, 2_000);
   setInterval(pollStatus, 3000);
   // Trading polling only when signed in
   setInterval(() => { if (_currentUser) loadTrading(); }, 5000);
