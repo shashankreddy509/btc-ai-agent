@@ -1,10 +1,14 @@
 import json
+import secrets
 import threading
 import time
+import urllib.error
+import urllib.parse
+import urllib.request
 from pathlib import Path
 
 from fastapi import FastAPI, Body, Depends, APIRouter, HTTPException
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from starlette.requests import Request
@@ -32,6 +36,9 @@ _scan_running    = False
 _brief_running   = False
 _scan_lock  = threading.Lock()
 _brief_lock = threading.Lock()
+
+# Pepperstone OAuth2 state store — maps state token → {uid, expires}
+_pepperstone_states: dict[str, dict] = {}
 
 # Feature flag cache — re-reads Firestore at most once every 30 s
 _flag_cache: dict = {}
@@ -119,7 +126,10 @@ def _auto_restart_scanner(uid: str, user_data: dict) -> None:
                     "binance_api_key", "binance_api_secret",
                     "bybit_api_key", "bybit_api_secret",
                     "delta_api_key", "delta_api_secret",
-                    "coindcx_api_key", "coindcx_api_secret"}
+                    "coindcx_api_key", "coindcx_api_secret",
+                    "pepperstone_client_id", "pepperstone_client_secret",
+                    "pepperstone_refresh_token", "pepperstone_account_id",
+                    "pepperstone_is_live"}
     user_settings = {k: v for k, v in user_data.items() if k in setting_keys}
     user_email = ""
     try:
@@ -159,6 +169,107 @@ async def index(request: Request):
 @app.get("/login", response_class=HTMLResponse)
 async def login_page(request: Request):
     return templates.TemplateResponse(request=request, name="login.html", context=_firebase_web_config())
+
+
+# ── Pepperstone OAuth2 flow ───────────────────────────────────────────────────
+
+def _pepperstone_redirect_uri(request: Request) -> str:
+    from btc_agent import config
+    if config.PEPPERSTONE_REDIRECT_URI:
+        return config.PEPPERSTONE_REDIRECT_URI
+    scheme = request.headers.get("X-Forwarded-Proto", request.url.scheme)
+    host   = request.headers.get("X-Forwarded-Host", request.url.netloc)
+    return f"{scheme}://{host}/auth/pepperstone/callback"
+
+
+@app.get("/auth/pepperstone")
+async def pepperstone_auth_start(token: str, request: Request):
+    """Step 1: validate Firebase token, generate state, redirect to cTrader authorize."""
+    from btc_agent import config
+    try:
+        from firebase_admin import auth as fb_auth
+        decoded = fb_auth.verify_id_token(token)
+        uid = decoded["uid"]
+    except Exception:
+        return HTMLResponse("<p>Invalid session. Close this window and try again.</p>", status_code=401)
+
+    from btc_agent.trading.firestore_store import load_user_prefs
+    prefs = load_user_prefs(uid) or {}
+    client_id = prefs.get("pepperstone_client_id") or config.PEPPERSTONE_CLIENT_ID
+    if not client_id:
+        return HTMLResponse("<p>Save your Pepperstone Client ID in Settings first.</p>", status_code=400)
+
+    state = secrets.token_urlsafe(32)
+    _pepperstone_states[state] = {"uid": uid, "expires": time.time() + 300}
+    # Prune stale states
+    now = time.time()
+    for k in [k for k, v in _pepperstone_states.items() if v["expires"] < now]:
+        _pepperstone_states.pop(k, None)
+
+    params = urllib.parse.urlencode({
+        "response_type": "code",
+        "client_id":     client_id,
+        "redirect_uri":  _pepperstone_redirect_uri(request),
+        "scope":         "trading",
+        "state":         state,
+    })
+    return RedirectResponse(f"https://id.ctrader.com/connect/authorize?{params}")
+
+
+@app.get("/auth/pepperstone/callback")
+async def pepperstone_callback(request: Request, code: str = None, state: str = None, error: str = None):
+    """Step 2: exchange code for tokens, save refresh_token to Firestore."""
+    if error:
+        return HTMLResponse(f"<html><body><p>Authorization denied: {error}</p>"
+                            "<script>setTimeout(()=>window.close(),2000);</script></body></html>")
+
+    state_data = _pepperstone_states.pop(state or "", None)
+    if not state_data or time.time() > state_data["expires"]:
+        return HTMLResponse("<html><body><p>Invalid or expired state. Please try again.</p>"
+                            "<script>setTimeout(()=>window.close(),2000);</script></body></html>",
+                            status_code=400)
+
+    uid = state_data["uid"]
+    from btc_agent import config
+    from btc_agent.trading.firestore_store import load_user_prefs, save_user_prefs
+    prefs = load_user_prefs(uid) or {}
+    client_id     = prefs.get("pepperstone_client_id")     or config.PEPPERSTONE_CLIENT_ID
+    client_secret = prefs.get("pepperstone_client_secret") or config.PEPPERSTONE_CLIENT_SECRET
+
+    try:
+        data = urllib.parse.urlencode({
+            "grant_type":    "authorization_code",
+            "code":          code,
+            "redirect_uri":  _pepperstone_redirect_uri(request),
+            "client_id":     client_id,
+            "client_secret": client_secret,
+        }).encode()
+        req = urllib.request.Request(
+            "https://id.ctrader.com/connect/token", data=data,
+            headers={"Content-Type": "application/x-www-form-urlencoded"},
+        )
+        with urllib.request.urlopen(req, timeout=15) as resp:
+            result = json.loads(resp.read())
+    except Exception as e:
+        return HTMLResponse(f"<html><body><p>Token exchange failed: {e}</p>"
+                            "<script>setTimeout(()=>window.close(),3000);</script></body></html>",
+                            status_code=500)
+
+    refresh_token = result.get("refresh_token", "")
+    if not refresh_token:
+        return HTMLResponse("<html><body><p>No refresh_token in response. "
+                            "Ensure your cTrader app has offline_access scope.</p>"
+                            "<script>setTimeout(()=>window.close(),3000);</script></body></html>",
+                            status_code=500)
+
+    save_user_prefs(uid, {"pepperstone_refresh_token": refresh_token})
+    return HTMLResponse("""
+        <html><body style="font-family:sans-serif;text-align:center;padding:40px">
+        <h2>&#x2705; Pepperstone Connected!</h2>
+        <p>This window will close automatically.</p>
+        <script>setTimeout(()=>{ window.close(); if(window.opener) window.opener.location.reload(); }, 1500);</script>
+        </body></html>
+    """)
 
 
 # ── Public API: scan + briefing ───────────────────────────────────────────────
@@ -254,6 +365,9 @@ async def trading_start(token: dict = Depends(verify_token)):
                         "binance_api_key", "binance_api_secret",
                         "bybit_api_key", "bybit_api_secret",
                         "delta_api_key", "delta_api_secret",
+                        "pepperstone_client_id", "pepperstone_client_secret",
+                        "pepperstone_access_token", "pepperstone_account_id",
+                        "pepperstone_is_live",
                         "coindcx_api_key", "coindcx_api_secret"}
         user_settings = {k: v for k, v in prefs.items() if k in setting_keys}
     except Exception as e:
@@ -288,6 +402,9 @@ async def trading_autostart(token: dict = Depends(verify_token)):
                     "binance_api_key", "binance_api_secret",
                     "bybit_api_key", "bybit_api_secret",
                     "delta_api_key", "delta_api_secret",
+                    "pepperstone_client_id", "pepperstone_client_secret",
+                    "pepperstone_refresh_token", "pepperstone_account_id",
+                    "pepperstone_is_live",
                     "coindcx_api_key", "coindcx_api_secret"}
     user_settings = {k: v for k, v in prefs.items() if k in setting_keys}
     threading.Thread(
@@ -376,6 +493,7 @@ _SENSITIVE_USER = [
     "bybit_api_key", "bybit_api_secret",
     "delta_api_key", "delta_api_secret",
     "coindcx_api_key", "coindcx_api_secret",
+    "pepperstone_client_secret", "pepperstone_refresh_token",
 ]
 
 

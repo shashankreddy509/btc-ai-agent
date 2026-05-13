@@ -99,6 +99,14 @@ COINDCX_API_KEY           = os.getenv("COINDCX_API_KEY", "")
 COINDCX_API_SECRET        = os.getenv("COINDCX_API_SECRET", "")
 COINDCX_CONTRACT_SIZE     = float(os.getenv("COINDCX_CONTRACT_SIZE", "0.001"))
 
+# Pepperstone (cTrader Open API)
+PEPPERSTONE_CLIENT_ID      = os.getenv("PEPPERSTONE_CLIENT_ID", "")
+PEPPERSTONE_CLIENT_SECRET  = os.getenv("PEPPERSTONE_CLIENT_SECRET", "")
+PEPPERSTONE_ACCOUNT_ID     = os.getenv("PEPPERSTONE_ACCOUNT_ID", "")
+PEPPERSTONE_IS_LIVE        = os.getenv("PEPPERSTONE_IS_LIVE", "true")
+PEPPERSTONE_CONTRACT_SIZE  = float(os.getenv("PEPPERSTONE_CONTRACT_SIZE", "0.01"))
+PEPPERSTONE_REDIRECT_URI   = os.getenv("PEPPERSTONE_REDIRECT_URI", "")
+
 # DEPO parameters
 DEPO_START = 126208
 DEPO_STEP = 1700
@@ -143,6 +151,10 @@ def apply_settings(d: dict) -> None:
         "bybit_api_key": "BYBIT_API_KEY", "bybit_api_secret": "BYBIT_API_SECRET",
         "delta_api_key": "DELTA_API_KEY", "delta_api_secret": "DELTA_API_SECRET",
         "coindcx_api_key": "COINDCX_API_KEY", "coindcx_api_secret": "COINDCX_API_SECRET",
+        "pepperstone_client_id": "PEPPERSTONE_CLIENT_ID",
+        "pepperstone_client_secret": "PEPPERSTONE_CLIENT_SECRET",
+        "pepperstone_account_id": "PEPPERSTONE_ACCOUNT_ID",
+        "pepperstone_is_live": "PEPPERSTONE_IS_LIVE",
     }
     _int = {
         "email_smtp_port": "EMAIL_SMTP_PORT",

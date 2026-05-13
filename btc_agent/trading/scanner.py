@@ -93,6 +93,9 @@ def _scan_interval(sc: _Scanner) -> int:
 def _trading_mode(sc: _Scanner) -> str:
     return sc.settings.get("mode", config.TRADING_MODE)
 
+def _is_live(sc: _Scanner) -> bool:
+    return _trading_mode(sc) == "live"
+
 def _max_concurrent(sc: _Scanner) -> int:
     return int(sc.settings.get("max_concurrent", config.TRADING_MAX_CONCURRENT))
 
@@ -123,6 +126,12 @@ def _build_broker(sc: _Scanner):
         "api_secret":    sc.settings.get(f"{name}_api_secret", ""),
         "product_id":    sc.settings.get("coinbase_product_id", config.COINBASE_PRODUCT_ID),
         "contract_size": sc.settings.get(f"{name}_contract_size", default_cs),
+        # Pepperstone-specific cTrader credentials
+        "pepperstone_client_id":     sc.settings.get("pepperstone_client_id",     config.PEPPERSTONE_CLIENT_ID),
+        "pepperstone_client_secret": sc.settings.get("pepperstone_client_secret", config.PEPPERSTONE_CLIENT_SECRET),
+        "pepperstone_refresh_token": sc.settings.get("pepperstone_refresh_token", ""),
+        "pepperstone_account_id":    sc.settings.get("pepperstone_account_id",    config.PEPPERSTONE_ACCOUNT_ID),
+        "pepperstone_is_live":       sc.settings.get("pepperstone_is_live",       config.PEPPERSTONE_IS_LIVE),
     }
     return get_broker(name, creds)
 
@@ -582,7 +591,7 @@ def _execute_entry(sc: _Scanner, sig: Signal, current_price: float) -> None:
     )
 
     mode = _trading_mode(sc)
-    if mode == "live":
+    if _is_live(sc):
         broker = sc.broker
         side = "BUY" if sig.direction == "long" else "SELL"
         stop_side = "SELL" if sig.direction == "long" else "BUY"
@@ -704,7 +713,7 @@ def _partial_close(sc: _Scanner, pos: Position, price: float) -> None:
         _fs.save_position(_position_to_dict(pos), sc.uid)
         _fs.save_history(_result_to_dict(partial_result), f"{pos.signal_id}_partial", sc.uid)
 
-    if _trading_mode(sc) == "live":
+    if _is_live(sc):
         try:
             broker = sc.broker
             stop_side = "SELL" if pos.direction == "long" else "BUY"
@@ -744,7 +753,7 @@ def _close_position(sc: _Scanner, pos: Position, price: float, reason: str) -> N
         f"@ {price:.1f}  {remaining} contracts{partial_note}  Total={pos.pnl:+.4f}"
     )
 
-    if _trading_mode(sc) == "live":
+    if _is_live(sc):
         try:
             broker = sc.broker
             if pos.sl_order_id:
@@ -805,7 +814,7 @@ def _monitor_positions(sc: _Scanner, current_price: float) -> None:
             new_sl = _trail_sl(pos, current_price, offset)
             if new_sl != pos.sl:
                 console.print(f"[dim]Trail SL {pos.direction} {pos.sl:.1f} → {new_sl:.1f}[/dim]")
-                if _trading_mode(sc) == "live":
+                if _is_live(sc):
                     _update_live_sl(sc, pos, new_sl)
                 pos.sl = new_sl
             hit_sl = (pos.direction == "long"  and current_price <= pos.sl) or \
@@ -1085,7 +1094,7 @@ def run_trading_scanner(uid: str, user_settings: dict | None = None, email: str 
         console.print("[yellow]Warning: qty < 2 — partial close requires at least 2 contracts[/yellow]")
 
     sc.broker = _build_broker(sc)
-    if sc.broker and _trading_mode(sc) == "live":
+    if sc.broker and _is_live(sc):
         try:
             sc.broker_account_name = sc.broker.get_display_name()
         except Exception:

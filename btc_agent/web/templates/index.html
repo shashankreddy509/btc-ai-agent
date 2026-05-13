@@ -377,10 +377,12 @@
                   <select id="hist-filter-mode" onchange="histFilterChanged()" style="font-size:12px;padding:3px 8px;border-radius:6px;border:1px solid var(--border);background:var(--surface-2);color:var(--text-1)">
                     <option value="all">All modes</option>
                     <option value="live">Live</option>
+                    <option value="bsg">BSG</option>
                     <option value="paper">Paper</option>
                   </select>
                   <select id="hist-filter-pattern" onchange="histFilterChanged()" style="font-size:12px;padding:3px 8px;border-radius:6px;border:1px solid var(--border);background:var(--surface-2);color:var(--text-1)">
                     <option value="all">All patterns</option>
+                    <option value="BSG">BSG</option>
                     <option value="4-Flag">4-Flag</option>
                     <option value="Engulfing">Engulfing</option>
                     <option value="Retracement">Retracement</option>
@@ -647,6 +649,7 @@
                     <option value="bybit">Bybit</option>
                     <option value="delta">Delta Exchange</option>
                     <option value="coindcx">CoinDCX</option>
+                    <option value="pepperstone">Pepperstone (cTrader)</option>
                   </select>
                 </div>
                 <div class="s-field">
@@ -801,6 +804,50 @@
                 <button class="btn btn-primary" onclick="saveBrokerCreds('coindcx')">Save</button>
                 <span class="s-ok" id="s-ok-broker-coindcx">Saved!</span>
                 <span class="s-err" id="s-err-broker-coindcx"></span>
+              </div>
+            </div>
+          </div>
+
+          <div class="card" id="s-card-broker-pepperstone" style="display:none;">
+            <div class="card-header"><span class="card-title">Pepperstone — cTrader API Credentials</span></div>
+            <div class="s-section">
+              <div class="s-field">
+                <span class="s-label">Client ID</span>
+                <input id="s-pepperstone-client-id" class="s-input" type="text" placeholder="cTrader Open API Client ID">
+              </div>
+              <div class="s-field">
+                <span class="s-label">Client Secret</span>
+                <input id="s-pepperstone-client-secret" class="s-input" type="password" placeholder="cTrader Open API Client Secret">
+              </div>
+              <div class="s-field">
+                <span class="s-label">Account ID</span>
+                <input id="s-pepperstone-account-id" class="s-input" type="text" placeholder="Numeric cTrader account ID">
+              </div>
+              <div class="s-field">
+                <span class="s-label">Environment</span>
+                <select id="s-pepperstone-is-live" class="s-input">
+                  <option value="true">Live</option>
+                  <option value="false">Demo</option>
+                </select>
+              </div>
+              <div class="s-field">
+                <span class="s-label">Contract Size (BTC)</span>
+                <input id="s-pepperstone-contract" class="s-input" type="number" step="0.001" placeholder="0.01">
+              </div>
+              <p style="font-size:11px;color:var(--text-3);margin:0;">
+                Step 1: Go to <b>id.ctrader.com</b> → Applications → create app → copy Client ID &amp; Secret → save above.<br>
+                Step 2: Register redirect URI <b id="s-pepperstone-redirect-hint"></b> in your cTrader app.<br>
+                Step 3: Click <b>Connect Pepperstone</b> — log in once and you're done (~1 year before re-auth needed).
+              </p>
+              <div class="s-field" style="align-items:center;gap:10px;">
+                <span class="s-label">Connection</span>
+                <span id="s-pepperstone-status" style="font-size:12px;color:var(--text-3)">Not connected</span>
+              </div>
+              <div class="s-footer" style="gap:8px;">
+                <button class="btn btn-primary" onclick="savePepperstoneCreds()">Save Credentials</button>
+                <button class="btn" id="s-pepperstone-connect-btn" onclick="connectPepperstone()" style="background:var(--accent);color:#fff;border:none;">Connect Pepperstone</button>
+                <span class="s-ok" id="s-ok-broker-pepperstone">Saved!</span>
+                <span class="s-err" id="s-err-broker-pepperstone"></span>
               </div>
             </div>
           </div>

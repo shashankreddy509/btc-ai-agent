@@ -161,6 +161,19 @@ async function loadUserSettings() {
     const sp = (id, v) => { const el = document.getElementById(id); if (el && v) el.placeholder = v; };
     sp('s-cb-key',    d.coinbase_api_key);
     sp('s-cb-secret', d.coinbase_api_secret);
+    sp('s-pepperstone-client-secret', d.pepperstone_client_secret);
+    const sv2 = (id, v) => { const el = document.getElementById(id); if (el && v) el.value = v; };
+    sv2('s-pepperstone-client-id',  d.pepperstone_client_id);
+    sv2('s-pepperstone-account-id', d.pepperstone_account_id);
+    if (d.pepperstone_is_live !== undefined) sv2('s-pepperstone-is-live', d.pepperstone_is_live);
+    const statusEl = document.getElementById('s-pepperstone-status');
+    if (statusEl) {
+      const connected = d.pepperstone_refresh_token && d.pepperstone_refresh_token.includes('*');
+      statusEl.textContent  = connected ? '✅ Connected' : '⚠️ Not connected';
+      statusEl.style.color  = connected ? 'var(--green, #4caf50)' : 'var(--text-3)';
+    }
+    const hintEl = document.getElementById('s-pepperstone-redirect-hint');
+    if (hintEl) hintEl.textContent = `${location.origin}/auth/pepperstone/callback`;
     const broker = d.broker || '';
     const sel = document.getElementById('s-broker-select');
     if (sel) sel.value = broker;
@@ -170,7 +183,7 @@ async function loadUserSettings() {
   } catch (_) {}
 }
 
-const _BROKER_CRED_CARDS = ['binance','bybit','delta','coindcx'];
+const _BROKER_CRED_CARDS = ['binance','bybit','delta','coindcx','pepperstone'];
 
 function onBrokerChange(broker) {
   // Non-Coinbase credential panels
@@ -220,6 +233,46 @@ async function saveBrokerCreds(broker) {
   if (keyEl)    keyEl.value    = '';
   if (secretEl) secretEl.value = '';
   if (contractEl) contractEl.value = '';
+}
+
+async function savePepperstoneCreds() {
+  if (!_currentUser) return;
+  const clientId    = document.getElementById('s-pepperstone-client-id')?.value.trim()    || '';
+  const clientSec   = document.getElementById('s-pepperstone-client-secret')?.value.trim() || '';
+  const accountId   = document.getElementById('s-pepperstone-account-id')?.value.trim()   || '';
+  const isLive      = document.getElementById('s-pepperstone-is-live')?.value              || 'true';
+  const contractRaw = document.getElementById('s-pepperstone-contract')?.value;
+  const contract    = contractRaw ? parseFloat(contractRaw) : null;
+  const errEl = document.getElementById('s-err-broker-pepperstone');
+  if (!clientId || !accountId) {
+    if (errEl) { errEl.textContent = 'Client ID and Account ID are required.'; errEl.style.display = 'inline'; }
+    return;
+  }
+  const payload = {
+    pepperstone_client_id:  clientId,
+    pepperstone_account_id: accountId,
+    pepperstone_is_live:    isLive,
+  };
+  if (clientSec) payload.pepperstone_client_secret = clientSec;
+  if (contract)  payload.pepperstone_contract_size  = contract;
+  await _saveSettings('/api/settings/user', payload, 'broker-pepperstone');
+  const secEl = document.getElementById('s-pepperstone-client-secret');
+  if (secEl) secEl.value = '';
+}
+
+async function connectPepperstone() {
+  if (!_currentUser) return;
+  const token = await _currentUser.getIdToken();
+  const popup = window.open(
+    `/auth/pepperstone?token=${encodeURIComponent(token)}`,
+    'pepperstone_auth', 'width=600,height=700,noopener=no'
+  );
+  const timer = setInterval(() => {
+    if (!popup || popup.closed) {
+      clearInterval(timer);
+      loadUserSettings();
+    }
+  }, 1000);
 }
 
 // ── Settings save ─────────────────────────────────────────────────────────────
