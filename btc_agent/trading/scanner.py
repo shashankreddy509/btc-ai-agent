@@ -51,6 +51,7 @@ class _Scanner:
     bsg_alerts: list = field(default_factory=list)
     bsg_traded_bars: list = field(default_factory=list)
     bsg_alerted_bars: list = field(default_factory=list)
+    bsg_last_bar: str | None = None
     running: bool = False
     last_scan_time: Optional[datetime] = None
     current_levels: dict = field(default_factory=dict)
@@ -565,7 +566,6 @@ def _execute_entry(sc: _Scanner, sig: Signal, current_price: float) -> None:
             _save_state(sc)
             return
     if is_bsg:
-        # BSG exits only on opposite signal — TP is unreachable sentinel
         tp = 9_999_999.0 if sig.direction == "long" else 1.0
         tp_reason = "opposite_signal"
     elif sig.custom_tp > 0:
@@ -1151,6 +1151,18 @@ def run_trading_scanner(uid: str, user_settings: dict | None = None, email: str 
                             _execute_entry(sc, sig, current_price)
                         elif sig.direction == "short" and current_price < sig.entry_trigger:
                             _execute_entry(sc, sig, current_price)
+
+            # BSG: fire once per 15m bar close, independent of scan_interval
+            _bsg_bar_ts = (int(now.timestamp()) // (_BSG_TF * 60) - 1) * _BSG_TF * 60
+            _bsg_bar_iso = datetime.fromtimestamp(_bsg_bar_ts, tz=timezone.utc).isoformat()
+            if _bsg_bar_iso != sc.bsg_last_bar and (_bsg_enabled(sc) or _bsg_trade_enabled(sc)):
+                try:
+                    _df_bsg = fetch_1m_candles()
+                    _ba, _bt, _bm, _bu = df_to_numpy(_df_bsg)
+                    _tick_bsg(sc, _ba, _bt, _bm, _bu)
+                    sc.bsg_last_bar = _bsg_bar_iso
+                except Exception as e:
+                    console.print(f"[red]BSG bar tick error: {e}[/red]")
 
             elapsed_min = (now - sc.last_scan_time).total_seconds() / 60 if sc.last_scan_time else 999
             if elapsed_min >= _scan_interval(sc):
