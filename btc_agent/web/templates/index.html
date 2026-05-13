@@ -369,6 +369,32 @@
               </div>
             </div>
 
+            <!-- Points Captured Stats -->
+            <div class="card" id="pts-stats-card">
+              <div class="card-header" style="display:flex;align-items:center;justify-content:space-between">
+                <span class="card-title">Points Captured</span>
+                <select id="pts-mode-filter" onchange="_ptsModeFilter=this.value;renderTrading()" style="font-size:12px;padding:3px 8px;border-radius:6px;border:1px solid var(--border);background:var(--surface-2);color:var(--text-1)">
+                  <option value="live">Live only</option>
+                  <option value="all">All modes</option>
+                  <option value="paper">Paper only</option>
+                </select>
+              </div>
+              <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--border)">
+                <div style="background:var(--surface-1);padding:14px 16px;text-align:center">
+                  <div style="font-size:11px;color:var(--text-3);margin-bottom:6px;letter-spacing:0.05em">TODAY</div>
+                  <div id="pts-today" style="font-size:20px;font-weight:600;font-variant-numeric:tabular-nums"><span style="color:var(--text-3)">—</span></div>
+                </div>
+                <div style="background:var(--surface-1);padding:14px 16px;text-align:center">
+                  <div style="font-size:11px;color:var(--text-3);margin-bottom:6px;letter-spacing:0.05em">THIS WEEK</div>
+                  <div id="pts-week" style="font-size:20px;font-weight:600;font-variant-numeric:tabular-nums"><span style="color:var(--text-3)">—</span></div>
+                </div>
+                <div style="background:var(--surface-1);padding:14px 16px;text-align:center">
+                  <div style="font-size:11px;color:var(--text-3);margin-bottom:6px;letter-spacing:0.05em">THIS MONTH</div>
+                  <div id="pts-month" style="font-size:20px;font-weight:600;font-variant-numeric:tabular-nums"><span style="color:var(--text-3)">—</span></div>
+                </div>
+              </div>
+            </div>
+
             <!-- Trade History -->
             <div class="card">
               <div class="card-header" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">

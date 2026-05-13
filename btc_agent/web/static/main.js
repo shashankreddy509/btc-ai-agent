@@ -824,6 +824,37 @@ async function fetchBTCPrice() {
   }
 }
 
+function initBinanceWS() {
+  let reconnectDelay = 1000;
+  function connect() {
+    const ws = new WebSocket('wss://fstream.binance.com/ws/btcusdt@aggTrade');
+    ws.onmessage = (e) => {
+      const d = JSON.parse(e.data);
+      const price = parseFloat(d.p);
+      if (!price || isNaN(price)) return;
+      reconnectDelay = 1000;
+      const fmt = '$' + price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      ['btc-price', 'btc-price-mobile'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.textContent = fmt;
+      });
+      const livePx = document.getElementById('trade-live-price');
+      if (livePx) livePx.textContent = fmt;
+      document.querySelectorAll('[data-pos-pts]').forEach(td => {
+        const entry = parseFloat(td.dataset.entry);
+        const dir   = td.dataset.dir;
+        const pts   = dir === 'long' ? price - entry : entry - price;
+        td.innerHTML = `<span style="color:${pts >= 0 ? 'var(--green)' : 'var(--red)'}">${pts >= 0 ? '+' : ''}${pts.toFixed(1)}</span>`;
+      });
+    };
+    ws.onclose = ws.onerror = () => {
+      reconnectDelay = Math.min(reconnectDelay * 2, 30000);
+      setTimeout(connect, reconnectDelay);
+    };
+  }
+  connect();
+}
+
 // ── Trading scanner ────────────────────────────────────────────────────────────
 let _tradingData = null;
 let _histPage    = 0;
@@ -861,6 +892,53 @@ function renderLevels(levels, running) {
     <span class="level-item">D-POC: ${dpocStr}</span><span class="level-sep">·</span>
     <span class="level-item">W-POC: ${wpocStr}</span><span class="level-sep">·</span>
     <span class="level-item">Bias: <span style="color:${biasColor}">${bias}</span></span>`;
+}
+
+let _ptsModeFilter = 'live';
+
+function _renderPointsStats(history) {
+  const todayEl = document.getElementById('pts-today');
+  const weekEl  = document.getElementById('pts-week');
+  const monthEl = document.getElementById('pts-month');
+  if (!todayEl) return;
+
+  const tz  = localStorage.getItem(TZ_KEY) || DEFAULT_TZ;
+  const now = new Date();
+
+  const toDateStr = (d) => new Intl.DateTimeFormat('en-CA', { timeZone: tz }).format(d);
+  const todayStr  = toDateStr(now);
+
+  const nowLocal   = new Date(now.toLocaleString('en-US', { timeZone: tz }));
+  const dowMon     = (nowLocal.getDay() + 6) % 7; // 0 = Monday
+  const weekStart  = new Date(nowLocal); weekStart.setDate(weekStart.getDate() - dowMon); weekStart.setHours(0,0,0,0);
+  const monthStart = new Date(nowLocal); monthStart.setDate(1); monthStart.setHours(0,0,0,0);
+
+  let todayPts = 0, weekPts = 0, monthPts = 0;
+  let todayN = 0, weekN = 0, monthN = 0;
+
+  for (const r of history) {
+    if (r.close_reason === 'stopped_by_user') continue;
+    if (_ptsModeFilter !== 'all' && (r.mode || 'paper') !== _ptsModeFilter) continue;
+    const p   = r.position;
+    const pts = p.direction === 'long' ? r.close_price - p.entry_price : p.entry_price - r.close_price;
+    const closedAt    = new Date(r.closed_at);
+    const closedLocal = new Date(closedAt.toLocaleString('en-US', { timeZone: tz }));
+    if (toDateStr(closedAt) === todayStr)  { todayPts += pts; todayN++; }
+    if (closedLocal >= weekStart)          { weekPts  += pts; weekN++;  }
+    if (closedLocal >= monthStart)         { monthPts += pts; monthN++; }
+  }
+
+  const fmt = (v, n) => n === 0
+    ? '<span style="color:var(--text-3)">—</span>'
+    : `<span class="${v >= 0 ? 'pnl-pos' : 'pnl-neg'}">${v >= 0 ? '+' : ''}${v.toFixed(1)}</span>`
+      + `<span style="font-size:11px;color:var(--text-3);margin-left:4px">(${n})</span>`;
+
+  todayEl.innerHTML = fmt(todayPts, todayN);
+  weekEl.innerHTML  = fmt(weekPts,  weekN);
+  monthEl.innerHTML = fmt(monthPts, monthN);
+
+  const sel = document.getElementById('pts-mode-filter');
+  if (sel && sel.value !== _ptsModeFilter) sel.value = _ptsModeFilter;
 }
 
 function renderTrading() {
@@ -984,6 +1062,8 @@ function renderTrading() {
       </tr>`;
     }).join('');
   }
+
+  _renderPointsStats(history);
 
   // history table
   const histBody  = document.getElementById('trade-history-body');
@@ -1246,7 +1326,7 @@ _updateAuthUI();
   // Briefing + scanner are public — load immediately
   await Promise.all([loadBriefing(), loadScan(), fetchBTCPrice(), pollStatus()]);
   setInterval(() => Promise.all([loadBriefing(), loadScan()]), REFRESH_MS);
-  setInterval(fetchBTCPrice, 2_000);
+  initBinanceWS();
   setInterval(pollStatus, 3000);
   // Trading polling only when signed in
   setInterval(() => { if (_currentUser) loadTrading(); }, 5000);
