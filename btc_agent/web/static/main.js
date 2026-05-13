@@ -806,48 +806,47 @@ async function fetchBTCPrice() {
         ? parseFloat(d.price)
         : parseFloat(d?.result?.list?.[0]?.lastPrice);
       if (!price || isNaN(price)) continue;
-      const fmt = '$' + price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-      ['btc-price', 'btc-price-mobile'].forEach(id => {
-        const el = document.getElementById(id);
-        if (el) el.textContent = fmt;
-      });
-      const livePx = document.getElementById('trade-live-price');
-      if (livePx) livePx.textContent = fmt;
-      document.querySelectorAll('[data-pos-pts]').forEach(td => {
-        const entry = parseFloat(td.dataset.entry);
-        const dir   = td.dataset.dir;
-        const pts   = dir === 'long' ? price - entry : entry - price;
-        td.innerHTML = `<span style="color:${pts >= 0 ? 'var(--green)' : 'var(--red)'}">${pts >= 0 ? '+' : ''}${pts.toFixed(1)}</span>`;
-      });
+      _applyPrice(price);
       return;
     } catch (_) {}
   }
+}
+
+let _wsPrice = null;
+
+function _applyPrice(price) {
+  _wsPrice = price;
+  const fmt = '$' + price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  ['btc-price', 'btc-price-mobile', 'trade-live-price'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = fmt;
+  });
+  document.querySelectorAll('[data-pos-pts]').forEach(td => {
+    const entry = parseFloat(td.dataset.entry);
+    const dir   = td.dataset.dir;
+    const pts   = dir === 'long' ? price - entry : entry - price;
+    td.innerHTML = `<span style="color:${pts >= 0 ? 'var(--green)' : 'var(--red)'}">${pts >= 0 ? '+' : ''}${pts.toFixed(1)}</span>`;
+  });
 }
 
 function initBinanceWS() {
   let reconnectDelay = 1000;
   function connect() {
     const ws = new WebSocket('wss://fstream.binance.com/ws/btcusdt@aggTrade');
+    ws.onopen  = () => console.log('[BinanceWS] connected');
     ws.onmessage = (e) => {
-      const d = JSON.parse(e.data);
-      const price = parseFloat(d.p);
-      if (!price || isNaN(price)) return;
-      reconnectDelay = 1000;
-      const fmt = '$' + price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-      ['btc-price', 'btc-price-mobile'].forEach(id => {
-        const el = document.getElementById(id);
-        if (el) el.textContent = fmt;
-      });
-      const livePx = document.getElementById('trade-live-price');
-      if (livePx) livePx.textContent = fmt;
-      document.querySelectorAll('[data-pos-pts]').forEach(td => {
-        const entry = parseFloat(td.dataset.entry);
-        const dir   = td.dataset.dir;
-        const pts   = dir === 'long' ? price - entry : entry - price;
-        td.innerHTML = `<span style="color:${pts >= 0 ? 'var(--green)' : 'var(--red)'}">${pts >= 0 ? '+' : ''}${pts.toFixed(1)}</span>`;
-      });
+      try {
+        const d = JSON.parse(e.data);
+        const price = parseFloat(d.p);
+        if (!price || isNaN(price)) return;
+        reconnectDelay = 1000;
+        _applyPrice(price);
+      } catch (err) {
+        console.error('[BinanceWS] error', err);
+      }
     };
     ws.onclose = ws.onerror = () => {
+      console.warn('[BinanceWS] disconnected, retry in', reconnectDelay, 'ms');
       reconnectDelay = Math.min(reconnectDelay * 2, 30000);
       setTimeout(connect, reconnectDelay);
     };
@@ -954,15 +953,7 @@ function renderTrading() {
     acctLabel.style.display = showAcct ? '' : 'none';
     acctName.textContent = displayName;
   }
-  const liveEl = document.getElementById('trade-live-price');
-  if (liveEl) liveEl.textContent = current_price ? `$${fmtPrice(current_price)}` : '—';
-  if (current_price && running) {
-    const fmt = '$' + current_price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-    ['btc-price', 'btc-price-mobile'].forEach(id => {
-      const el = document.getElementById(id);
-      if (el) el.textContent = fmt;
-    });
-  }
+  if (current_price) _applyPrice(current_price);
 
   const startBtn = document.getElementById('trade-start-btn');
   const stopBtn  = document.getElementById('trade-stop-btn');
