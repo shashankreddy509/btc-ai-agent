@@ -274,6 +274,16 @@ async def pepperstone_callback(request: Request, code: str = None, state: str = 
 
 # ── Public API: scan + briefing ───────────────────────────────────────────────
 
+@pub.get("/price")
+async def get_price():
+    from btc_agent.trading.scanner import _scanners
+    price = next((sc.last_price for sc in _scanners.values() if sc.last_price), None)
+    if not price:
+        from btc_agent.scanner.data import fetch_current_price
+        price = fetch_current_price()
+    return JSONResponse({"price": price})
+
+
 @pub.get("/scan")
 async def get_scan():
     return JSONResponse(storage.load_scan())

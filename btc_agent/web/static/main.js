@@ -793,23 +793,12 @@ async function triggerBrief() {
 
 // ── BTC price ──────────────────────────────────────────────────────────────────
 async function fetchBTCPrice() {
-  const endpoints = [
-    'https://fapi.binance.com/fapi/v1/ticker/price?symbol=BTCUSDT',
-    'https://api.bybit.com/v5/market/tickers?category=linear&symbol=BTCUSDT',
-  ];
-  for (const url of endpoints) {
-    try {
-      const r = await fetch(url);
-      if (!r.ok) continue;
-      const d = await r.json();
-      const price = d.price
-        ? parseFloat(d.price)
-        : parseFloat(d?.result?.list?.[0]?.lastPrice);
-      if (!price || isNaN(price)) continue;
-      _applyPrice(price);
-      return;
-    } catch (_) {}
-  }
+  try {
+    const r = await fetch('/api/price');
+    if (!r.ok) return;
+    const { price } = await r.json();
+    if (price) _applyPrice(price);
+  } catch (_) {}
 }
 
 let _wsPrice = null;
