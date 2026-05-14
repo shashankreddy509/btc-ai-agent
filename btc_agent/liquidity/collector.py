@@ -101,15 +101,10 @@ async def login(page: Page) -> bool:
             await page.click('a:has-text("Login"), button:has-text("Login")', timeout=10_000)
             await page.wait_for_timeout(2000)
 
-        email_sel = 'input[type="email"], input[name="email"], input[placeholder*="mail" i]'
-        pwd_sel   = 'input[type="password"], input[name="password"], input[placeholder*="pass" i]'
-        await page.fill(email_sel, CG_EMAIL)
-        await page.fill(pwd_sel,   CG_PASSWORD)
-        # Try submit button first, then Enter key as fallback
-        try:
-            await page.click('button[type="submit"]', timeout=3000)
-        except Exception:
-            await page.press(pwd_sel, "Enter")
+        await page.locator('input[type="email"], input[name="email"]').first.fill(CG_EMAIL)
+        pwd_loc = page.locator('input[type="password"], input[name="password"]').first
+        await pwd_loc.fill(CG_PASSWORD)
+        await pwd_loc.press("Enter")
 
         # Wait for redirect away from login (up to 40s)
         for _ in range(40):
@@ -149,6 +144,18 @@ async def take_screenshot(page: Page) -> Image.Image:
 
 
 # ── Line detection ─────────────────────────────────────────────────────────────
+
+CHART_X_END = 1325  # right edge of chart canvas before Y-axis
+
+
+def _rightmost_colored_x(pixels, y_mid: int, label: str, width: int) -> int:
+    """Scan right→left to find the rightmost pixel matching `label` at row y_mid."""
+    for x in range(min(CHART_X_END, width - 1), 39, -1):
+        r, g, b = pixels[x, y_mid]
+        if classify_pixel(r, g, b) == label:
+            return x
+    return HOVER_X  # fallback
+
 
 def detect_lines(img: Image.Image) -> list[dict]:
     pixels = img.load()
@@ -190,9 +197,13 @@ def detect_lines(img: Image.Image) -> list[dict]:
         else:
             merged.append(band)
 
-    log.info(f"Detected {len(merged)} colored bands at x={x}")
+    # Find rightmost colored pixel per band for accurate hover position
+    for band in merged:
+        band["hover_x"] = _rightmost_colored_x(pixels, band["y"], band["label"], width)
+
+    log.info(f"Detected {len(merged)} colored bands")
     for b in merged:
-        log.info(f"  {b['label']:<8} y={b['y']:>4}  (rows {b['y_start']}–{b['y_end']})")
+        log.info(f"  {b['label']:<8} y={b['y']:>4}  hover_x={b['hover_x']}  (rows {b['y_start']}–{b['y_end']})")
 
     return merged
 
@@ -352,10 +363,10 @@ async def run_debug():
                 log.warning("No colored lines detected — check color profiles or HOVER_X")
                 log.warning("Inspect debug_before_hover.png to verify chart loaded correctly.")
             else:
-                await page.mouse.move(HOVER_X, 400)
+                await page.mouse.move(lines[0]["hover_x"], 400)
                 await page.wait_for_timeout(200)
                 for line in lines:
-                    await page.mouse.move(HOVER_X, line["y"])
+                    await page.mouse.move(line["hover_x"], line["y"])
                     await page.wait_for_timeout(HOVER_SETTLE_MS)
                     lev   = await extract_leverage(page)
                     price = price_from_y(line["y"], y_map)
@@ -401,13 +412,13 @@ async def collect_all_lines(page: Page, timestamp: str) -> list[dict]:
     log.info(f"Y-axis map: {len(y_map)} ticks captured")
 
     # Enter chart area before hovering individual lines
-    await page.mouse.move(HOVER_X, 400)
+    await page.mouse.move(lines[0]["hover_x"], 400)
     await page.wait_for_timeout(200)
 
     rows = []
     for i, line in enumerate(lines):
         try:
-            await page.mouse.move(HOVER_X, line["y"])
+            await page.mouse.move(line["hover_x"], line["y"])
             await page.wait_for_timeout(HOVER_SETTLE_MS)
             leverage = await extract_leverage(page)
             price    = price_from_y(line["y"], y_map)
