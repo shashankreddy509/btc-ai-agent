@@ -481,6 +481,12 @@ function navTo(section) {
     _setSidebarActive('nav-settings');
     _setMobTabActive('mob-tab-settings');
     _renderSettingsPage();
+  } else if (section === 'liquidity') {
+    _showPage('liquidity');
+    subTabsEl.style.display = 'none';
+    _setTopbarTitle('Liquidation Heatmap');
+    _setSidebarActive('nav-liquidity');
+    loadLiquidity();
   } else if (section === 'scanner') {
     _currentSubTab = 'scanner';
     _showPage('scanner');
@@ -723,6 +729,41 @@ function renderScan() {
       <td>${depoHtml}</td>
     </tr>`;
   }).join('');
+}
+
+// ── Liquidity Heatmap ──────────────────────────────────────────────────────────
+const LIQ_COLORS = {
+  YELLOW: '#facc15', LIME: '#a3e635', ORANGE: '#fb923c',
+  RED: '#f87171', TEAL: '#2dd4bf', NAVY: '#6366f1', BLACK: '#94a3b8',
+};
+
+async function loadLiquidity() {
+  const status = document.getElementById('liq-status');
+  const tbody  = document.getElementById('liq-tbody');
+  if (!tbody) return;
+  if (status) status.textContent = 'Fetching…';
+  try {
+    const d = await fetchJSON('/api/liquidity');
+    if (d.status === 'no_data') {
+      tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--text-3)">No data yet — run <code>uv run liquidity-collect</code> to start collecting.</td></tr>';
+      if (status) status.textContent = '';
+      return;
+    }
+    const rows = d.rows.slice().reverse();
+    tbody.innerHTML = rows.map(r => {
+      const dot = LIQ_COLORS[r.color] || 'var(--text-3)';
+      return `<tr>
+        <td style="font-size:11px;color:var(--text-3)">${r.timestamp}</td>
+        <td><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:${dot};margin-right:5px;vertical-align:middle"></span>${r.color}</td>
+        <td style="font-variant-numeric:tabular-nums">$${Number(r.price).toLocaleString('en-US',{minimumFractionDigits:1,maximumFractionDigits:1})}</td>
+        <td style="font-variant-numeric:tabular-nums">${r.leverage}</td>
+        <td style="color:var(--text-3);font-size:11px">${r.y_pixel}</td>
+      </tr>`;
+    }).join('');
+    if (status) status.textContent = `${rows.length} rows · last: ${rows[0]?.timestamp || '—'}`;
+  } catch (e) {
+    tbody.innerHTML = `<tr><td colspan="5" style="color:var(--red)">${e}</td></tr>`;
+  }
 }
 
 async function loadScan() {

@@ -284,6 +284,20 @@ async def get_price():
     return JSONResponse({"price": price})
 
 
+@pub.get("/liquidity")
+async def get_liquidity():
+    import csv as _csv
+    from pathlib import Path
+    csv_path = Path("leverage_data.csv")
+    if not csv_path.exists():
+        return JSONResponse({"rows": [], "status": "no_data"})
+    rows = []
+    with open(csv_path, newline="") as f:
+        for row in _csv.DictReader(f):
+            rows.append(row)
+    return JSONResponse({"rows": rows[-200:], "status": "ok"})
+
+
 @pub.get("/scan")
 async def get_scan():
     return JSONResponse(storage.load_scan())
