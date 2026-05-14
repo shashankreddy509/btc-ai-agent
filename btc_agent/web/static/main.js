@@ -752,7 +752,8 @@ async function loadLiquidity() {
       if (status) status.textContent = '';
       return;
     }
-    const rows = d.rows.slice().reverse();
+    const latest = d.rows.at(-1)?.timestamp;
+    const rows = d.rows.filter(r => r.timestamp === latest).reverse();
     tbody.innerHTML = rows.map(r => {
       const dot = LIQ_COLORS[r.color] || 'var(--text-3)';
       const price = r.price && r.price !== 'N/A'
