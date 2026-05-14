@@ -745,24 +745,26 @@ async function loadLiquidity() {
   try {
     const d = await fetchJSON('/api/liquidity');
     if (d.status === 'no_data') {
-      tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--text-3)">No data yet — run <code>uv run liquidity-collect</code> to start collecting.</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--text-3)">No data yet — run <code>uv run liquidity-collect</code> to start collecting.</td></tr>';
       if (status) status.textContent = '';
       return;
     }
     const rows = d.rows.slice().reverse();
     tbody.innerHTML = rows.map(r => {
       const dot = LIQ_COLORS[r.color] || 'var(--text-3)';
+      const price = r.price && r.price !== 'N/A'
+        ? '$' + Number(r.price).toLocaleString('en-US', {minimumFractionDigits: 1, maximumFractionDigits: 1})
+        : '—';
       return `<tr>
         <td style="font-size:11px;color:var(--text-3)">${r.timestamp}</td>
         <td><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:${dot};margin-right:5px;vertical-align:middle"></span>${r.color}</td>
-        <td style="font-variant-numeric:tabular-nums">$${Number(r.price).toLocaleString('en-US',{minimumFractionDigits:1,maximumFractionDigits:1})}</td>
+        <td style="font-variant-numeric:tabular-nums">${price}</td>
         <td style="font-variant-numeric:tabular-nums">${r.leverage}</td>
-        <td style="color:var(--text-3);font-size:11px">${r.y_pixel}</td>
       </tr>`;
     }).join('');
     if (status) status.textContent = `${rows.length} rows · last: ${rows[0]?.timestamp || '—'}`;
   } catch (e) {
-    tbody.innerHTML = `<tr><td colspan="5" style="color:var(--red)">${e}</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="4" style="color:var(--red)">${e}</td></tr>`;
   }
 }
 
