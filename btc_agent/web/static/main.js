@@ -486,6 +486,7 @@ function navTo(section) {
     subTabsEl.style.display = 'none';
     _setTopbarTitle('Liquidation Heatmap');
     _setSidebarActive('nav-liquidity');
+    _setMobTabActive('mob-tab-liquidity');
     loadLiquidity();
     clearInterval(window._liqInterval);
     window._liqInterval = setInterval(loadLiquidity, 30_000);
