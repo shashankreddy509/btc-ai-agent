@@ -487,6 +487,8 @@ function navTo(section) {
     _setTopbarTitle('Liquidation Heatmap');
     _setSidebarActive('nav-liquidity');
     loadLiquidity();
+    clearInterval(window._liqInterval);
+    window._liqInterval = setInterval(loadLiquidity, 30_000);
   } else if (section === 'scanner') {
     _currentSubTab = 'scanner';
     _showPage('scanner');
@@ -544,6 +546,7 @@ function switchSubTab(tab) {
 }
 
 function _showPage(id) {
+  if (id !== 'liquidity') { clearInterval(window._liqInterval); window._liqInterval = null; }
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   const el = document.getElementById('page-' + id);
   if (el) el.classList.add('active');
