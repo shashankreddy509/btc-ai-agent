@@ -153,7 +153,7 @@ def _rightmost_colored_x(pixels, y_mid: int, label: str, width: int) -> int:
     for x in range(min(CHART_X_END, width - 1), 39, -1):
         r, g, b = pixels[x, y_mid]
         if classify_pixel(r, g, b) == label:
-            return x
+            return max(40, x - 10)  # step back ~1 candle width
     return HOVER_X  # fallback
 
 
