@@ -637,3 +637,18 @@ app.include_router(pub)
 app.include_router(priv)
 app.include_router(priv_cfg)
 app.include_router(admin_router)
+
+
+@app.on_event("startup")
+async def _start_liquidity_collector():
+    import os
+    if os.getenv("LIQUIDITY_ENABLED", "true").lower() == "false":
+        return
+    import asyncio
+
+    def _run():
+        from btc_agent.liquidity.collector import run_collect
+        asyncio.run(run_collect())
+
+    t = threading.Thread(target=_run, daemon=True, name="liquidity-collector")
+    t.start()
