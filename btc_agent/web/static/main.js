@@ -1230,6 +1230,9 @@ function _syncSettingsInputs(settings) {
     lcEl.value = settings.lookback_candles ?? 3;
   const emEl = document.getElementById('cfg-entry-mode');
   if (emEl) emEl.value = settings.entry_mode ?? 'immediate';
+  const dptEl = document.getElementById('cfg-daily-pts');
+  if (dptEl && document.activeElement !== dptEl)
+    dptEl.value = settings.daily_pts_target ?? 0;
 }
 
 async function _renderSettingsPage() {
@@ -1268,6 +1271,7 @@ async function saveTradingSettings() {
     lookback_candles: parseInt(document.getElementById('cfg-lookback-candles')?.value) || 3,
     entry_mode:       document.getElementById('cfg-entry-mode')?.value || 'immediate',
     ...((_isAdmin()) ? { trail_offset: parseInt(document.getElementById('cfg-trail-offset')?.value || '50') } : {}),
+    daily_pts_target: parseFloat(document.getElementById('cfg-daily-pts')?.value) || 0,
   };
   await fetchJSON('/api/trading/settings', {
     method: 'POST',

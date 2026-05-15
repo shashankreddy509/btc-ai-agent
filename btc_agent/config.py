@@ -55,6 +55,7 @@ TRADING_MIN_TP            = float(os.getenv("TRADING_MIN_TP", "500"))
 TRADING_BIAS_FILTER       = os.getenv("TRADING_BIAS_FILTER", "false").lower() == "true"
 BSG_ENABLED               = os.getenv("BSG_ENABLED", "false").lower() == "true"
 BSG_TRADE_ENABLED         = os.getenv("BSG_TRADE_ENABLED", "false").lower() == "true"
+TRADING_DAILY_PTS_TARGET  = float(os.getenv("TRADING_DAILY_PTS_TARGET", "0.0"))  # 0 = unlimited
 WEEKLY_ADJ                = float(os.getenv("WEEKLY_ADJ", "0.0324"))
 
 # Firebase owner UID — Coinbase keys stored in Firestore are tied to this UID
@@ -172,6 +173,7 @@ def apply_settings(d: dict) -> None:
     }
     _float = {
         "trading_max_sl": "TRADING_MAX_SL", "trading_min_tp": "TRADING_MIN_TP",
+        "trading_daily_pts_target": "TRADING_DAILY_PTS_TARGET",
         "weekly_adj": "WEEKLY_ADJ", "coinbase_contract_size": "COINBASE_CONTRACT_SIZE",
         "binance_contract_size": "BINANCE_CONTRACT_SIZE", "bybit_contract_size": "BYBIT_CONTRACT_SIZE",
         "delta_contract_size": "DELTA_CONTRACT_SIZE", "coindcx_contract_size": "COINDCX_CONTRACT_SIZE",

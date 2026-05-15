@@ -320,6 +320,14 @@
                     <span style="font-size:11px;color:var(--text-3)">After TP hit on TF ≥ 30m: close 50% and move SL to entry ± this value, trails every 100pts. TF &lt; 30m: full exit at TP.</span>
                   </div>
                 </div>
+                <div style="padding:0 16px 14px;flex-direction:column;gap:6px;border-top:1px solid var(--border);padding-top:12px;display:flex">
+                  <span style="font-size:11px;color:var(--text-3);text-transform:uppercase;letter-spacing:.06em">Daily Points Target (pts) <span style="font-weight:400;text-transform:none;letter-spacing:0"> · 0 = unlimited</span></span>
+                  <div style="display:flex;align-items:center;gap:12px">
+                    <input type="number" id="cfg-daily-pts" min="0" step="50" value="0"
+                      style="width:80px;padding:4px 8px;border-radius:6px;border:1px solid var(--border);background:var(--surface-2);color:var(--text-1);font-size:13px">
+                    <span style="font-size:11px;color:var(--text-3)">Bot stops opening new trades once today's closed-trade points reach this target. Open trades run to their TP/SL as normal.</span>
+                  </div>
+                </div>
               </div>
             </div>
 
@@ -1126,6 +1134,6 @@
     appId:             "{{ fb_app_id }}",
   });
 </script>
-<script src="/static/main.js?v=14"></script>
+<script src="/static/main.js?v=15"></script>
 </body>
 </html>

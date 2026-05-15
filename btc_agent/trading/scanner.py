@@ -544,6 +544,18 @@ def _tick_bsg(sc: _Scanner, arr, ts_arr, minutes_of_day, unix_days) -> None:
 
 # ── entry execution ───────────────────────────────────────────────────────────
 
+def _today_pts(sc: _Scanner) -> float:
+    today = datetime.now(timezone.utc).date()
+    total = 0.0
+    for r in sc.trade_history:
+        if r.closed_at and r.closed_at.date() == today:
+            pts = (r.close_price - r.position.entry_price
+                   if r.position.direction == "long"
+                   else r.position.entry_price - r.close_price)
+            total += pts
+    return total
+
+
 def _execute_entry(sc: _Scanner, sig: Signal, current_price: float) -> None:
     same_dir = any(p.status == "open" and p.direction == sig.direction for p in sc.open_positions)
     if same_dir:
@@ -561,6 +573,16 @@ def _execute_entry(sc: _Scanner, sig: Signal, current_price: float) -> None:
         if _FS: _fs.update_signal_status(sig.id, "skipped")
         _save_state(sc)
         return
+
+    daily_target = float(sc.settings.get("daily_pts_target") or 0) or config.TRADING_DAILY_PTS_TARGET
+    if daily_target > 0:
+        today_pts = _today_pts(sc)
+        if today_pts >= daily_target:
+            sig.status = "skipped"
+            console.print(f"[yellow]Signal {sig.id} skipped — daily {today_pts:.0f}pts ≥ target {daily_target:.0f}pts[/yellow]")
+            if _FS: _fs.update_signal_status(sig.id, "skipped")
+            _save_state(sc)
+            return
 
     entry = current_price
     sl = calc_sl(sig.sl_wick)
