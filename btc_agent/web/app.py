@@ -647,8 +647,14 @@ async def _start_liquidity_collector():
     import asyncio
 
     def _run():
-        from btc_agent.liquidity.collector import run_collect
-        asyncio.run(run_collect())
+        import time as _time
+        while True:
+            try:
+                from btc_agent.liquidity.collector import run_collect
+                asyncio.run(run_collect())
+            except Exception as exc:
+                print(f"[liquidity-collector] crashed: {exc} — restarting in 60s")
+            _time.sleep(60)
 
     t = threading.Thread(target=_run, daemon=True, name="liquidity-collector")
     t.start()
