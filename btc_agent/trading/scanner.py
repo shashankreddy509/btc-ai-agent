@@ -1094,6 +1094,9 @@ def run_trading_scanner(uid: str, user_settings: dict | None = None, email: str 
             sc.user_email = email
         if user_settings:
             sc.settings.update(user_settings)
+        sc.trade_history.clear()
+        sc.pending_signals.clear()
+        sc.open_positions.clear()
         _load_state(sc)
     except Exception as e:
         sc.running = False

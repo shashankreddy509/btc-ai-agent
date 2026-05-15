@@ -383,8 +383,8 @@ async def trading_start(token: dict = Depends(verify_token)):
         prefs = load_user_prefs(uid) or {}
         setting_keys = {"mode", "tf_min", "tf_max", "scan_interval_min", "qty",
                         "max_sl", "min_tp", "max_concurrent", "patterns", "broker", "broker_nickname",
-                        "bias_filter", "lookback_candles", "entry_mode",
-                        "bsg_enabled", "bsg_trade_enabled",
+                        "bias_filter", "trail_offset", "lookback_candles", "entry_mode",
+                        "bsg_enabled", "bsg_trade_enabled", "daily_pts_target",
                         "coinbase_api_key", "coinbase_api_secret",
                         "binance_api_key", "binance_api_secret",
                         "bybit_api_key", "bybit_api_secret",
@@ -420,8 +420,8 @@ async def trading_autostart(token: dict = Depends(verify_token)):
         return JSONResponse({"status": "not_requested"})
     setting_keys = {"mode", "tf_min", "tf_max", "scan_interval_min", "qty",
                     "max_sl", "min_tp", "max_concurrent", "patterns", "broker", "broker_nickname",
-                    "bias_filter", "lookback_candles", "entry_mode",
-                    "bsg_enabled", "bsg_trade_enabled",
+                    "bias_filter", "trail_offset", "lookback_candles", "entry_mode",
+                    "bsg_enabled", "bsg_trade_enabled", "daily_pts_target",
                     "coinbase_api_key", "coinbase_api_secret",
                     "binance_api_key", "binance_api_secret",
                     "bybit_api_key", "bybit_api_secret",
