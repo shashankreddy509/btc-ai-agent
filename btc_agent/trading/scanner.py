@@ -183,6 +183,23 @@ def _bias_filter_enabled(sc: _Scanner) -> bool:
     return bool(sc.settings.get("bias_filter", config.TRADING_BIAS_FILTER))
 
 
+def _cme_close_skip_enabled(sc: _Scanner) -> bool:
+    return bool(sc.settings.get("cme_close_skip", config.TRADING_CME_CLOSE_SKIP))
+
+
+def _is_cme_closed() -> bool:
+    """True during CME closure: Fri 16:00 CT → Sun 17:00 CT."""
+    from zoneinfo import ZoneInfo
+    now = datetime.now(ZoneInfo("America/Chicago"))
+    dow = now.weekday()  # 0=Mon … 4=Fri, 5=Sat, 6=Sun
+    mins = now.hour * 60 + now.minute
+    return (
+        (dow == 4 and mins >= 960) or   # Fri >= 16:00 CT
+        dow == 5 or                      # Saturday
+        (dow == 6 and mins < 1020)       # Sun < 17:00 CT
+    )
+
+
 def _trend_bias(price: float, levels: dict) -> str:
     above = sum([
         price > (levels.get("mrp") or 0),
@@ -557,6 +574,10 @@ def _today_pts(sc: _Scanner) -> float:
 
 
 def _execute_entry(sc: _Scanner, sig: Signal, current_price: float) -> None:
+    if _cme_close_skip_enabled(sc) and _is_cme_closed():
+        console.print(f"[yellow]Signal {sig.id} skipped — CME closed (Fri 16:00–Sun 17:00 CT)[/yellow]")
+        return
+
     same_dir = any(p.status == "open" and p.direction == sig.direction for p in sc.open_positions)
     if same_dir:
         sig.status = "skipped"
@@ -1039,6 +1060,7 @@ def get_state(uid: str | None = None) -> dict:
             "broker_nickname":   sc.settings.get("broker_nickname", ""),
             "bsg_enabled":       _bsg_enabled(sc),
             "bsg_trade_enabled": _bsg_trade_enabled(sc),
+            "cme_close_skip":    _cme_close_skip_enabled(sc),
         },
     }
 

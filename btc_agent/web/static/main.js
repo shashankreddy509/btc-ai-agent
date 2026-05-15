@@ -1218,6 +1218,8 @@ function _syncSettingsInputs(settings) {
   document.getElementById('cfg-pattern-engulfing').checked    = activePatterns.includes('Engulfing');
   document.getElementById('cfg-pattern-retracement').checked  = activePatterns.includes('Retracement');
   document.getElementById('cfg-bias-filter').checked = !!settings.bias_filter;
+  const cmeEl = document.getElementById('cfg-cme-close-skip');
+  if (cmeEl) cmeEl.checked = !!settings.cme_close_skip;
   const bsgEl = document.getElementById('cfg-bsg-enabled');
   if (bsgEl) bsgEl.checked = !!settings.bsg_enabled;
   const bsgTradeEl = document.getElementById('cfg-bsg-trade-enabled');
@@ -1266,6 +1268,7 @@ async function saveTradingSettings() {
       ...(document.getElementById('cfg-pattern-retracement').checked  ? ['Retracement'] : []),
     ],
     bias_filter:      document.getElementById('cfg-bias-filter').checked,
+    cme_close_skip:   !!document.getElementById('cfg-cme-close-skip')?.checked,
     bsg_enabled:       !!document.getElementById('cfg-bsg-enabled')?.checked,
     bsg_trade_enabled: !!document.getElementById('cfg-bsg-trade-enabled')?.checked,
     lookback_candles: parseInt(document.getElementById('cfg-lookback-candles')?.value) || 3,

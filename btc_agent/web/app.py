@@ -374,7 +374,7 @@ async def trading_state(token: dict = Depends(verify_token)):
             fs_keys = {"mode", "tf_min", "tf_max", "scan_interval_min", "qty",
                        "max_sl", "min_tp", "max_concurrent", "patterns", "broker",
                        "broker_nickname", "bias_filter", "trail_offset", "lookback_candles",
-                       "entry_mode", "bsg_enabled", "bsg_trade_enabled", "daily_pts_target"}
+                       "entry_mode", "bsg_enabled", "bsg_trade_enabled", "daily_pts_target", "cme_close_skip"}
             for k in fs_keys:
                 if k in prefs:
                     state["settings"][k] = prefs[k]
@@ -399,7 +399,7 @@ async def trading_start(token: dict = Depends(verify_token)):
         setting_keys = {"mode", "tf_min", "tf_max", "scan_interval_min", "qty",
                         "max_sl", "min_tp", "max_concurrent", "patterns", "broker", "broker_nickname",
                         "bias_filter", "trail_offset", "lookback_candles", "entry_mode",
-                        "bsg_enabled", "bsg_trade_enabled", "daily_pts_target",
+                        "bsg_enabled", "bsg_trade_enabled", "daily_pts_target", "cme_close_skip",
                         "coinbase_api_key", "coinbase_api_secret",
                         "binance_api_key", "binance_api_secret",
                         "bybit_api_key", "bybit_api_secret",
@@ -436,7 +436,7 @@ async def trading_autostart(token: dict = Depends(verify_token)):
     setting_keys = {"mode", "tf_min", "tf_max", "scan_interval_min", "qty",
                     "max_sl", "min_tp", "max_concurrent", "patterns", "broker", "broker_nickname",
                     "bias_filter", "trail_offset", "lookback_candles", "entry_mode",
-                    "bsg_enabled", "bsg_trade_enabled", "daily_pts_target",
+                    "bsg_enabled", "bsg_trade_enabled", "daily_pts_target", "cme_close_skip",
                     "coinbase_api_key", "coinbase_api_secret",
                     "binance_api_key", "binance_api_secret",
                     "bybit_api_key", "bybit_api_secret",
@@ -475,7 +475,7 @@ async def trading_get_settings(token: dict = Depends(verify_token)):
         fs_keys = {"mode", "tf_min", "tf_max", "scan_interval_min", "qty",
                    "max_sl", "min_tp", "max_concurrent", "patterns", "broker",
                    "broker_nickname", "bias_filter", "trail_offset", "lookback_candles",
-                   "entry_mode", "bsg_enabled", "bsg_trade_enabled", "daily_pts_target"}
+                   "entry_mode", "bsg_enabled", "bsg_trade_enabled", "daily_pts_target", "cme_close_skip"}
         for k in fs_keys:
             if k in prefs:
                 settings[k] = prefs[k]
@@ -496,7 +496,7 @@ async def trading_save_settings(body: dict = Body(...), token: dict = Depends(ve
                     "max_sl", "min_tp", "max_concurrent", "patterns", "vishal", "bias_filter",
                     "trail_offset", "lookback_candles", "entry_mode",
                     "broker", "broker_nickname", "bsg_enabled", "bsg_trade_enabled",
-                    "daily_pts_target"}
+                    "daily_pts_target", "cme_close_skip"}
     clean = {k: v for k, v in body.items() if k in setting_keys and v is not None}
     save_user_prefs(uid, clean)
     # Update live scanner if running

@@ -56,6 +56,7 @@ TRADING_BIAS_FILTER       = os.getenv("TRADING_BIAS_FILTER", "false").lower() ==
 BSG_ENABLED               = os.getenv("BSG_ENABLED", "false").lower() == "true"
 BSG_TRADE_ENABLED         = os.getenv("BSG_TRADE_ENABLED", "false").lower() == "true"
 TRADING_DAILY_PTS_TARGET  = float(os.getenv("TRADING_DAILY_PTS_TARGET", "0.0"))  # 0 = unlimited
+TRADING_CME_CLOSE_SKIP    = os.getenv("TRADING_CME_CLOSE_SKIP", "false").lower() == "true"
 WEEKLY_ADJ                = float(os.getenv("WEEKLY_ADJ", "0.0324"))
 
 # Firebase owner UID — Coinbase keys stored in Firestore are tied to this UID
@@ -168,6 +169,7 @@ def apply_settings(d: dict) -> None:
     _bool = {
         "vishal_enabled": "VISHAL_ENABLED",
         "trading_bias_filter": "TRADING_BIAS_FILTER",
+        "trading_cme_close_skip": "TRADING_CME_CLOSE_SKIP",
         "bsg_enabled": "BSG_ENABLED",
         "bsg_trade_enabled": "BSG_TRADE_ENABLED",
     }
