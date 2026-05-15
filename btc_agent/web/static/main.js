@@ -71,9 +71,9 @@ function _updateAuthUI() {
   if (scanBtn)  scanBtn.style.display  = admin ? '' : 'none';
   if (briefBtn) briefBtn.style.display = admin ? '' : 'none';
 
-  // Admin-only trail offset input
+  // Trail offset visible to all logged-in users
   const trailRow = document.getElementById('cfg-trail-offset-row');
-  if (trailRow) trailRow.style.display = admin ? 'flex' : 'none';
+  if (trailRow) trailRow.style.display = 'flex';
 
   // Admin-only nav items
   const navUsers = document.getElementById('nav-users');
