@@ -365,7 +365,22 @@ async def status():
 @priv.get("/state")
 async def trading_state(token: dict = Depends(verify_token)):
     from btc_agent.trading.scanner import get_state
-    return JSONResponse(get_state(token["uid"]))
+    from btc_agent.trading.firestore_store import load_user_prefs
+    uid = token["uid"]
+    state = get_state(uid)
+    if not state["running"]:
+        try:
+            prefs = load_user_prefs(uid) or {}
+            fs_keys = {"mode", "tf_min", "tf_max", "scan_interval_min", "qty",
+                       "max_sl", "min_tp", "max_concurrent", "patterns", "broker",
+                       "broker_nickname", "bias_filter", "trail_offset", "lookback_candles",
+                       "entry_mode", "bsg_enabled", "bsg_trade_enabled", "daily_pts_target"}
+            for k in fs_keys:
+                if k in prefs:
+                    state["settings"][k] = prefs[k]
+        except Exception:
+            pass
+    return JSONResponse(state)
 
 
 @priv.post("/start")
