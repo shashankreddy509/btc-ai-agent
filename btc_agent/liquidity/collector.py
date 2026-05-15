@@ -48,18 +48,27 @@ CHART_Y_START = 55
 CHART_Y_END   = 740
 LINE_MERGE_PX = 3
 
+Y_AXIS_X       = (1325 + VIEWPORT_WIDTH) // 2  # ~1426, centre of Y-axis label strip
+YAXIS_DRAG_PX  = 200                            # px to drag down on Y-axis to zoom out
+
 CG_EMAIL    = os.getenv("COINGLASS_EMAIL", "")
 CG_PASSWORD = os.getenv("COINGLASS_PASSWORD", "")
 
-# ── Color profiles (black→yellow heat gradient, no grey) ──────────────────────
+# ── Color profiles — ordered specific→broad so first match wins ───────────────
 COLOR_PROFILES = [
-    ("YELLOW", (220, 255), (220, 255), (0,   40)),
-    ("LIME",   (160, 230), (220, 255), (0,   80)),
-    ("ORANGE", (220, 255), (80,  180), (0,   40)),
-    ("RED",    (180, 255), (0,   60),  (0,   40)),
-    ("TEAL",   (0,   80),  (150, 210), (150, 210)),
-    ("NAVY",   (20,  80),  (20,  80),  (80,  160)),
-    ("BLACK",  (0,   25),  (0,   25),  (0,   25)),
+    ("YELLOW",  (220, 255), (220, 255), (0,   40)),
+    ("LIME",    (160, 230), (220, 255), (0,   80)),
+    ("ORANGE",  (220, 255), (80,  180), (0,   40)),
+    ("RED",     (180, 255), (0,   60),  (0,   40)),
+    ("TEAL",    (0,   80),  (150, 210), (150, 210)),
+    ("NAVY",    (20,  80),  (20,  80),  (80,  160)),
+    ("BLUE",    (0,   80),  (80,  180), (180, 255)),
+    ("PURPLE",  (80,  180), (0,   80),  (120, 255)),
+    ("PINK",    (180, 255), (0,   80),  (100, 220)),
+    ("WHITE",   (200, 255), (200, 255), (200, 255)),
+    ("CYAN",    (0,   80),  (200, 255), (200, 255)),
+    ("GREEN",   (0,   80),  (160, 255), (0,   80)),
+    ("BLACK",   (0,   25),  (0,   25),  (0,   25)),
 ]
 
 
@@ -126,6 +135,20 @@ async def login(page: Page) -> bool:
         return False
 
 
+async def _zoom_y_axis_out(page: Page) -> None:
+    """Click-and-drag the Y-axis strip downward to zoom out, revealing more price levels."""
+    center_y = (CHART_Y_START + CHART_Y_END) // 2
+    drag_to_y = center_y + YAXIS_DRAG_PX
+    await page.mouse.move(Y_AXIS_X, center_y)
+    await page.wait_for_timeout(300)
+    await page.mouse.down()
+    await page.mouse.move(Y_AXIS_X, drag_to_y, steps=30)
+    await page.wait_for_timeout(200)
+    await page.mouse.up()
+    await page.wait_for_timeout(800)
+    log.info(f"Y-axis dragged {YAXIS_DRAG_PX}px down at x={Y_AXIS_X} (zoom out)")
+
+
 async def load_chart(page: Page):
     log.info(f"Loading chart: {CHART_URL}")
     await page.goto(CHART_URL, wait_until="networkidle", timeout=60_000)
@@ -134,6 +157,7 @@ async def load_chart(page: Page):
     if "login" in page.url:
         raise RuntimeError("Session expired — re-login required")
     log.info("Chart ready.")
+    await _zoom_y_axis_out(page)
 
 
 # ── Screenshot ─────────────────────────────────────────────────────────────────
@@ -421,7 +445,10 @@ async def collect_all_lines(page: Page, timestamp: str) -> list[dict]:
             await page.mouse.move(line["hover_x"], line["y"])
             await page.wait_for_timeout(HOVER_SETTLE_MS)
             leverage = await extract_leverage(page)
-            price    = price_from_y(line["y"], y_map)
+            if leverage in ("N/A", "ERROR", ""):
+                log.info(f"  [{i+1:02d}] {line['label']:<8} y={line['y']:>4} | skipped (no liquidity tooltip)")
+                continue
+            price = price_from_y(line["y"], y_map)
             row = {
                 "timestamp": timestamp,
                 "color":     line["label"],
