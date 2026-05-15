@@ -1061,6 +1061,7 @@ def get_state(uid: str | None = None) -> dict:
             "bsg_enabled":       _bsg_enabled(sc),
             "bsg_trade_enabled": _bsg_trade_enabled(sc),
             "cme_close_skip":    _cme_close_skip_enabled(sc),
+            "daily_pts_target":  float(sc.settings.get("daily_pts_target") or 0) or config.TRADING_DAILY_PTS_TARGET,
         },
     }
 
