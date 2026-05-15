@@ -760,14 +760,16 @@ async function loadLiquidity() {
       const price = r.price && r.price !== 'N/A'
         ? '$' + Number(r.price).toLocaleString('en-US', {minimumFractionDigits: 1, maximumFractionDigits: 1})
         : '—';
+      const ts = formatTs(r.timestamp.replace(' UTC', 'Z').replace(' ', 'T'));
       return `<tr>
-        <td style="font-size:11px;color:var(--text-3)">${r.timestamp}</td>
+        <td style="font-size:11px;color:var(--text-3)">${ts}</td>
         <td><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:${dot};margin-right:5px;vertical-align:middle"></span>${r.color}</td>
         <td style="font-variant-numeric:tabular-nums">${price}</td>
         <td style="font-variant-numeric:tabular-nums">${r.leverage}</td>
       </tr>`;
     }).join('');
-    if (status) status.textContent = `${rows.length} rows · last: ${rows[0]?.timestamp || '—'}`;
+    const lastTs = rows[0]?.timestamp ? formatTs(rows[0].timestamp.replace(' UTC','Z').replace(' ','T')) : '—';
+    if (status) status.textContent = `${rows.length} rows · last: ${lastTs}`;
   } catch (e) {
     tbody.innerHTML = `<tr><td colspan="4" style="color:var(--red)">${e}</td></tr>`;
   }
