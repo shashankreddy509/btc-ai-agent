@@ -1270,7 +1270,7 @@ async function saveTradingSettings() {
     bsg_trade_enabled: !!document.getElementById('cfg-bsg-trade-enabled')?.checked,
     lookback_candles: parseInt(document.getElementById('cfg-lookback-candles')?.value) || 3,
     entry_mode:       document.getElementById('cfg-entry-mode')?.value || 'immediate',
-    ...((_isAdmin()) ? { trail_offset: parseInt(document.getElementById('cfg-trail-offset')?.value || '50') } : {}),
+    trail_offset: parseInt(document.getElementById('cfg-trail-offset')?.value || '50'),
     daily_pts_target: parseFloat(document.getElementById('cfg-daily-pts')?.value) || 0,
   };
   await fetchJSON('/api/trading/settings', {
