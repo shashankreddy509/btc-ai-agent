@@ -452,14 +452,11 @@ def _bsg_trade_enabled(sc: _Scanner) -> bool:
 
 
 def _tick_bsg(sc: _Scanner, arr, ts_arr, minutes_of_day, unix_days) -> None:
-    enabled = _bsg_enabled(sc)
-    console.print(f"[dim]BSG tick: enabled={enabled}[/dim]")
-    if not enabled:
+    if not _bsg_enabled(sc):
         return
     for tf in (_BSG_TF,):
         try:
             bars, bar_open_times = aggregate_tf(arr, ts_arr, minutes_of_day, unix_days, tf, last_n=200)
-            console.print(f"[dim]BSG {tf}m: bars={None if bars is None else len(bars)}[/dim]")
             if bars is None or len(bars) < 4:
                 continue
             c = bars[:, 3].astype(float)
@@ -1361,8 +1358,6 @@ def run_trading_scanner(uid: str, user_settings: dict | None = None, email: str 
                         if _FS:
                             for sig in new_sigs:
                                 _fs.save_signal(_signal_to_dict(sig), sc.uid)
-                    else:
-                        console.print("[dim]No new patterns found[/dim]")
                     _tick_bsg(sc, arr, ts_arr, minutes_of_day, unix_days)
                     sc.last_scan_time = now
                 except Exception as e:
