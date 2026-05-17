@@ -31,10 +31,13 @@ dependencies = [
     "uvicorn[standard]>=0.44.0",
     "cryptography>=46.0.0",
     "firebase-admin>=7.4.0",
+    "playwright>=1.44.0",
     "pillow>=10.0.0",
 ]
 
 [project.scripts]
+liquidity-debug   = "btc_agent.liquidity.collector:debug_main"
+liquidity-collect = "btc_agent.liquidity.collector:collect_main"
 
 [dependency-groups]
 dev = [
