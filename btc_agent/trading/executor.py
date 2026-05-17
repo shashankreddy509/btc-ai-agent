@@ -115,6 +115,8 @@ def _get(path: str, api_key: str | None = None, api_secret: str | None = None) -
             return json.loads(resp.read())
     except urllib.error.HTTPError as e:
         raise RuntimeError(f"Coinbase {path} → HTTP {e.code}: {e.read().decode()}") from e
+    except urllib.error.URLError as e:
+        raise RuntimeError(f"Coinbase {path} → network error: {e.reason}") from e
 
 
 def _post(path: str, payload: dict[str, Any], api_key: str | None = None, api_secret: str | None = None) -> dict[str, Any]:
@@ -131,6 +133,8 @@ def _post(path: str, payload: dict[str, Any], api_key: str | None = None, api_se
             return json.loads(resp.read())
     except urllib.error.HTTPError as e:
         raise RuntimeError(f"Coinbase {path} → HTTP {e.code}: {e.read().decode()}") from e
+    except urllib.error.URLError as e:
+        raise RuntimeError(f"Coinbase {path} → network error: {e.reason}") from e
 
 
 def get_portfolio_name(api_key: str | None = None, api_secret: str | None = None) -> str:
@@ -165,7 +169,11 @@ def place_market_order(
             }
         },
     }
-    return _post("/api/v3/brokerage/orders", payload, api_key, api_secret)
+    result = _post("/api/v3/brokerage/orders", payload, api_key, api_secret)
+    if result.get("success") is False:
+        err = result.get("error_response", {})
+        raise RuntimeError(f"Coinbase order rejected: {err.get('message', result.get('failure_reason', 'unknown'))}")
+    return result
 
 
 def place_stop_limit_order(
@@ -193,7 +201,11 @@ def place_stop_limit_order(
             }
         },
     }
-    return _post("/api/v3/brokerage/orders", payload, api_key, api_secret)
+    result = _post("/api/v3/brokerage/orders", payload, api_key, api_secret)
+    if result.get("success") is False:
+        err = result.get("error_response", {})
+        raise RuntimeError(f"Coinbase order rejected: {err.get('message', result.get('failure_reason', 'unknown'))}")
+    return result
 
 
 def cancel_order(order_id: str, api_key: str | None = None, api_secret: str | None = None) -> dict[str, Any]:
@@ -226,4 +238,8 @@ def place_take_profit_order(
             }
         },
     }
-    return _post("/api/v3/brokerage/orders", payload, api_key, api_secret)
+    result = _post("/api/v3/brokerage/orders", payload, api_key, api_secret)
+    if result.get("success") is False:
+        err = result.get("error_response", {})
+        raise RuntimeError(f"Coinbase order rejected: {err.get('message', result.get('failure_reason', 'unknown'))}")
+    return result

@@ -192,12 +192,14 @@ def apply_settings(d: dict) -> None:
         v = d.get(key)
         if v is not None:
             try: setattr(mod, attr, int(v))
-            except (ValueError, TypeError): pass
+            except (ValueError, TypeError) as e:
+                print(f"[config] warning: {key}={v!r} not a valid int: {e}")
     for key, attr in _float.items():
         v = d.get(key)
         if v is not None:
             try: setattr(mod, attr, float(v))
-            except (ValueError, TypeError): pass
+            except (ValueError, TypeError) as e:
+                print(f"[config] warning: {key}={v!r} not a valid float: {e}")
     for key, attr in _bool.items():
         v = d.get(key)
         if v is not None:

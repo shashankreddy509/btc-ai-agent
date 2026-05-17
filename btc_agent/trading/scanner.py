@@ -591,7 +591,8 @@ def _tick_bsg(sc: _Scanner, arr, ts_arr, minutes_of_day, unix_days) -> None:
                         )
                         _execute_entry(sc, sig, entry_px)
         except Exception as e:
-            console.print(f"[dim]BSG {tf}m error: {e}[/dim]")
+            console.print(f"[red]BSG {tf}m error: {e}[/red]")
+            console.print_exception(max_frames=5)
 
 
 # ── entry execution ───────────────────────────────────────────────────────────
@@ -781,7 +782,8 @@ def _update_live_sl(sc: _Scanner, pos: Position, new_sl: float) -> None:
 def _partial_close(sc: _Scanner, pos: Position, price: float) -> None:
     half_contracts = int(pos.qty) // 2
     pnl_pts = price - pos.entry_price if pos.direction == "long" else pos.entry_price - price
-    pos.partial_pnl = round(pnl_pts * half_contracts * sc.broker.contract_size, 4)
+    contract_size = sc.broker.contract_size if sc.broker else config.COINBASE_CONTRACT_SIZE
+    pos.partial_pnl = round(pnl_pts * half_contracts * contract_size, 4)
     pos.partial_closed = True
     pos.trail_anchor = price
     old_sl  = pos.sl
@@ -1262,7 +1264,12 @@ def run_trading_scanner(uid: str, user_settings: dict | None = None, email: str 
     if qty < 2:
         console.print("[yellow]Warning: qty < 2 — partial close requires at least 2 contracts[/yellow]")
 
-    sc.broker = _build_broker(sc)
+    try:
+        sc.broker = _build_broker(sc)
+    except Exception as e:
+        console.print(f"[red]Broker init failed: {e}[/red]")
+        sc.running = False
+        return
     if sc.broker and _is_live(sc):
         try:
             sc.broker_account_name = sc.broker.get_display_name()

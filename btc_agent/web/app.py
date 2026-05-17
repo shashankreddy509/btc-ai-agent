@@ -45,6 +45,7 @@ _pp_lock = threading.Lock()
 _flag_cache: dict = {}
 _flag_cache_ts: float = 0.0
 _FLAG_TTL = 30.0
+_flag_lock = threading.Lock()
 
 # Keys passed to the trading scanner on start/autostart — must stay in sync with scanner.py
 _SCANNER_SEED_KEYS = frozenset({
@@ -76,16 +77,19 @@ def _get_feature_flags() -> dict:
     global _flag_cache, _flag_cache_ts
     if time.time() - _flag_cache_ts < _FLAG_TTL:
         return _flag_cache
-    try:
-        from btc_agent.trading.firestore_store import load_app_settings
-        data = load_app_settings() or {}
-        _flag_cache = {
-            "vishal_enabled":      bool(data.get("vishal_enabled", False)),
-            "retracement_enabled": bool(data.get("retracement_enabled", False)),
-        }
-    except Exception:
-        pass
-    _flag_cache_ts = time.time()
+    with _flag_lock:
+        if time.time() - _flag_cache_ts < _FLAG_TTL:
+            return _flag_cache
+        try:
+            from btc_agent.trading.firestore_store import load_app_settings
+            data = load_app_settings() or {}
+            _flag_cache = {
+                "vishal_enabled":      bool(data.get("vishal_enabled", False)),
+                "retracement_enabled": bool(data.get("retracement_enabled", False)),
+            }
+        except Exception as e:
+            print(f"[feature_flags] load failed: {e}")
+        _flag_cache_ts = time.time()
     return _flag_cache
 
 
@@ -397,8 +401,8 @@ async def trading_state(token: dict = Depends(verify_token)):
             for k in fs_keys:
                 if k in prefs:
                     state["settings"][k] = prefs[k]
-        except Exception:
-            pass
+        except Exception as e:
+            print(f"[trading_state] user prefs load failed: {e}")
     return JSONResponse(state)
 
 
@@ -547,13 +551,41 @@ async def settings_get_user(token: dict = Depends(verify_token)):
     return JSONResponse(_mask_dict(data, _SENSITIVE_USER))
 
 
+@priv_cfg.post("/pepperstone/auth-url")
+async def pepperstone_auth_url(request: Request, token: dict = Depends(verify_token)):
+    """Return the cTrader authorize URL without exposing the Firebase token in the browser URL."""
+    from btc_agent import config
+    from btc_agent.trading.firestore_store import load_user_prefs
+    uid = token["uid"]
+    prefs = load_user_prefs(uid) or {}
+    client_id = prefs.get("pepperstone_client_id") or config.PEPPERSTONE_CLIENT_ID
+    if not client_id:
+        raise HTTPException(status_code=400, detail="Save your Pepperstone Client ID in Settings first.")
+    state = secrets.token_urlsafe(32)
+    now = time.time()
+    with _pp_lock:
+        _pepperstone_states[state] = {"uid": uid, "expires": now + 300}
+        for k in [k for k, v in _pepperstone_states.items() if v["expires"] < now]:
+            _pepperstone_states.pop(k, None)
+    params = urllib.parse.urlencode({
+        "response_type": "code",
+        "client_id":     client_id,
+        "redirect_uri":  _pepperstone_redirect_uri(request),
+        "scope":         "trading",
+        "state":         state,
+    })
+    return JSONResponse({"url": f"https://id.ctrader.com/connect/authorize?{params}"})
+
+
 @priv_cfg.put("/user")
 async def settings_save_user(body: dict = Body(...), token: dict = Depends(verify_token)):
-    from btc_agent import config
     from btc_agent.trading.firestore_store import save_user_prefs
+    from btc_agent.trading.scanner import _scanners
     clean = {k: v for k, v in body.items() if v is not None and "****" not in str(v)}
     save_user_prefs(token["uid"], clean)
-    config.apply_settings(clean)
+    sc = _scanners.get(token["uid"])
+    if sc is not None:
+        sc.settings.update(clean)
     return JSONResponse({"status": "saved"})
 
 

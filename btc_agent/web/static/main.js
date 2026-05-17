@@ -262,11 +262,9 @@ async function savePepperstoneCreds() {
 
 async function connectPepperstone() {
   if (!_currentUser) return;
-  const token = await _currentUser.getIdToken();
-  const popup = window.open(
-    `/auth/pepperstone?token=${encodeURIComponent(token)}`,
-    'pepperstone_auth', 'width=600,height=700,noopener=no'
-  );
+  const { url } = await fetchJSON('/api/settings/pepperstone/auth-url', { method: 'POST' });
+  if (!url) return;
+  const popup = window.open(url, 'pepperstone_auth', 'width=600,height=700,noopener=no');
   const timer = setInterval(() => {
     if (!popup || popup.closed) {
       clearInterval(timer);
@@ -843,12 +841,17 @@ async function triggerBrief() {
 
 // ── BTC price ──────────────────────────────────────────────────────────────────
 async function fetchBTCPrice() {
+  const ac = new AbortController();
+  const _t = setTimeout(() => ac.abort(), 5000);
   try {
-    const r = await fetch('/api/price');
+    const r = await fetch('/api/price', { signal: ac.signal });
     if (!r.ok) return;
     const { price } = await r.json();
     if (price) _applyPrice(price);
-  } catch (_) {}
+  } catch (_) {
+  } finally {
+    clearTimeout(_t);
+  }
 }
 
 let _wsPrice = null;

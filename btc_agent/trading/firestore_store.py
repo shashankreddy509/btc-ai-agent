@@ -11,6 +11,7 @@ Reads (load_state) are synchronous — called once at scanner startup.
 """
 from __future__ import annotations
 
+import atexit
 import threading
 from concurrent.futures import ThreadPoolExecutor
 from typing import Any
@@ -20,6 +21,7 @@ from google.cloud.firestore_v1.base_query import FieldFilter
 
 console = Console()
 _write_pool = ThreadPoolExecutor(max_workers=4, thread_name_prefix="fs-write")
+atexit.register(_write_pool.shutdown, wait=True)
 
 
 def _get_db():
