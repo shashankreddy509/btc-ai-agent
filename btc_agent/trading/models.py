@@ -44,6 +44,10 @@ class Position:
     partial_pnl: float = 0.0     # PnL banked from the partial close
     sl_order_id: str | None = None     # broker SL order ID (cancel/replace on trail)
     tp_order_id: str | None = None     # broker TP order ID (cancel when SL hits or full close)
+    depo_line: float | None = None     # DEPO level touched at signal creation
+    depo_tp1: float | None = None      # 950pt partial-close target
+    depo_tp2: float | None = None      # next DEPO level (final target), also stored in pos.tp
+    depo_be_done: bool = False         # True after 500pt breakeven SL triggered
 
 
 @dataclass

@@ -71,6 +71,15 @@ class _Scanner:
 _scanners: dict[str, _Scanner] = {}
 _scanners_lock = threading.Lock()
 
+_depo_lines: np.ndarray | None = None
+
+def _get_depo_lines() -> np.ndarray:
+    global _depo_lines
+    if _depo_lines is None:
+        from btc_agent.scanner.depo import generate_depo_lines
+        _depo_lines = generate_depo_lines()
+    return _depo_lines
+
 
 def _get_or_create(uid: str) -> _Scanner:
     with _scanners_lock:
@@ -356,10 +365,15 @@ def _scan_patterns(sc: _Scanner, arr, ts_arr, minutes_of_day, unix_days) -> list
                 for direction in ("long", "short"):
                     if not _is_duplicate(sc, tf, "4-Flag", direction, w_open_time):
                         sig = _bars_to_signal("4-Flag", direction, tf, window, w_open_time, lookback)
+                        from btc_agent.scanner.depo import check_depo
+                        depo_hit = check_depo(window, _get_depo_lines())
+                        if depo_hit:
+                            sig.meta["depo_line"] = depo_hit
                         new_signals.append(sig)
                         console.print(
                             f"[bold yellow]4-Flag[/bold yellow] detected on [green]{tf}m[/green] "
                             f"→ {direction.upper()}  trigger={sig.entry_trigger:.1f}"
+                            + (f"  [magenta]DEPO@{depo_hit:.0f}[/magenta]" if depo_hit else "")
                         )
 
         if "Engulfing" in patterns and len(bars) >= 2:
@@ -368,10 +382,15 @@ def _scan_patterns(sc: _Scanner, arr, ts_arr, minutes_of_day, unix_days) -> list
                 direction = "long" if eng_dir == "bullish" else "short"
                 if not _is_duplicate(sc, tf, "Engulfing", direction, bar_open_time):
                     sig = _bars_to_signal("Engulfing", direction, tf, bars, bar_open_time, lookback)
+                    from btc_agent.scanner.depo import check_depo
+                    depo_hit = check_depo(bars[-2:], _get_depo_lines())
+                    if depo_hit:
+                        sig.meta["depo_line"] = depo_hit
                     new_signals.append(sig)
                     console.print(
                         f"[bold cyan]Engulfing ({direction})[/bold cyan] on [green]{tf}m[/green] "
                         f"→ {direction.upper()}  trigger={sig.entry_trigger:.1f}"
+                        + (f"  [magenta]DEPO@{depo_hit:.0f}[/magenta]" if depo_hit else "")
                     )
 
     if "Retracement" in patterns:
@@ -632,6 +651,18 @@ def _execute_entry(sc: _Scanner, sig: Signal, current_price: float) -> None:
         tp, tp_reason = sig.custom_tp, sig.pattern
     else:
         tp, tp_reason = _calc_tp(sc, sig.direction, entry)
+
+    depo_line = (sig.meta or {}).get("depo_line")
+    depo_tp1 = depo_tp2 = None
+    if depo_line and not is_bsg:
+        from btc_agent.scanner.depo import next_depo_level
+        depo_tp1 = round(entry + 950 if sig.direction == "long" else entry - 950, 2)
+        depo_tp2 = next_depo_level(_get_depo_lines(), depo_line, sig.direction)
+        if depo_tp2:
+            tp = round(depo_tp2, 2)
+            tp_reason = f"DEPO@{depo_line:.0f}"
+            console.print(f"[magenta]DEPO trade: TP1={depo_tp1:.1f}  TP2(DEPO)={depo_tp2:.1f}[/magenta]")
+
     qty = _trading_qty(sc)
     sig.status = "triggered"
 
@@ -640,6 +671,9 @@ def _execute_entry(sc: _Scanner, sig: Signal, current_price: float) -> None:
         direction=sig.direction, opened_at=datetime.now(timezone.utc),
         pattern=sig.pattern, tf=sig.tf, tp_reason=tp_reason,
     )
+    pos.depo_line = depo_line
+    pos.depo_tp1 = depo_tp1
+    pos.depo_tp2 = depo_tp2
 
     mode = _trading_mode(sc)
     if _is_live(sc):
@@ -849,6 +883,55 @@ def _monitor_positions(sc: _Scanner, current_price: float) -> None:
     for pos in sc.open_positions:
         if pos.status != "open":
             continue
+
+        # ── DEPO position management ──────────────────────────────────────────
+        if pos.depo_line:
+            # Stage 1: 500pts in favor → SL to entry ± 100 (breakeven+)
+            if not pos.depo_be_done:
+                pts_favor = (current_price - pos.entry_price if pos.direction == "long"
+                             else pos.entry_price - current_price)
+                if pts_favor >= 500:
+                    be_sl = round(pos.entry_price + 100 if pos.direction == "long"
+                                  else pos.entry_price - 100, 2)
+                    if (pos.direction == "long" and be_sl > pos.sl) or \
+                       (pos.direction == "short" and be_sl < pos.sl):
+                        pos.sl = be_sl
+                        pos.depo_be_done = True
+                        console.print(f"[cyan]DEPO BE SL {pos.direction} → {be_sl:.1f}[/cyan]")
+                        if _is_live(sc):
+                            _update_live_sl(sc, pos, be_sl)
+
+            # Stage 2: TP1 at 950pts → 50% partial, SL fixed at entry ± 500
+            if pos.depo_tp1 and not pos.partial_closed:
+                tp1_hit = (pos.direction == "long"  and current_price >= pos.depo_tp1) or \
+                          (pos.direction == "short" and current_price <= pos.depo_tp1)
+                if tp1_hit:
+                    _partial_close(sc, pos, current_price)
+                    fixed_sl = round(pos.entry_price + 500 if pos.direction == "long"
+                                     else pos.entry_price - 500, 2)
+                    pos.sl = fixed_sl
+                    pos.trail_anchor = None  # disable trail — SL stays fixed
+                    console.print(f"[cyan]DEPO TP1 partial @ {current_price:.1f}, SL fixed → {fixed_sl:.1f}[/cyan]")
+                    if _is_live(sc):
+                        _update_live_sl(sc, pos, fixed_sl)
+                    continue
+
+            # SL check for all DEPO trades
+            hit_sl = (pos.direction == "long"  and current_price <= pos.sl) or \
+                     (pos.direction == "short" and current_price >= pos.sl)
+            if hit_sl:
+                _close_position(sc, pos, current_price, "sl")
+                continue
+
+            # After TP1: fixed SL, wait for next DEPO (pos.tp = depo_tp2)
+            if pos.partial_closed:
+                hit_tp2 = (pos.direction == "long"  and current_price >= pos.tp) or \
+                          (pos.direction == "short" and current_price <= pos.tp)
+                if hit_tp2:
+                    _close_position(sc, pos, current_price, "tp")
+            continue  # skip regular logic for all DEPO positions
+
+        # ── Regular (non-DEPO) monitor logic ─────────────────────────────────
         if not pos.partial_closed:
             hit_tp = (pos.direction == "long"  and current_price >= pos.tp) or \
                      (pos.direction == "short" and current_price <= pos.tp)
@@ -913,6 +996,10 @@ def _position_to_dict(p: Position) -> dict:
         "contract_size": config.COINBASE_CONTRACT_SIZE,
         "sl_order_id": p.sl_order_id,
         "tp_order_id": p.tp_order_id,
+        "depo_line":   p.depo_line,
+        "depo_tp1":    p.depo_tp1,
+        "depo_tp2":    p.depo_tp2,
+        "depo_be_done": p.depo_be_done,
     }
 
 
@@ -942,6 +1029,10 @@ def _dict_to_position(d: dict) -> Position:
         partial_pnl=d.get("partial_pnl", 0.0),
         sl_order_id=d.get("sl_order_id"),
         tp_order_id=d.get("tp_order_id"),
+        depo_line=d.get("depo_line"),
+        depo_tp1=d.get("depo_tp1"),
+        depo_tp2=d.get("depo_tp2"),
+        depo_be_done=d.get("depo_be_done", False),
     )
 
 
