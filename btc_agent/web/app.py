@@ -46,6 +46,31 @@ _flag_cache: dict = {}
 _flag_cache_ts: float = 0.0
 _FLAG_TTL = 30.0
 
+# Keys passed to the trading scanner on start/autostart — must stay in sync with scanner.py
+_SCANNER_SEED_KEYS = frozenset({
+    "mode", "tf_min", "tf_max", "scan_interval_min", "qty",
+    "max_sl", "min_tp", "max_concurrent", "patterns", "broker", "broker_nickname",
+    "bias_filter", "trail_offset", "lookback_candles", "entry_mode",
+    "bsg_enabled", "bsg_trade_enabled", "daily_pts_target", "cme_close_skip",
+    "coinbase_api_key", "coinbase_api_secret",
+    "binance_api_key", "binance_api_secret",
+    "bybit_api_key", "bybit_api_secret",
+    "delta_api_key", "delta_api_secret",
+    "coindcx_api_key", "coindcx_api_secret",
+    "pepperstone_client_id", "pepperstone_client_secret",
+    "pepperstone_refresh_token", "pepperstone_account_id",
+    "pepperstone_is_live",
+})
+
+# Behavioural settings persisted to Firestore via the settings page (no credentials)
+_BEHAVIOUR_SETTING_KEYS = frozenset({
+    "mode", "tf_min", "tf_max", "scan_interval_min", "qty",
+    "max_sl", "min_tp", "max_concurrent", "patterns", "broker", "broker_nickname",
+    "bias_filter", "trail_offset", "lookback_candles", "entry_mode",
+    "bsg_enabled", "bsg_trade_enabled", "daily_pts_target", "cme_close_skip",
+    "vishal",
+})
+
 
 def _get_feature_flags() -> dict:
     global _flag_cache, _flag_cache_ts
@@ -120,18 +145,7 @@ async def _load_firestore_settings():
 
 def _auto_restart_scanner(uid: str, user_data: dict) -> None:
     from btc_agent.trading.scanner import run_trading_scanner
-    setting_keys = {"mode", "tf_min", "tf_max", "scan_interval_min", "qty",
-                    "max_sl", "min_tp", "max_concurrent", "patterns", "broker", "broker_nickname",
-                    "lookback_candles", "entry_mode",
-                    "coinbase_api_key", "coinbase_api_secret",
-                    "binance_api_key", "binance_api_secret",
-                    "bybit_api_key", "bybit_api_secret",
-                    "delta_api_key", "delta_api_secret",
-                    "coindcx_api_key", "coindcx_api_secret",
-                    "pepperstone_client_id", "pepperstone_client_secret",
-                    "pepperstone_refresh_token", "pepperstone_account_id",
-                    "pepperstone_is_live"}
-    user_settings = {k: v for k, v in user_data.items() if k in setting_keys}
+    user_settings = {k: v for k, v in user_data.items() if k in _SCANNER_SEED_KEYS}
     user_email = ""
     try:
         from firebase_admin import auth as fb_auth
@@ -281,8 +295,8 @@ async def pepperstone_callback(request: Request, code: str = None, state: str = 
 
 @pub.get("/price")
 async def get_price():
-    from btc_agent.trading.scanner import _scanners
-    price = next((sc.last_price for sc in _scanners.values() if sc.last_price), None)
+    from btc_agent.trading.scanner import get_any_price
+    price = get_any_price()
     if not price:
         from btc_agent.scanner.data import fetch_current_price
         price = fetch_current_price()
@@ -401,21 +415,9 @@ async def trading_start(token: dict = Depends(verify_token)):
     try:
         from btc_agent.trading.firestore_store import load_user_prefs
         prefs = load_user_prefs(uid) or {}
-        setting_keys = {"mode", "tf_min", "tf_max", "scan_interval_min", "qty",
-                        "max_sl", "min_tp", "max_concurrent", "patterns", "broker", "broker_nickname",
-                        "bias_filter", "trail_offset", "lookback_candles", "entry_mode",
-                        "bsg_enabled", "bsg_trade_enabled", "daily_pts_target", "cme_close_skip",
-                        "coinbase_api_key", "coinbase_api_secret",
-                        "binance_api_key", "binance_api_secret",
-                        "bybit_api_key", "bybit_api_secret",
-                        "delta_api_key", "delta_api_secret",
-                        "pepperstone_client_id", "pepperstone_client_secret",
-                        "pepperstone_access_token", "pepperstone_account_id",
-                        "pepperstone_is_live",
-                        "coindcx_api_key", "coindcx_api_secret"}
-        user_settings = {k: v for k, v in prefs.items() if k in setting_keys}
+        user_settings = {k: v for k, v in prefs.items() if k in _SCANNER_SEED_KEYS}
     except Exception as e:
-        pass
+        console.print(f"[yellow][/start] settings load failed: {e}[/yellow]")
 
     threading.Thread(
         target=run_trading_scanner,
@@ -438,19 +440,7 @@ async def trading_autostart(token: dict = Depends(verify_token)):
     prefs = load_user_prefs(uid) or {}
     if not prefs.get("scanner_running"):
         return JSONResponse({"status": "not_requested"})
-    setting_keys = {"mode", "tf_min", "tf_max", "scan_interval_min", "qty",
-                    "max_sl", "min_tp", "max_concurrent", "patterns", "broker", "broker_nickname",
-                    "bias_filter", "trail_offset", "lookback_candles", "entry_mode",
-                    "bsg_enabled", "bsg_trade_enabled", "daily_pts_target", "cme_close_skip",
-                    "coinbase_api_key", "coinbase_api_secret",
-                    "binance_api_key", "binance_api_secret",
-                    "bybit_api_key", "bybit_api_secret",
-                    "delta_api_key", "delta_api_secret",
-                    "pepperstone_client_id", "pepperstone_client_secret",
-                    "pepperstone_refresh_token", "pepperstone_account_id",
-                    "pepperstone_is_live",
-                    "coindcx_api_key", "coindcx_api_secret"}
-    user_settings = {k: v for k, v in prefs.items() if k in setting_keys}
+    user_settings = {k: v for k, v in prefs.items() if k in _SCANNER_SEED_KEYS}
     threading.Thread(
         target=run_trading_scanner,
         args=(uid,),
@@ -477,11 +467,7 @@ async def trading_get_settings(token: dict = Depends(verify_token)):
     # Merge Firestore prefs so UI shows correct values even when scanner is stopped
     try:
         prefs = load_user_prefs(uid) or {}
-        fs_keys = {"mode", "tf_min", "tf_max", "scan_interval_min", "qty",
-                   "max_sl", "min_tp", "max_concurrent", "patterns", "broker",
-                   "broker_nickname", "bias_filter", "trail_offset", "lookback_candles",
-                   "entry_mode", "bsg_enabled", "bsg_trade_enabled", "daily_pts_target", "cme_close_skip"}
-        for k in fs_keys:
+        for k in _BEHAVIOUR_SETTING_KEYS:
             if k in prefs:
                 settings[k] = prefs[k]
     except Exception:
@@ -497,12 +483,7 @@ async def trading_save_settings(body: dict = Body(...), token: dict = Depends(ve
     if qty is not None and not _is_valid_qty(qty):
         raise HTTPException(status_code=422, detail="Qty must be a multiple of 2")
     uid = token["uid"]
-    setting_keys = {"mode", "tf_min", "tf_max", "scan_interval_min", "qty",
-                    "max_sl", "min_tp", "max_concurrent", "patterns", "vishal", "bias_filter",
-                    "trail_offset", "lookback_candles", "entry_mode",
-                    "broker", "broker_nickname", "bsg_enabled", "bsg_trade_enabled",
-                    "daily_pts_target", "cme_close_skip"}
-    clean = {k: v for k, v in body.items() if k in setting_keys and v is not None}
+    clean = {k: v for k, v in body.items() if k in _BEHAVIOUR_SETTING_KEYS and v is not None}
     save_user_prefs(uid, clean)
     # Update live scanner if running
     sc = _scanners.get(uid)

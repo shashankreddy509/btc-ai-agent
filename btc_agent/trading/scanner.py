@@ -1215,7 +1215,13 @@ def stop_trading_scanner(uid: str) -> None:
 
 
 def is_any_running() -> bool:
-    return any(sc.running for sc in _scanners.values())
+    with _scanners_lock:
+        return any(sc.running for sc in _scanners.values())
+
+
+def get_any_price() -> float | None:
+    with _scanners_lock:
+        return next((sc.last_price for sc in _scanners.values() if sc.last_price), None)
 
 
 _PRICE_TICK_S = 2

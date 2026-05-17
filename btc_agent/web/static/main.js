@@ -489,7 +489,7 @@ function navTo(section) {
     _setMobTabActive('mob-tab-liquidity');
     loadLiquidity();
     clearInterval(window._liqInterval);
-    window._liqInterval = setInterval(loadLiquidity, 30_000);
+    window._liqInterval = setInterval(() => { if (!document.hidden) loadLiquidity(); }, 30_000);
   } else if (section === 'scanner') {
     _currentSubTab = 'scanner';
     _showPage('scanner');
@@ -1338,14 +1338,14 @@ _updateAuthUI();
   updateThHeader();
   // Briefing + scanner are public — load immediately
   await Promise.all([loadBriefing(), loadScan(), fetchBTCPrice(), pollStatus()]);
-  setInterval(() => Promise.all([loadBriefing(), loadScan()]), REFRESH_MS);
-  setInterval(fetchBTCPrice, 2_000);
-  setInterval(pollStatus, 3000);
+  setInterval(() => { if (!document.hidden) Promise.all([loadBriefing(), loadScan()]); }, REFRESH_MS);
+  setInterval(() => { if (!document.hidden) fetchBTCPrice(); }, 2_000);
+  setInterval(() => { if (!document.hidden) pollStatus(); }, 3000);
   // Trading polling only when signed in
-  setInterval(() => { if (_currentUser) loadTrading(); }, 5000);
+  setInterval(() => { if (!document.hidden && _currentUser) loadTrading(); }, 5000);
   // Users page auto-refresh when visible
   setInterval(() => {
-    if (document.getElementById('page-users')?.classList.contains('active')) _showUsersPage();
+    if (!document.hidden && document.getElementById('page-users')?.classList.contains('active')) _showUsersPage();
   }, 8000);
 })();
 
