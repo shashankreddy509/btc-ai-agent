@@ -39,6 +39,7 @@ _brief_lock = threading.Lock()
 
 # Pepperstone OAuth2 state store — maps state token → {uid, expires}
 _pepperstone_states: dict[str, dict] = {}
+_pp_lock = threading.Lock()
 
 # Feature flag cache — re-reads Firestore at most once every 30 s
 _flag_cache: dict = {}
@@ -200,11 +201,11 @@ async def pepperstone_auth_start(token: str, request: Request):
         return HTMLResponse("<p>Save your Pepperstone Client ID in Settings first.</p>", status_code=400)
 
     state = secrets.token_urlsafe(32)
-    _pepperstone_states[state] = {"uid": uid, "expires": time.time() + 300}
-    # Prune stale states
     now = time.time()
-    for k in [k for k, v in _pepperstone_states.items() if v["expires"] < now]:
-        _pepperstone_states.pop(k, None)
+    with _pp_lock:
+        _pepperstone_states[state] = {"uid": uid, "expires": now + 300}
+        for k in [k for k, v in _pepperstone_states.items() if v["expires"] < now]:
+            _pepperstone_states.pop(k, None)
 
     params = urllib.parse.urlencode({
         "response_type": "code",
@@ -224,9 +225,10 @@ async def pepperstone_callback(request: Request, code: str = None, state: str = 
                             "<script>setTimeout(()=>window.close(),2000);</script></body></html>")
 
     now_t = time.time()
-    for k in [k for k, v in _pepperstone_states.items() if v["expires"] < now_t]:
-        _pepperstone_states.pop(k, None)
-    state_data = _pepperstone_states.pop(state or "", None)
+    with _pp_lock:
+        for k in [k for k, v in _pepperstone_states.items() if v["expires"] < now_t]:
+            _pepperstone_states.pop(k, None)
+        state_data = _pepperstone_states.pop(state or "", None)
     if not state_data or now_t > state_data["expires"]:
         return HTMLResponse("<html><body><p>Invalid or expired state. Please try again.</p>"
                             "<script>setTimeout(()=>window.close(),2000);</script></body></html>",

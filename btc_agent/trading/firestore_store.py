@@ -12,12 +12,14 @@ Reads (load_state) are synchronous — called once at scanner startup.
 from __future__ import annotations
 
 import threading
+from concurrent.futures import ThreadPoolExecutor
 from typing import Any
 
 from rich.console import Console
 from google.cloud.firestore_v1.base_query import FieldFilter
 
 console = Console()
+_write_pool = ThreadPoolExecutor(max_workers=4, thread_name_prefix="fs-write")
 
 
 def _get_db():
@@ -28,8 +30,8 @@ def _get_db():
 
 
 def _bg(fn, *args) -> None:
-    """Run fn(*args) in a daemon thread — fire and forget."""
-    threading.Thread(target=fn, args=args, daemon=True).start()
+    """Submit fn(*args) to the write pool — fire and forget."""
+    _write_pool.submit(fn, *args)
 
 
 # ── Writes ─────────────────────────────────────────────────────────────────────

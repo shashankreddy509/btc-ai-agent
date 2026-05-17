@@ -272,6 +272,8 @@ def _is_duplicate(sc: _Scanner, tf: int, pattern: str, direction: str, bar_open_
 
 
 def _last_swing_high(highs: np.ndarray, n: int = 3):
+    if len(highs) < 2 * n + 1:
+        return None, None
     for i in range(len(highs) - n - 1, n - 1, -1):
         if all(highs[i] >= highs[i - j] for j in range(1, n + 1)) and \
            all(highs[i] >= highs[i + j] for j in range(1, n + 1)):
@@ -280,6 +282,8 @@ def _last_swing_high(highs: np.ndarray, n: int = 3):
 
 
 def _last_swing_low(lows: np.ndarray, n: int = 3):
+    if len(lows) < 2 * n + 1:
+        return None, None
     for i in range(len(lows) - n - 1, n - 1, -1):
         if all(lows[i] <= lows[i - j] for j in range(1, n + 1)) and \
            all(lows[i] <= lows[i + j] for j in range(1, n + 1)):
@@ -1097,7 +1101,7 @@ def _load_state(sc: _Scanner) -> None:
         )
 
 
-def _save_state(sc: _Scanner) -> None:
+def _save_state(sc: _Scanner, wait: bool = False) -> None:
     sc.state_path.parent.mkdir(parents=True, exist_ok=True)
     state = {
         "signals":   [_signal_to_dict(s, _max_sl(sc)) for s in sc.pending_signals],
@@ -1106,7 +1110,15 @@ def _save_state(sc: _Scanner) -> None:
         "running":   sc.running,
         "updated_at": datetime.now(timezone.utc).isoformat(),
     }
-    sc.state_path.write_text(json.dumps(state, indent=2))
+    def _write():
+        try:
+            sc.state_path.write_text(json.dumps(state, indent=2))
+        except Exception as e:
+            console.print(f"[yellow]State save failed: {e}[/yellow]")
+    t = threading.Thread(target=_write, daemon=True)
+    t.start()
+    if wait:
+        t.join(timeout=5)
 
 
 def get_state(uid: str | None = None) -> dict:
@@ -1375,7 +1387,7 @@ def run_trading_scanner(uid: str, user_settings: dict | None = None, email: str 
     finally:
         _clear_on_stop(sc)
         sc.running = False
-        _save_state(sc)
+        _save_state(sc, wait=True)
         if _FS:
             _fs.save_user_prefs(uid, {"scanner_running": False})
         with _scanners_lock:
