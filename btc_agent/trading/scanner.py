@@ -1285,3 +1285,5 @@ def run_trading_scanner(uid: str, user_settings: dict | None = None, email: str 
         _save_state(sc)
         if _FS:
             _fs.save_user_prefs(uid, {"scanner_running": False})
+        with _scanners_lock:
+            _scanners.pop(uid, None)

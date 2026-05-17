@@ -223,8 +223,11 @@ async def pepperstone_callback(request: Request, code: str = None, state: str = 
         return HTMLResponse(f"<html><body><p>Authorization denied: {error}</p>"
                             "<script>setTimeout(()=>window.close(),2000);</script></body></html>")
 
+    now_t = time.time()
+    for k in [k for k, v in _pepperstone_states.items() if v["expires"] < now_t]:
+        _pepperstone_states.pop(k, None)
     state_data = _pepperstone_states.pop(state or "", None)
-    if not state_data or time.time() > state_data["expires"]:
+    if not state_data or now_t > state_data["expires"]:
         return HTMLResponse("<html><body><p>Invalid or expired state. Please try again.</p>"
                             "<script>setTimeout(()=>window.close(),2000);</script></body></html>",
                             status_code=400)
