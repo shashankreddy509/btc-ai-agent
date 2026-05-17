@@ -575,9 +575,6 @@ def _tick_bsg(sc: _Scanner, arr, ts_arr, minutes_of_day, unix_days) -> None:
                             created_at=now_utc,
                             expires_at=now_utc + timedelta(minutes=tf),
                         )
-                        sc.pending_signals.append(sig)
-                        sc.bsg_traded_bars.append((direction, bar_time, tf))
-                        sc.bsg_traded_bars = sc.bsg_traded_bars[-50:]
                         if _bias_filter_enabled(sc) and sc.current_bias:
                             allowed = "long" if "bullish" in sc.current_bias else "short"
                             if direction != allowed:
@@ -585,6 +582,9 @@ def _tick_bsg(sc: _Scanner, arr, ts_arr, minutes_of_day, unix_days) -> None:
                                     f"[yellow]BSG {direction} skipped — bias {sc.current_bias} requires {allowed}[/yellow]"
                                 )
                                 continue
+                        sc.pending_signals.append(sig)
+                        sc.bsg_traded_bars.append((direction, bar_time, tf))
+                        sc.bsg_traded_bars = sc.bsg_traded_bars[-50:]
                         console.print(
                             f"[bold magenta]BSG TRADE {direction.upper()}[/bold magenta] "
                             f"@ ~{entry_px:.1f}  SL={sl_price:.1f}  dist={abs(entry_px - sl_price):.1f}"
@@ -1282,8 +1282,9 @@ def run_trading_scanner(uid: str, user_settings: dict | None = None, email: str 
             _monitor_positions(sc, current_price)
             _tick_vishal(sc, current_price, now)
 
-            # Prune dead signals so pending_signals never grows unboundedly
+            # Prune dead signals and closed positions so lists never grow unboundedly
             sc.pending_signals = [s for s in sc.pending_signals if s.status == "pending"]
+            sc.open_positions  = [p for p in sc.open_positions  if p.status == "open"]
 
             emode = _entry_mode(sc)
             for sig in sc.pending_signals:

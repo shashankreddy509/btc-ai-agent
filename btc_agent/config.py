@@ -201,7 +201,7 @@ def apply_settings(d: dict) -> None:
     for key, attr in _bool.items():
         v = d.get(key)
         if v is not None:
-            setattr(mod, attr, bool(v))
+            setattr(mod, attr, (str(v).lower() == "true") if isinstance(v, str) else bool(v))
     for key, attr in _list.items():
         v = d.get(key)
         if isinstance(v, list) and v:
