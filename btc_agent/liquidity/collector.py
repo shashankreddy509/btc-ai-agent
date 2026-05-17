@@ -11,8 +11,8 @@ import csv
 import io
 import logging
 import os
-import re
-from datetime import datetime
+from datetime import datetime, timezone
+from logging.handlers import RotatingFileHandler
 from pathlib import Path
 
 from dotenv import load_dotenv
@@ -21,15 +21,6 @@ from playwright.async_api import async_playwright, Page
 
 load_dotenv()
 
-# ── Logging ────────────────────────────────────────────────────────────────────
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s [%(levelname)s] %(message)s",
-    handlers=[
-        logging.FileHandler("collector.log"),
-        logging.StreamHandler(),
-    ],
-)
 log = logging.getLogger(__name__)
 
 # ── Configuration ──────────────────────────────────────────────────────────────
@@ -162,9 +153,17 @@ async def load_chart(page: Page):
 
 # ── Screenshot ─────────────────────────────────────────────────────────────────
 
+def _prune_screenshots(keep: int = 4) -> None:
+    """Keep only the `keep` most-recent screenshots; delete the rest."""
+    shots = sorted(SCREENSHOT_DIR.glob("scan_*.png"), key=lambda p: p.stat().st_mtime)
+    for old in shots[:-keep]:
+        old.unlink(missing_ok=True)
+
+
 async def take_screenshot(page: Page) -> Image.Image:
     png_bytes = await page.screenshot(full_page=False)
-    return Image.open(io.BytesIO(png_bytes)).convert("RGB")
+    img = Image.open(io.BytesIO(png_bytes)).convert("RGB")
+    return img
 
 
 # ── Line detection ─────────────────────────────────────────────────────────────
@@ -308,6 +307,7 @@ async def capture_y_axis_map(page: Page) -> list[tuple[int, float]]:
 
 CANVAS_INTERCEPT_JS = """
 (function() {
+    if (!location.hostname.includes('coinglass.com')) return;
     const proto = CanvasRenderingContext2D.prototype;
     const origFillText = proto.fillText;
     window._yAxisTicks = [];
@@ -424,10 +424,12 @@ def append_csv(rows: list[dict]):
 async def collect_all_lines(page: Page, timestamp: str) -> list[dict]:
     img = await take_screenshot(page)
     SCREENSHOT_DIR.mkdir(exist_ok=True)
-    snap = SCREENSHOT_DIR / f"scan_{datetime.utcnow():%Y%m%d_%H%M%S}.png"
+    snap = SCREENSHOT_DIR / f"scan_{datetime.now(timezone.utc):%Y%m%d_%H%M%S}.png"
     img.save(str(snap))
+    _prune_screenshots(keep=4)
 
     lines = detect_lines(img)
+    img.close()
     if not lines:
         log.warning("No colored lines detected")
         return []
@@ -487,7 +489,7 @@ async def run_collect():
 
             while True:
                 run_count += 1
-                timestamp = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S UTC")
+                timestamp = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
                 log.info(f"\n{'='*60}\nRun #{run_count} — {timestamp}\n{'='*60}")
 
                 if run_count > 1 and run_count % 16 == 0:
@@ -512,11 +514,24 @@ async def run_collect():
 
 # ── Entry points ───────────────────────────────────────────────────────────────
 
+def _configure_logging() -> None:
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s [%(levelname)s] %(message)s",
+        handlers=[
+            RotatingFileHandler("collector.log", maxBytes=5 * 1024 * 1024, backupCount=3),
+            logging.StreamHandler(),
+        ],
+    )
+
+
 def debug_main():
+    _configure_logging()
     asyncio.run(run_debug())
 
 
 def collect_main():
+    _configure_logging()
     asyncio.run(run_collect())
 
 
