@@ -183,6 +183,14 @@ def _bias_filter_enabled(sc: _Scanner) -> bool:
     return bool(sc.settings.get("bias_filter", config.TRADING_BIAS_FILTER))
 
 
+_HISTORY_CAP = 200
+
+def _append_history(sc: "_Scanner", result) -> None:
+    sc.trade_history.append(result)
+    if len(sc.trade_history) > _HISTORY_CAP:
+        del sc.trade_history[:-_HISTORY_CAP]
+
+
 def _cme_close_skip_enabled(sc: _Scanner) -> bool:
     return bool(sc.settings.get("cme_close_skip", config.TRADING_CME_CLOSE_SKIP))
 
@@ -751,7 +759,7 @@ def _partial_close(sc: _Scanner, pos: Position, price: float) -> None:
         qty_closed=half_contracts, pnl_closed=pos.partial_pnl,
         mode=_trading_mode(sc),
     )
-    sc.trade_history.append(partial_result)
+    _append_history(sc, partial_result)
     if _FS:
         _fs.save_position(_position_to_dict(pos), sc.uid)
         _fs.save_history(_result_to_dict(partial_result), f"{pos.signal_id}_partial", sc.uid)
@@ -821,7 +829,7 @@ def _close_position(sc: _Scanner, pos: Position, price: float, reason: str) -> N
         qty_closed=remaining, pnl_closed=remain_pnl,
         mode=_trading_mode(sc),
     )
-    sc.trade_history.append(close_result)
+    _append_history(sc, close_result)
     if _FS:
         _fs.save_position(_position_to_dict(pos), sc.uid)
         _fs.save_history(_result_to_dict(close_result), f"{pos.signal_id}_{reason}", sc.uid)
@@ -1081,7 +1089,7 @@ def _clear_on_stop(sc: _Scanner) -> None:
             closed_at=now, qty_closed=int(pos.qty), pnl_closed=0.0,
             mode=_trading_mode(sc),
         )
-        sc.trade_history.append(close_result)
+        _append_history(sc, close_result)
         if _FS:
             _fs.save_position(_position_to_dict(pos), sc.uid)
             _fs.save_history(_result_to_dict(close_result), f"{pos.signal_id}_stopped", sc.uid)
@@ -1166,6 +1174,9 @@ def run_trading_scanner(uid: str, user_settings: dict | None = None, email: str 
 
             _monitor_positions(sc, current_price)
             _tick_vishal(sc, current_price, now)
+
+            # Prune dead signals so pending_signals never grows unboundedly
+            sc.pending_signals = [s for s in sc.pending_signals if s.status == "pending"]
 
             emode = _entry_mode(sc)
             for sig in sc.pending_signals:
