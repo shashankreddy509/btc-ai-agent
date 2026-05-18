@@ -302,8 +302,11 @@ async def get_price():
     from btc_agent.trading.scanner import get_any_price
     price = get_any_price()
     if not price:
-        from btc_agent.scanner.data import fetch_current_price
-        price = fetch_current_price()
+        try:
+            from btc_agent.scanner.data import fetch_current_price
+            price = fetch_current_price()
+        except Exception:
+            price = None
     return JSONResponse({"price": price})
 
 

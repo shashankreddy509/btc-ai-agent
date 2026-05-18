@@ -7,7 +7,6 @@ Current task planning goes here. Each session creates a new section.
 **Goal**: [what we're building]
 
 ### Plan
-- [ ] To implement some more strategies under a new section. I will upload the PDF for the strategy details. Under strategies folder
 
 ### Review
 - Result: [what was done]
@@ -20,20 +19,11 @@ Current task planning goes here. Each session creates a new section.
 
 ### Trading / Signal Quality
 - [ ] **Opposing position guard per TF**: Long and short on the same TF can both be open simultaneously. Skip new signal if opposite-direction position already open on same TF. Deferred for now.
-- [ ] **Backtesting mode**: Replay historical 1m bars through `_scan_patterns` and record signal → outcome. Needed before trusting new patterns live.
 - [ ] **Signal survival across restarts**: Pending in-memory signals lost on server restart. Re-discovered on next bar, but a trigger can be missed in that window.
 
 ### Notifications & Monitoring
 - [ ] **Telegram notifications**: `telegram_bot_token` in settings is not wired up. Alert on: signal triggered, position opened, TP/SL hit, scanner crash.
 - [ ] **Scanner crash watchdog**: If background scanner thread dies, UI still shows "running". Detect dead thread and notify user or auto-restart.
-
-### Dashboard / UX
-- [ ] **PnL dashboard**: Trade history in Firestore but no UI summary — total realized PnL, win rate per pattern, average RR.
-- [ ] **Recent trades pagination**: Recent trades table needs pagination to show all trades beyond the current visible limit.
-
-### Brokers
-- [ ] **Pepperstone (cTrader)**: Plan written, implementation paused. Needs `ctrader_open_api` SDK, `PepperstoneAdapter`, UI credential fields.
-- [ ] **XM, Vantage**: MT4/MT5 only — would require MetaApi cloud bridge. Revisit later.
 
 ---
 
