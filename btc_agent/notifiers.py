@@ -47,33 +47,34 @@ def _send_telegram_html(messages: list[str]) -> None:
         })
 
 
-def send_email(subject: str, body: str) -> None:
+def send_email(subject: str, body: str, to: str | None = None) -> None:
     if not config.EMAIL_USER or not config.EMAIL_PASS:
         console.print("[yellow]Email not configured, skipping.[/yellow]")
         return
+    recipient = to or config.EMAIL_TO
     msg = MIMEMultipart("alternative")
     msg["Subject"] = subject
     msg["From"] = config.EMAIL_USER
-    msg["To"] = config.EMAIL_TO
+    msg["To"] = recipient
     msg.attach(MIMEText(body, "plain"))
     try:
         # Port 587 = STARTTLS, port 465 = SSL/TLS — try both
         if config.EMAIL_SMTP_PORT == 465:
             with smtplib.SMTP_SSL(config.EMAIL_SMTP_HOST, 465, timeout=15) as smtp:
                 smtp.login(config.EMAIL_USER, config.EMAIL_PASS)
-                smtp.sendmail(config.EMAIL_USER, config.EMAIL_TO, msg.as_string())
+                smtp.sendmail(config.EMAIL_USER, recipient, msg.as_string())
         else:
             try:
                 with smtplib.SMTP(config.EMAIL_SMTP_HOST, config.EMAIL_SMTP_PORT, timeout=15) as smtp:
                     smtp.starttls()
                     smtp.login(config.EMAIL_USER, config.EMAIL_PASS)
-                    smtp.sendmail(config.EMAIL_USER, config.EMAIL_TO, msg.as_string())
+                    smtp.sendmail(config.EMAIL_USER, recipient, msg.as_string())
             except (TimeoutError, OSError):
                 # Port 587 blocked — fall back to SSL on 465
                 console.print("[yellow]Port 587 timed out, retrying on port 465 (SSL)…[/yellow]")
                 with smtplib.SMTP_SSL(config.EMAIL_SMTP_HOST, 465, timeout=15) as smtp:
                     smtp.login(config.EMAIL_USER, config.EMAIL_PASS)
-                    smtp.sendmail(config.EMAIL_USER, config.EMAIL_TO, msg.as_string())
+                    smtp.sendmail(config.EMAIL_USER, recipient, msg.as_string())
     except Exception:
         console.print(f"[red]Email send failed:[/red]\n{traceback.format_exc()}")
 

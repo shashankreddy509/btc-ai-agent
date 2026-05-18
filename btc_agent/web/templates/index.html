@@ -28,9 +28,21 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>
         Live Trading
       </button>
+      <button class="nav-item" id="nav-vishal" onclick="navTo('vishal')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 20h20"/><path d="M6 20V10l6-8 6 8v10"/><path d="M10 20v-5h4v5"/></svg>
+        Vishal Sir
+      </button>
+      <button class="nav-item" id="nav-liquidity" onclick="navTo('liquidity')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a10 10 0 1 0 0 20A10 10 0 0 0 12 2z"/><path d="M12 6v6l4 2"/></svg>
+        Liquidity
+      </button>
       <button class="nav-item" id="nav-settings" onclick="navTo('settings')">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
         Settings
+      </button>
+      <button class="nav-item" id="nav-users" onclick="navTo('users')" style="display:none">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        Users
       </button>
     </nav>
 
@@ -229,6 +241,7 @@
                   <span style="display:flex;align-items:center;gap:5px;font-size:13px;color:var(--text-3)">
                     <span class="status-dot dot-ok" id="trade-dot"></span>
                     Mode: <span id="trade-mode-label" style="color:var(--accent);font-weight:600">—</span>
+                    <span id="trade-account-label" style="display:none">&nbsp;·&nbsp; Account: <span id="trade-account-name" style="color:var(--green);font-weight:600"></span></span>
                     &nbsp;·&nbsp; BTC: <span id="trade-live-price" style="color:var(--accent);font-weight:700;font-size:15px">—</span>
                   </span>
                   <button class="btn btn-green" id="trade-start-btn">Start Scanner</button>
@@ -262,6 +275,14 @@
                   <label>Max SL (pts) <input id="cfg-max-sl" type="number" min="1"></label>
                   <label>Min TP (pts) <input id="cfg-min-tp" type="number" min="1"></label>
                   <label>Max Concurrent <input id="cfg-max-conc" type="number" min="0"></label>
+                  <label>Look back candles<input id="cfg-lookback-candles" type="number" min="1" max="20" step="1" value="3"></label>
+                </div>
+                <div style="padding:0 16px 14px;display:flex;align-items:center;gap:12px;">
+                  <span style="font-size:13px;min-width:90px">Entry Mode</span>
+                  <select id="cfg-entry-mode" style="font-size:13px;padding:4px 8px;border-radius:6px;border:1px solid var(--border);background:var(--surface-2);color:var(--text-1);min-width:200px">
+                    <option value="immediate">Immediate (Price Break)</option>
+                    <option value="candle_close">Candle Close</option>
+                  </select>
                 </div>
                 <div style="padding:0 16px 14px;">
                   <span style="font-size:11px;color:var(--text-3);text-transform:uppercase;letter-spacing:.06em;display:block;margin-bottom:8px;">Patterns to Scan</span>
@@ -271,9 +292,45 @@
                   <label style="display:inline-flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;">
                     <input type="checkbox" id="cfg-pattern-engulfing"> Engulfing
                   </label>
+                  <label id="label-pattern-retracement" style="display:inline-flex;align-items:center;gap:6px;margin-left:16px;font-size:12px;cursor:pointer;">
+                    <input type="checkbox" id="cfg-pattern-retracement"> Retracement
+                  </label>
                 </div>
-                <div style="padding:0 16px 14px;display:flex;justify-content:flex-end;">
+                <div style="padding:0 16px 14px;display:flex;align-items:center;justify-content:space-between;">
+                  <label style="display:inline-flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;">
+                    <input type="checkbox" id="cfg-bias-filter">
+                    <span>Bias Filter <span style="font-size:11px;color:var(--text-3)">(only take trades matching market bias)</span></span>
+                  </label>
+                  <label style="display:inline-flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;">
+                    <input type="checkbox" id="cfg-cme-close-skip">
+                    <span>Skip CME Close <span style="font-size:11px;color:var(--text-3)">(no new entries Fri 4PM–Sun 5PM CT)</span></span>
+                  </label>
+                  <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin-top:8px">
+                    <label style="display:inline-flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;">
+                      <input type="checkbox" id="cfg-bsg-enabled">
+                      <span>Buy Sell Guide <span style="font-size:11px;color:var(--text-3)">(15m alerts)</span></span>
+                    </label>
+                    <label style="display:inline-flex;align-items:center;gap:8px;font-size:12px;cursor:pointer;color:var(--accent)">
+                      <input type="checkbox" id="cfg-bsg-trade-enabled"> Trade
+                    </label>
+                  </div>
                   <button class="btn btn-primary" id="trade-save-btn">Save</button>
+                </div>
+                <div id="cfg-trail-offset-row" style="display:none;padding:0 16px 14px;flex-direction:column;gap:6px;border-top:1px solid var(--border);padding-top:12px">
+                  <span style="font-size:11px;color:var(--text-3);text-transform:uppercase;letter-spacing:.06em">Trail SL Offset (pts)</span>
+                  <div style="display:flex;align-items:center;gap:12px">
+                    <input type="number" id="cfg-trail-offset" min="1" max="500" step="1" value="50"
+                      style="width:80px;padding:4px 8px;border-radius:6px;border:1px solid var(--border);background:var(--surface-2);color:var(--text-1);font-size:13px">
+                    <span style="font-size:11px;color:var(--text-3)">After TP hit on TF ≥ 30m: close 50% and move SL to entry ± this value, trails every 100pts. TF &lt; 30m: full exit at TP.</span>
+                  </div>
+                </div>
+                <div style="padding:0 16px 14px;flex-direction:column;gap:6px;border-top:1px solid var(--border);padding-top:12px;display:flex">
+                  <span style="font-size:11px;color:var(--text-3);text-transform:uppercase;letter-spacing:.06em">Daily Points Target (pts) <span style="font-weight:400;text-transform:none;letter-spacing:0"> · 0 = unlimited</span></span>
+                  <div style="display:flex;align-items:center;gap:12px">
+                    <input type="number" id="cfg-daily-pts" min="0" step="50" value="0"
+                      style="width:80px;padding:4px 8px;border-radius:6px;border:1px solid var(--border);background:var(--surface-2);color:var(--text-1);font-size:13px">
+                    <span style="font-size:11px;color:var(--text-3)">Bot stops opening new trades once today's closed-trade points reach this target. Open trades run to their TP/SL as normal.</span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -315,29 +372,284 @@
               </div>
             </div>
 
+            <!-- Buy Sell Guide Alerts -->
+            <div class="card" id="bsg-section" style="display:none">
+              <div class="card-header"><span class="card-title">Buy Sell Guide Alerts</span><span style="font-size:11px;color:var(--text-3);margin-left:8px">alert only — no trades taken</span></div>
+              <div style="overflow-x:auto">
+                <table class="data-table">
+                  <thead><tr>
+                    <th>Direction</th><th>TF</th><th style="text-align:right">Price</th><th>Time</th>
+                  </tr></thead>
+                  <tbody id="bsg-alerts-body"></tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- Points Captured Stats -->
+            <div class="card" id="pts-stats-card">
+              <div class="card-header" style="display:flex;align-items:center;justify-content:space-between">
+                <span class="card-title">Points Captured</span>
+                <select id="pts-mode-filter" onchange="_ptsModeFilter=this.value;renderTrading()" style="font-size:12px;padding:3px 8px;border-radius:6px;border:1px solid var(--border);background:var(--surface-2);color:var(--text-1)">
+                  <option value="live">Live only</option>
+                  <option value="all">All modes</option>
+                  <option value="paper">Paper only</option>
+                </select>
+              </div>
+              <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--border)">
+                <div style="background:var(--surface-1);padding:14px 16px;text-align:center">
+                  <div style="font-size:11px;color:var(--text-3);margin-bottom:6px;letter-spacing:0.05em">TODAY</div>
+                  <div id="pts-today" style="font-size:20px;font-weight:600;font-variant-numeric:tabular-nums"><span style="color:var(--text-3)">—</span></div>
+                </div>
+                <div style="background:var(--surface-1);padding:14px 16px;text-align:center">
+                  <div style="font-size:11px;color:var(--text-3);margin-bottom:6px;letter-spacing:0.05em">THIS WEEK</div>
+                  <div id="pts-week" style="font-size:20px;font-weight:600;font-variant-numeric:tabular-nums"><span style="color:var(--text-3)">—</span></div>
+                </div>
+                <div style="background:var(--surface-1);padding:14px 16px;text-align:center">
+                  <div style="font-size:11px;color:var(--text-3);margin-bottom:6px;letter-spacing:0.05em">THIS MONTH</div>
+                  <div id="pts-month" style="font-size:20px;font-weight:600;font-variant-numeric:tabular-nums"><span style="color:var(--text-3)">—</span></div>
+                </div>
+              </div>
+            </div>
+
             <!-- Trade History -->
             <div class="card">
-              <div class="card-header"><span class="card-title">Recent Trades</span></div>
+              <div class="card-header" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
+                <span class="card-title">Recent Trades</span>
+                <div style="display:flex;gap:8px;align-items:center">
+                  <select id="hist-filter-mode" onchange="histFilterChanged()" style="font-size:12px;padding:3px 8px;border-radius:6px;border:1px solid var(--border);background:var(--surface-2);color:var(--text-1)">
+                    <option value="all">All modes</option>
+                    <option value="live">Live</option>
+                    <option value="bsg">BSG</option>
+                    <option value="paper">Paper</option>
+                  </select>
+                  <select id="hist-filter-pattern" onchange="histFilterChanged()" style="font-size:12px;padding:3px 8px;border-radius:6px;border:1px solid var(--border);background:var(--surface-2);color:var(--text-1)">
+                    <option value="all">All patterns</option>
+                    <option value="BSG">BSG</option>
+                    <option value="4-Flag">4-Flag</option>
+                    <option value="Engulfing">Engulfing</option>
+                    <option value="Retracement">Retracement</option>
+                  </select>
+                </div>
+              </div>
               <div class="table-wrap">
                 <table>
                   <thead><tr id="history-head">
-                    <th>Direction</th><th>TF</th><th>Pattern</th>
+                    <th>Direction</th><th>TF</th><th>Pattern</th><th>Mode</th>
                     <th style="text-align:right">Entry</th>
                     <th style="text-align:right">Exit</th>
+                    <th style="text-align:right">Points</th>
                     <th style="text-align:right">Qty</th>
-                    <th style="text-align:right">PnL (USD)</th>
-                    <th>Reason</th><th>Closed</th>
+                    <th>Reason</th><th>Opened</th><th>Closed</th>
                   </tr></thead>
                   <tbody id="trade-history-body">
-                    <tr class="empty-row"><td colspan="9">No completed trades</td></tr>
+                    <tr class="empty-row"><td colspan="11">No completed trades</td></tr>
                   </tbody>
                 </table>
+              </div>
+              <div id="hist-pagination" style="display:none;padding:10px 16px;display:flex;align-items:center;gap:12px;border-top:1px solid var(--border)">
+                <button id="hist-prev" onclick="histPageNav(-1)" style="padding:4px 12px;border-radius:6px;border:1px solid var(--border);background:var(--surface-2);color:var(--text-1);cursor:pointer;font-size:12px">← Prev</button>
+                <span id="hist-page-label" style="font-size:12px;color:var(--text-3)"></span>
+                <button id="hist-next" onclick="histPageNav(1)" style="padding:4px 12px;border-radius:6px;border:1px solid var(--border);background:var(--surface-2);color:var(--text-1);cursor:pointer;font-size:12px">Next →</button>
               </div>
             </div>
 
           </div><!-- /trading-content -->
         </div>
       </div><!-- /page-trading -->
+
+      <!-- ── Vishal Sir Strategy ──────────────────────────────────────────── -->
+      <div id="page-vishal" class="page">
+        <div class="page-body">
+
+          <!-- Sign-in gate -->
+          <div id="vishal-auth-gate" style="display:none;">
+            <div class="card" style="text-align:center;padding:48px 24px;">
+              <div style="margin-bottom:16px;">
+                <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="var(--text-3)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="margin:0 auto;display:block;margin-bottom:12px;"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                <p style="font-size:14px;font-weight:500;color:var(--text);margin-bottom:6px;">Sign in to access Vishal Sir Strategies</p>
+              </div>
+              <button class="btn btn-primary" style="margin:0 auto;" onclick="signInWithGoogle()">
+                <svg viewBox="0 0 24 24" width="14" height="14" xmlns="http://www.w3.org/2000/svg"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
+                Continue with Google
+              </button>
+            </div>
+          </div>
+
+          <!-- Strategies content -->
+          <div id="vishal-content" style="display:none;">
+
+            <!-- ── 1. Ping Pong ──────────────────────────────────────────── -->
+            <div class="card" id="v-card-pingpong" style="margin-bottom:12px;">
+              <div class="card-header" onclick="toggleVishal('pp')" style="cursor:pointer;user-select:none;">
+                <div style="display:flex;align-items:center;gap:8px;">
+                  <span style="font-size:15px;">🏓</span>
+                  <span class="card-title" style="font-size:13px;text-transform:none;letter-spacing:0;">Ping Pong Strategy</span>
+                </div>
+                <div style="display:flex;align-items:center;gap:12px;">
+                  <label style="display:flex;align-items:center;gap:5px;font-size:12px;color:var(--text-2);cursor:pointer;" onclick="event.stopPropagation()">
+                    <input type="checkbox" id="v-pp-enabled"> Enabled
+                  </label>
+                  <svg id="v-chevron-pp" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;color:var(--text-3);transition:transform 0.2s;transform:rotate(-90deg)"><polyline points="6 9 12 15 18 9"/></svg>
+                </div>
+              </div>
+              <div id="v-body-pp" style="display:none;">
+                <p style="font-size:12px;color:var(--text-3);padding:12px 16px 0;margin:0;">Session mean-reversion: buys at zone bottom, sells at zone top around each 4H session open (01:30, 05:30, 09:30, 13:30, 17:30, 21:30 IST).</p>
+                <div class="settings-grid">
+                  <label>Timeframe
+                    <select id="v-pp-tf" onchange="onPingPongTfChange()">
+                      <option value="1h">1H — TP 400 / SL 200</option>
+                      <option value="4h" selected>4H — TP 1000 / SL 500</option>
+                      <option value="6h">6H — TP 1200 / SL 600</option>
+                      <option value="12h">12H — TP 2000 / SL 200</option>
+                    </select>
+                  </label>
+                  <label>TP (pts)<input type="number" id="v-pp-tp" value="1000" min="50" step="50"></label>
+                  <label>SL (pts)<input type="number" id="v-pp-sl" value="500" min="50" step="50"></label>
+                </div>
+                <div style="padding:0 16px 14px;display:flex;justify-content:flex-end;">
+                  <button class="btn btn-primary" onclick="saveVishalStrategy('pingpong')">Save</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- ── 2. Escalator ─────────────────────────────────────────── -->
+            <div class="card" id="v-card-escalator" style="margin-bottom:12px;">
+              <div class="card-header" onclick="toggleVishal('esc')" style="cursor:pointer;user-select:none;">
+                <div style="display:flex;align-items:center;gap:8px;">
+                  <span style="font-size:15px;">🪜</span>
+                  <span class="card-title" style="font-size:13px;text-transform:none;letter-spacing:0;">Escalator Strategy</span>
+                </div>
+                <div style="display:flex;align-items:center;gap:12px;">
+                  <label style="display:flex;align-items:center;gap:5px;font-size:12px;color:var(--text-2);cursor:pointer;" onclick="event.stopPropagation()">
+                    <input type="checkbox" id="v-esc-enabled"> Enabled
+                  </label>
+                  <svg id="v-chevron-esc" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;color:var(--text-3);transition:transform 0.2s;transform:rotate(-90deg)"><polyline points="6 9 12 15 18 9"/></svg>
+                </div>
+              </div>
+              <div id="v-body-esc" style="display:none;">
+                <p style="font-size:12px;color:var(--text-3);padding:12px 16px 0;margin:0;">Trend-following: enters when price moves the trigger distance from a baseline, with a trailing SL. Pauses after N consecutive losses.</p>
+                <div class="settings-grid">
+                  <label>Trigger (pts)<input type="number" id="v-esc-trigger" value="200" min="50" step="50"></label>
+                  <label>Max consec SL<input type="number" id="v-esc-max-sl" value="3" min="1" max="10"></label>
+                </div>
+                <div style="padding:0 16px 14px;display:flex;justify-content:flex-end;">
+                  <button class="btn btn-primary" onclick="saveVishalStrategy('escalator')">Save</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- ── 3. High Win Rate Trading ─────────────────────────────── -->
+            <div class="card" id="v-card-hwt" style="margin-bottom:12px;">
+              <div class="card-header" onclick="toggleVishal('hwt')" style="cursor:pointer;user-select:none;">
+                <div style="display:flex;align-items:center;gap:8px;">
+                  <span style="font-size:15px;">🎯</span>
+                  <span class="card-title" style="font-size:13px;text-transform:none;letter-spacing:0;">High Win Rate Trading</span>
+                </div>
+                <div style="display:flex;align-items:center;gap:12px;">
+                  <label style="display:flex;align-items:center;gap:5px;font-size:12px;color:var(--text-2);cursor:pointer;" onclick="event.stopPropagation()">
+                    <input type="checkbox" id="v-hwt-enabled"> Enabled
+                  </label>
+                  <svg id="v-chevron-hwt" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;color:var(--text-3);transition:transform 0.2s;transform:rotate(-90deg)"><polyline points="6 9 12 15 18 9"/></svg>
+                </div>
+              </div>
+              <div id="v-body-hwt" style="display:none;">
+                <p style="font-size:12px;color:var(--text-3);padding:12px 16px 0;margin:0;">GTI zone breakout/breakdown: enters long above Supply Zone, short below Demand Zone. Enter your current GTI zone prices.</p>
+                <div class="settings-grid">
+                  <label>Target (pts)<input type="number" id="v-hwt-target" value="450" min="100" step="50"></label>
+                  <label>SL (pts)<input type="number" id="v-hwt-sl" value="100" min="50" step="25"></label>
+                  <label>Supply Zone price<input type="number" id="v-hwt-sz" placeholder="e.g. 95500" step="0.01"></label>
+                  <label>Demand Zone price<input type="number" id="v-hwt-dz" placeholder="e.g. 93000" step="0.01"></label>
+                </div>
+                <div style="padding:0 16px 14px;display:flex;justify-content:flex-end;">
+                  <button class="btn btn-primary" onclick="saveVishalStrategy('hwt')">Save</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- ── 4. Chauke pe Chauka ───────────────────────────────────── -->
+            <div class="card" id="v-card-cpc" style="margin-bottom:12px;">
+              <div class="card-header" onclick="toggleVishal('cpc')" style="cursor:pointer;user-select:none;">
+                <div style="display:flex;align-items:center;gap:8px;">
+                  <span style="font-size:15px;">💥</span>
+                  <span class="card-title" style="font-size:13px;text-transform:none;letter-spacing:0;">Chauke pe Chauka</span>
+                </div>
+                <div style="display:flex;align-items:center;gap:12px;">
+                  <label style="display:flex;align-items:center;gap:5px;font-size:12px;color:var(--text-2);cursor:pointer;" onclick="event.stopPropagation()">
+                    <input type="checkbox" id="v-cpc-enabled"> Enabled
+                  </label>
+                  <svg id="v-chevron-cpc" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;color:var(--text-3);transition:transform 0.2s;transform:rotate(-90deg)"><polyline points="6 9 12 15 18 9"/></svg>
+                </div>
+              </div>
+              <div id="v-body-cpc" style="display:none;">
+                <p style="font-size:12px;color:var(--text-3);padding:12px 16px 0;margin:0;">Zone boundary entries: buys at DZ ±50 pts, sells at SZ ±50 pts. 1950 pt target; SL placed beyond the zone.</p>
+                <div class="settings-grid">
+                  <label>Target (pts)<input type="number" id="v-cpc-target" value="1950" min="500" step="50"></label>
+                  <label>Supply Zone price<input type="number" id="v-cpc-sz" placeholder="e.g. 95500" step="0.01"></label>
+                  <label>Demand Zone price<input type="number" id="v-cpc-dz" placeholder="e.g. 93000" step="0.01"></label>
+                </div>
+                <div style="padding:0 16px 14px;display:flex;justify-content:flex-end;">
+                  <button class="btn btn-primary" onclick="saveVishalStrategy('cpc')">Save</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- ── 5. BTC Rain Harvesting ────────────────────────────────── -->
+            <div class="card" id="v-card-rain" style="margin-bottom:12px;">
+              <div class="card-header" onclick="toggleVishal('rain')" style="cursor:pointer;user-select:none;">
+                <div style="display:flex;align-items:center;gap:8px;">
+                  <span style="font-size:15px;">🌧️</span>
+                  <span class="card-title" style="font-size:13px;text-transform:none;letter-spacing:0;">BTC Rain Harvesting</span>
+                </div>
+                <div style="display:flex;align-items:center;gap:12px;">
+                  <label style="display:flex;align-items:center;gap:5px;font-size:12px;color:var(--text-2);cursor:pointer;" onclick="event.stopPropagation()">
+                    <input type="checkbox" id="v-rain-enabled"> Enabled
+                  </label>
+                  <svg id="v-chevron-rain" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;color:var(--text-3);transition:transform 0.2s;transform:rotate(-90deg)"><polyline points="6 9 12 15 18 9"/></svg>
+                </div>
+              </div>
+              <div id="v-body-rain" style="display:none;">
+                <p style="font-size:12px;color:var(--text-3);padding:12px 16px 0;margin:0;">Sunday 22:00–22:30 IST only. Zone breakout entry, TP=500 trailing to 1000 pts. Historical win rate ~86%.</p>
+                <div class="settings-grid">
+                  <label>TP (pts)<input type="number" id="v-rain-tp" value="500" min="100" step="50"></label>
+                  <label>Supply Zone price<input type="number" id="v-rain-sz" placeholder="e.g. 95500" step="0.01"></label>
+                  <label>Demand Zone price<input type="number" id="v-rain-dz" placeholder="e.g. 93000" step="0.01"></label>
+                </div>
+                <div style="padding:0 16px 14px;display:flex;justify-content:flex-end;">
+                  <button class="btn btn-primary" onclick="saveVishalStrategy('rain')">Save</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- ── 6. Double Profit ──────────────────────────────────────── -->
+            <div class="card" id="v-card-dp" style="margin-bottom:12px;">
+              <div class="card-header" onclick="toggleVishal('dp')" style="cursor:pointer;user-select:none;">
+                <div style="display:flex;align-items:center;gap:8px;">
+                  <span style="font-size:15px;">💰</span>
+                  <span class="card-title" style="font-size:13px;text-transform:none;letter-spacing:0;">BTC Double Profit</span>
+                </div>
+                <div style="display:flex;align-items:center;gap:12px;">
+                  <label style="display:flex;align-items:center;gap:5px;font-size:12px;color:var(--text-2);cursor:pointer;" onclick="event.stopPropagation()">
+                    <input type="checkbox" id="v-dp-enabled"> Enabled
+                  </label>
+                  <svg id="v-chevron-dp" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;color:var(--text-3);transition:transform 0.2s;transform:rotate(-90deg)"><polyline points="6 9 12 15 18 9"/></svg>
+                </div>
+              </div>
+              <div id="v-body-dp" style="display:none;">
+                <p style="font-size:12px;color:var(--text-3);padding:12px 16px 0;margin:0;">Two-target zone-to-zone: closes T1% at first target, trails remainder to opposite zone. SL moves to 60% midpoint after T1.</p>
+                <div class="settings-grid">
+                  <label>T1 exit % (rec. 50)<input type="number" id="v-dp-t1-pct" value="50" min="10" max="90" step="5"></label>
+                  <label>Supply Zone price<input type="number" id="v-dp-sz" placeholder="e.g. 95500" step="0.01"></label>
+                  <label>Demand Zone price<input type="number" id="v-dp-dz" placeholder="e.g. 93000" step="0.01"></label>
+                </div>
+                <div style="padding:0 16px 14px;display:flex;justify-content:flex-end;">
+                  <button class="btn btn-primary" onclick="saveVishalStrategy('dp')">Save</button>
+                </div>
+              </div>
+            </div>
+
+          </div><!-- /vishal-content -->
+        </div>
+      </div><!-- /page-vishal -->
 
       <!-- ── Settings ─────────────────────────────────────────────────────── -->
       <div id="page-settings" class="page">
@@ -365,7 +677,37 @@
             </div>
           </div>
 
-          <!-- Coinbase Exchange (app-level) -->
+          <!-- Broker Selection (first card — visible to all signed-in users) -->
+          <div class="card" id="s-card-broker" style="display:none;">
+            <div class="card-header"><span class="card-title">Broker</span></div>
+            <div class="s-section">
+              <div class="s-row">
+                <div class="s-field">
+                  <span class="s-label">Active Broker</span>
+                  <select id="s-broker-select" class="s-input" onchange="onBrokerChange(this.value)">
+                    <option value="">-- Select Broker --</option>
+                    <option value="coinbase">Coinbase Advanced Trade</option>
+                    <option value="binance">Binance Futures</option>
+                    <option value="bybit">Bybit</option>
+                    <option value="delta">Delta Exchange</option>
+                    <option value="coindcx">CoinDCX</option>
+                    <option value="pepperstone">Pepperstone (cTrader)</option>
+                  </select>
+                </div>
+                <div class="s-field">
+                  <span class="s-label">Nickname</span>
+                  <input id="s-broker-nickname" class="s-input" type="text" placeholder="e.g. Shashank's Account">
+                </div>
+              </div>
+              <div class="s-footer">
+                <button class="btn btn-primary" onclick="saveBrokerChoice()">Save</button>
+                <span class="s-ok" id="s-ok-broker">Saved!</span>
+                <span class="s-err" id="s-err-broker"></span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Coinbase Exchange (app-level, shown when Coinbase selected) -->
           <div class="card" id="s-card-coinbase-exchange" style="display:none;">
             <div class="card-header"><span class="card-title">Coinbase Exchange</span></div>
             <div class="s-section">
@@ -387,7 +729,7 @@
             </div>
           </div>
 
-          <!-- Coinbase Credentials (user-level) -->
+          <!-- Coinbase Credentials (user-level, shown when Coinbase selected) -->
           <div class="card" id="s-card-coinbase-creds" style="display:none;">
             <div class="card-header"><span class="card-title">Coinbase Credentials</span></div>
             <div class="s-section">
@@ -399,33 +741,11 @@
                 <span class="s-label">API Secret (EC Private Key PEM)</span>
                 <textarea id="s-cb-secret" class="s-textarea" rows="4" placeholder="-----BEGIN EC PRIVATE KEY-----&#10;…&#10;-----END EC PRIVATE KEY-----"></textarea>
               </div>
-              <p style="font-size:11px;color:var(--text-3);margin:0;">Stored in Firestore tied to your UID. Never returned in plain text.</p>
+              <p style="font-size:11px;color:var(--text-3);margin:0;">Go to Coinbase → Settings → API → Create new API key with <b>Trade</b> permission. Keys are stored securely and never returned in plain text. <a href="https://www.coinbase.com/settings/api" target="_blank" style="color:var(--accent);">Open API settings ↗</a></p>
               <div class="s-footer">
                 <button class="btn btn-primary" onclick="saveUserSection('coinbase-creds')">Save</button>
                 <span class="s-ok" id="s-ok-coinbase-creds">Saved!</span>
                 <span class="s-err" id="s-err-coinbase-creds"></span>
-              </div>
-            </div>
-          </div>
-
-          <!-- Broker Selection -->
-          <div class="card" id="s-card-broker" style="display:none;">
-            <div class="card-header"><span class="card-title">Broker</span></div>
-            <div class="s-section">
-              <div class="s-field">
-                <span class="s-label">Active Broker</span>
-                <select id="s-broker-select" class="s-input" onchange="onBrokerChange(this.value)">
-                  <option value="coinbase">Coinbase Advanced Trade</option>
-                  <option value="binance">Binance Futures</option>
-                  <option value="bybit">Bybit</option>
-                  <option value="delta">Delta Exchange</option>
-                  <option value="coindcx">CoinDCX</option>
-                </select>
-              </div>
-              <div class="s-footer">
-                <button class="btn btn-primary" onclick="saveBrokerChoice()">Save</button>
-                <span class="s-ok" id="s-ok-broker">Saved!</span>
-                <span class="s-err" id="s-err-broker"></span>
               </div>
             </div>
           </div>
@@ -442,7 +762,11 @@
                 <span class="s-label">API Secret</span>
                 <input id="s-binance-secret" class="s-input" type="password" placeholder="Binance API Secret">
               </div>
-              <p style="font-size:11px;color:var(--text-3);margin:0;">Stored in Firestore tied to your UID. Never returned in plain text.</p>
+              <div class="s-field">
+                <span class="s-label">Contract Size (BTC)</span>
+                <input id="s-binance-contract" class="s-input" type="number" step="0.0001" placeholder="0.001">
+              </div>
+              <p style="font-size:11px;color:var(--text-3);margin:0;">Go to Binance → Profile → API Management → Create API key. Enable <b>Futures Trading</b> permission. Keys are stored securely and never returned in plain text. <a href="https://www.binance.com/en/my/settings/api-management" target="_blank" style="color:var(--accent);">Open API settings ↗</a></p>
               <div class="s-footer">
                 <button class="btn btn-primary" onclick="saveBrokerCreds('binance')">Save</button>
                 <span class="s-ok" id="s-ok-broker-binance">Saved!</span>
@@ -463,7 +787,11 @@
                 <span class="s-label">API Secret</span>
                 <input id="s-bybit-secret" class="s-input" type="password" placeholder="Bybit API Secret">
               </div>
-              <p style="font-size:11px;color:var(--text-3);margin:0;">Stored in Firestore tied to your UID. Never returned in plain text.</p>
+              <div class="s-field">
+                <span class="s-label">Contract Size (BTC)</span>
+                <input id="s-bybit-contract" class="s-input" type="number" step="0.0001" placeholder="0.001">
+              </div>
+              <p style="font-size:11px;color:var(--text-3);margin:0;">Go to Bybit → Account → API → Create new key. Enable <b>Contract Orders</b> (Derivatives) permission. Keys are stored securely and never returned in plain text. <a href="https://www.bybit.com/app/user/api-management" target="_blank" style="color:var(--accent);">Open API settings ↗</a></p>
               <div class="s-footer">
                 <button class="btn btn-primary" onclick="saveBrokerCreds('bybit')">Save</button>
                 <span class="s-ok" id="s-ok-broker-bybit">Saved!</span>
@@ -484,7 +812,11 @@
                 <span class="s-label">API Secret</span>
                 <input id="s-delta-secret" class="s-input" type="password" placeholder="Delta Exchange API Secret">
               </div>
-              <p style="font-size:11px;color:var(--text-3);margin:0;">Stored in Firestore tied to your UID. Never returned in plain text.</p>
+              <div class="s-field">
+                <span class="s-label">Contract Size (BTC)</span>
+                <input id="s-delta-contract" class="s-input" type="number" step="0.0001" placeholder="0.001">
+              </div>
+              <p style="font-size:11px;color:var(--text-3);margin:0;">Go to Delta Exchange → Account → API Keys → Create new key with <b>Trading</b> permission. Keys are stored securely and never returned in plain text. <a href="https://www.delta.exchange/app/account/manageapikeys" target="_blank" style="color:var(--accent);">Open API settings ↗</a></p>
               <div class="s-footer">
                 <button class="btn btn-primary" onclick="saveBrokerCreds('delta')">Save</button>
                 <span class="s-ok" id="s-ok-broker-delta">Saved!</span>
@@ -505,11 +837,59 @@
                 <span class="s-label">API Secret</span>
                 <input id="s-coindcx-secret" class="s-input" type="password" placeholder="CoinDCX API Secret">
               </div>
-              <p style="font-size:11px;color:var(--text-3);margin:0;">Stored in Firestore tied to your UID. Never returned in plain text.</p>
+              <div class="s-field">
+                <span class="s-label">Contract Size (BTC)</span>
+                <input id="s-coindcx-contract" class="s-input" type="number" step="0.0001" placeholder="0.001">
+              </div>
+              <p style="font-size:11px;color:var(--text-3);margin:0;">Go to CoinDCX → Profile → API Keys → Generate new key with <b>Trade</b> permission. Keys are stored securely and never returned in plain text. <a href="https://coindcx.com/profile/api" target="_blank" style="color:var(--accent);">Open API settings ↗</a></p>
               <div class="s-footer">
                 <button class="btn btn-primary" onclick="saveBrokerCreds('coindcx')">Save</button>
                 <span class="s-ok" id="s-ok-broker-coindcx">Saved!</span>
                 <span class="s-err" id="s-err-broker-coindcx"></span>
+              </div>
+            </div>
+          </div>
+
+          <div class="card" id="s-card-broker-pepperstone" style="display:none;">
+            <div class="card-header"><span class="card-title">Pepperstone — cTrader API Credentials</span></div>
+            <div class="s-section">
+              <div class="s-field">
+                <span class="s-label">Client ID</span>
+                <input id="s-pepperstone-client-id" class="s-input" type="text" placeholder="cTrader Open API Client ID">
+              </div>
+              <div class="s-field">
+                <span class="s-label">Client Secret</span>
+                <input id="s-pepperstone-client-secret" class="s-input" type="password" placeholder="cTrader Open API Client Secret">
+              </div>
+              <div class="s-field">
+                <span class="s-label">Account ID</span>
+                <input id="s-pepperstone-account-id" class="s-input" type="text" placeholder="Numeric cTrader account ID">
+              </div>
+              <div class="s-field">
+                <span class="s-label">Environment</span>
+                <select id="s-pepperstone-is-live" class="s-input">
+                  <option value="true">Live</option>
+                  <option value="false">Demo</option>
+                </select>
+              </div>
+              <div class="s-field">
+                <span class="s-label">Contract Size (BTC)</span>
+                <input id="s-pepperstone-contract" class="s-input" type="number" step="0.001" placeholder="0.01">
+              </div>
+              <p style="font-size:11px;color:var(--text-3);margin:0;">
+                Step 1: Go to <b>id.ctrader.com</b> → Applications → create app → copy Client ID &amp; Secret → save above.<br>
+                Step 2: Register redirect URI <b id="s-pepperstone-redirect-hint"></b> in your cTrader app.<br>
+                Step 3: Click <b>Connect Pepperstone</b> — log in once and you're done (~1 year before re-auth needed).
+              </p>
+              <div class="s-field" style="align-items:center;gap:10px;">
+                <span class="s-label">Connection</span>
+                <span id="s-pepperstone-status" style="font-size:12px;color:var(--text-3)">Not connected</span>
+              </div>
+              <div class="s-footer" style="gap:8px;">
+                <button class="btn btn-primary" onclick="savePepperstoneCreds()">Save Credentials</button>
+                <button class="btn" id="s-pepperstone-connect-btn" onclick="connectPepperstone()" style="background:var(--accent);color:#fff;border:none;">Connect Pepperstone</button>
+                <span class="s-ok" id="s-ok-broker-pepperstone">Saved!</span>
+                <span class="s-err" id="s-err-broker-pepperstone"></span>
               </div>
             </div>
           </div>
@@ -666,9 +1046,63 @@
         </div>
       </div><!-- /page-settings -->
 
+      <div id="page-users" class="page">
+        <div class="page-body">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+            <h2 style="font-size:16px;font-weight:600;margin:0">Users</h2>
+            <button class="btn" style="font-size:12px;padding:5px 12px" onclick="_refreshUsers()">Refresh</button>
+          </div>
+          <div style="overflow-x:auto;">
+            <table class="scan-table">
+              <thead>
+                <tr>
+                  <th>User</th>
+                  <th>Mode</th>
+                  <th>Broker</th>
+                  <th>Scanner</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="users-tbody">
+                <tr class="empty-row"><td colspan="5">Loading…</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div><!-- /page-users -->
+
+      <!-- ── Liquidity Heatmap ──────────────────────────────────────────── -->
+      <div id="page-liquidity" class="page">
+        <div class="page-body">
+          <div class="card">
+            <div class="card-header" style="display:flex;align-items:center;justify-content:space-between">
+              <span class="card-title">Liquidation Heatmap Data</span>
+              <button class="btn" style="font-size:12px;padding:4px 10px" onclick="loadLiquidity()">Refresh</button>
+            </div>
+            <div id="liq-status" style="font-size:11px;color:var(--text-3);padding:4px 16px 8px"></div>
+            <div style="overflow-x:auto;">
+              <table class="scan-table" id="liq-table">
+                <thead>
+                  <tr>
+                    <th>Timestamp (UTC)</th>
+                    <th>Color</th>
+                    <th>Price</th>
+                    <th>Leverage</th>
+                  </tr>
+                </thead>
+                <tbody id="liq-tbody">
+                  <tr><td colspan="4" style="text-align:center;color:var(--text-3)">Loading…</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
     </div><!-- /main-content -->
 
   </div><!-- /main-area -->
+
 </div><!-- /app-shell -->
 
 <!-- Mobile bottom tab bar — outside app-shell so position:fixed is never clipped -->
@@ -677,13 +1111,13 @@
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
     Home
   </button>
-  <button class="tab-item" id="mob-tab-scanner" onclick="navTo('scanner')">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-    Scanner
-  </button>
   <button class="tab-item" id="mob-tab-trading" onclick="navTo('trading')">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>
     Trading
+  </button>
+  <button class="tab-item" id="mob-tab-liquidity" onclick="navTo('liquidity')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a10 10 0 1 0 0 20A10 10 0 0 0 12 2z"/><path d="M12 6v6l4 2"/></svg>
+    Liquidity
   </button>
   <button class="tab-item" id="mob-tab-settings" onclick="navTo('settings')">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
@@ -696,14 +1130,14 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script>
   firebase.initializeApp({
-    apiKey:            "AIzaSyDDue1K_FPVYFzh3Uqe04mTrXxqehOqQq8",
-    authDomain:        "btc-ai-agent.firebaseapp.com",
-    projectId:         "btc-ai-agent",
-    storageBucket:     "btc-ai-agent.firebasestorage.app",
-    messagingSenderId: "654602808108",
-    appId:             "1:654602808108:web:f9a5272e443560608b9a89",
+    apiKey:            "{{ fb_api_key }}",
+    authDomain:        "{{ fb_auth_domain }}",
+    projectId:         "{{ fb_project_id }}",
+    storageBucket:     "{{ fb_storage_bucket }}",
+    messagingSenderId: "{{ fb_messaging_sender_id }}",
+    appId:             "{{ fb_app_id }}",
   });
 </script>
-<script src="/static/main.js"></script>
+<script src="/static/main.js?v=15"></script>
 </body>
 </html>

@@ -18,9 +18,10 @@ _CONTRACT_SIZE = 0.001  # 1 contract = 0.001 BTC on Binance USDT-M Futures
 class BinanceAdapter(BrokerAdapter):
     """Binance USDT-M Perpetual Futures via REST API."""
 
-    def __init__(self, api_key: str, api_secret: str):
+    def __init__(self, api_key: str, api_secret: str, contract_size_val: float | None = None):
         self._api_key = api_key
         self._api_secret = api_secret
+        self._contract_size = contract_size_val if contract_size_val else _CONTRACT_SIZE
 
     def _sign(self, params: dict) -> str:
         query = urllib.parse.urlencode(params)
@@ -58,19 +59,34 @@ class BinanceAdapter(BrokerAdapter):
             raise RuntimeError(f"Binance DELETE {path} → HTTP {e.code}: {e.read().decode()}") from e
 
     def place_market_order(self, side: str, qty: str) -> dict:
+        btc_qty = f"{int(qty) * self._contract_size:.3f}"
         resp = self._post("/fapi/v1/order", {
             "symbol": _SYMBOL, "side": side,
-            "type": "MARKET", "quantity": qty,
+            "type": "MARKET", "quantity": btc_qty,
         })
         return {"order_id": str(resp.get("orderId", ""))}
 
     def place_stop_limit_order(self, side: str, qty: str, stop_price: float, limit_price: float) -> dict:
+        btc_qty = f"{int(qty) * self._contract_size:.3f}"
         resp = self._post("/fapi/v1/order", {
             "symbol": _SYMBOL, "side": side,
-            "type": "STOP", "quantity": qty,
+            "type": "STOP", "quantity": btc_qty,
             "stopPrice": f"{stop_price:.2f}",
             "price": f"{limit_price:.2f}",
             "timeInForce": "GTC",
+        })
+        return {"order_id": str(resp.get("orderId", ""))}
+
+    def place_take_profit_order(self, side: str, qty: str, stop_price: float, limit_price: float) -> dict:
+        btc_qty = f"{int(qty) * self._contract_size:.3f}"
+        resp = self._post("/fapi/v1/order", {
+            "symbol":      _SYMBOL,
+            "side":        side,
+            "type":        "TAKE_PROFIT_MARKET",
+            "quantity":    btc_qty,
+            "stopPrice":   f"{stop_price:.2f}",
+            "reduceOnly":  "true",
+            "workingType": "MARK_PRICE",
         })
         return {"order_id": str(resp.get("orderId", ""))}
 
@@ -79,4 +95,4 @@ class BinanceAdapter(BrokerAdapter):
 
     @property
     def contract_size(self) -> float:
-        return _CONTRACT_SIZE
+        return self._contract_size

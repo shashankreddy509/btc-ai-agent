@@ -39,3 +39,13 @@ def check_depo(bars: np.ndarray, depo_lines: np.ndarray) -> float | None:
 
     # Return the highest level (first in descending list) that was hit
     return float(depo_lines[np.argmax(hit_cols)])
+
+
+def next_depo_level(depo_lines: np.ndarray, touched_level: float, direction: str) -> float | None:
+    """Return the adjacent DEPO level in the trade direction from the touched level."""
+    if direction == "long":
+        candidates = depo_lines[depo_lines > touched_level]
+        return float(candidates.min()) if len(candidates) else None
+    else:
+        candidates = depo_lines[depo_lines < touched_level]
+        return float(candidates.max()) if len(candidates) else None
