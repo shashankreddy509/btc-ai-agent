@@ -157,6 +157,13 @@ def apply_settings(d: dict) -> None:
         if v is not None:
             try: setattr(mod, attr, float(v))
             except (ValueError, TypeError): pass
+<<<<<<< HEAD
+=======
+    for key, attr in _bool.items():
+        v = d.get(key)
+        if v is not None:
+            setattr(mod, attr, (str(v).lower() == "true") if isinstance(v, str) else bool(v))
+>>>>>>> parent of 4e3872d (fix: code quality and security hardening across 8 files)
     for key, attr in _list.items():
         v = d.get(key)
         if isinstance(v, list) and v:

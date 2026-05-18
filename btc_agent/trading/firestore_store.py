@@ -17,6 +17,10 @@ from typing import Any
 from rich.console import Console
 
 console = Console()
+<<<<<<< HEAD
+=======
+_write_pool = ThreadPoolExecutor(max_workers=4, thread_name_prefix="fs-write")
+>>>>>>> parent of 4e3872d (fix: code quality and security hardening across 8 files)
 
 
 def _get_db():

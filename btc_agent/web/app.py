@@ -32,6 +32,60 @@ _brief_running   = False
 _scan_lock  = threading.Lock()
 _brief_lock = threading.Lock()
 
+<<<<<<< HEAD
+=======
+# Pepperstone OAuth2 state store — maps state token → {uid, expires}
+_pepperstone_states: dict[str, dict] = {}
+_pp_lock = threading.Lock()
+
+# Feature flag cache — re-reads Firestore at most once every 30 s
+_flag_cache: dict = {}
+_flag_cache_ts: float = 0.0
+_FLAG_TTL = 30.0
+
+# Keys passed to the trading scanner on start/autostart — must stay in sync with scanner.py
+_SCANNER_SEED_KEYS = frozenset({
+    "mode", "tf_min", "tf_max", "scan_interval_min", "qty",
+    "max_sl", "min_tp", "max_concurrent", "patterns", "broker", "broker_nickname",
+    "bias_filter", "trail_offset", "lookback_candles", "entry_mode",
+    "bsg_enabled", "bsg_trade_enabled", "daily_pts_target", "cme_close_skip",
+    "coinbase_api_key", "coinbase_api_secret",
+    "binance_api_key", "binance_api_secret",
+    "bybit_api_key", "bybit_api_secret",
+    "delta_api_key", "delta_api_secret",
+    "coindcx_api_key", "coindcx_api_secret",
+    "pepperstone_client_id", "pepperstone_client_secret",
+    "pepperstone_refresh_token", "pepperstone_account_id",
+    "pepperstone_is_live",
+})
+
+# Behavioural settings persisted to Firestore via the settings page (no credentials)
+_BEHAVIOUR_SETTING_KEYS = frozenset({
+    "mode", "tf_min", "tf_max", "scan_interval_min", "qty",
+    "max_sl", "min_tp", "max_concurrent", "patterns", "broker", "broker_nickname",
+    "bias_filter", "trail_offset", "lookback_candles", "entry_mode",
+    "bsg_enabled", "bsg_trade_enabled", "daily_pts_target", "cme_close_skip",
+    "vishal",
+})
+
+
+def _get_feature_flags() -> dict:
+    global _flag_cache, _flag_cache_ts
+    if time.time() - _flag_cache_ts < _FLAG_TTL:
+        return _flag_cache
+    try:
+        from btc_agent.trading.firestore_store import load_app_settings
+        data = load_app_settings() or {}
+        _flag_cache = {
+            "vishal_enabled":      bool(data.get("vishal_enabled", False)),
+            "retracement_enabled": bool(data.get("retracement_enabled", False)),
+        }
+    except Exception:
+        pass
+    _flag_cache_ts = time.time()
+    return _flag_cache
+
+>>>>>>> parent of 4e3872d (fix: code quality and security hardening across 8 files)
 
 def _mask(s: str) -> str:
     s = str(s)
@@ -159,7 +213,26 @@ async def status():
 @priv.get("/state")
 async def trading_state(token: dict = Depends(verify_token)):
     from btc_agent.trading.scanner import get_state
+<<<<<<< HEAD
     return JSONResponse(get_state(token["uid"]))
+=======
+    from btc_agent.trading.firestore_store import load_user_prefs
+    uid = token["uid"]
+    state = get_state(uid)
+    if not state["running"]:
+        try:
+            prefs = load_user_prefs(uid) or {}
+            fs_keys = {"mode", "tf_min", "tf_max", "scan_interval_min", "qty",
+                       "max_sl", "min_tp", "max_concurrent", "patterns", "broker",
+                       "broker_nickname", "bias_filter", "trail_offset", "lookback_candles",
+                       "entry_mode", "bsg_enabled", "bsg_trade_enabled", "daily_pts_target", "cme_close_skip"}
+            for k in fs_keys:
+                if k in prefs:
+                    state["settings"][k] = prefs[k]
+        except Exception:
+            pass
+    return JSONResponse(state)
+>>>>>>> parent of 4e3872d (fix: code quality and security hardening across 8 files)
 
 
 @priv.post("/start")

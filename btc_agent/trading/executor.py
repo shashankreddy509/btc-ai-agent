@@ -111,7 +111,21 @@ def _auth_headers(method: str, path: str) -> dict[str, str]:
     }
 
 
+<<<<<<< HEAD
 def _post(path: str, payload: dict[str, Any]) -> dict[str, Any]:
+=======
+def _get(path: str, api_key: str | None = None, api_secret: str | None = None) -> dict[str, Any]:
+    headers = _auth_headers("GET", path, api_key, api_secret)
+    req = urllib.request.Request(_BASE + path, headers=headers, method="GET")
+    try:
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            return json.loads(resp.read())
+    except urllib.error.HTTPError as e:
+        raise RuntimeError(f"Coinbase {path} → HTTP {e.code}: {e.read().decode()}") from e
+
+
+def _post(path: str, payload: dict[str, Any], api_key: str | None = None, api_secret: str | None = None) -> dict[str, Any]:
+>>>>>>> parent of 4e3872d (fix: code quality and security hardening across 8 files)
     body = json.dumps(payload)
     headers = _auth_headers("POST", path)
     req = urllib.request.Request(
@@ -125,6 +139,20 @@ def _post(path: str, payload: dict[str, Any]) -> dict[str, Any]:
             return json.loads(resp.read())
     except urllib.error.HTTPError as e:
         raise RuntimeError(f"Coinbase {path} → HTTP {e.code}: {e.read().decode()}") from e
+<<<<<<< HEAD
+=======
+
+
+def get_portfolio_name(api_key: str | None = None, api_secret: str | None = None) -> str:
+    """Return the name of the user's default Coinbase portfolio."""
+    try:
+        data = _get("/api/v3/brokerage/portfolios", api_key, api_secret)
+        portfolios = data.get("portfolios", [])
+        active = [p for p in portfolios if not p.get("deleted")]
+        return active[0]["name"] if active else ""
+    except Exception:
+        return ""
+>>>>>>> parent of 4e3872d (fix: code quality and security hardening across 8 files)
 
 
 # ── orders ────────────────────────────────────────────────────────────────────
@@ -146,7 +174,11 @@ def place_market_order(
             }
         },
     }
+<<<<<<< HEAD
     return _post("/api/v3/brokerage/orders", payload)
+=======
+    return _post("/api/v3/brokerage/orders", payload, api_key, api_secret)
+>>>>>>> parent of 4e3872d (fix: code quality and security hardening across 8 files)
 
 
 def place_stop_limit_order(
@@ -174,7 +206,11 @@ def place_stop_limit_order(
             }
         },
     }
+<<<<<<< HEAD
     return _post("/api/v3/brokerage/orders", payload)
+=======
+    return _post("/api/v3/brokerage/orders", payload, api_key, api_secret)
+>>>>>>> parent of 4e3872d (fix: code quality and security hardening across 8 files)
 
 
 def cancel_order(order_id: str) -> dict[str, Any]:
@@ -205,4 +241,8 @@ def place_take_profit_order(
             }
         },
     }
+<<<<<<< HEAD
     return _post("/api/v3/brokerage/orders", payload)
+=======
+    return _post("/api/v3/brokerage/orders", payload, api_key, api_secret)
+>>>>>>> parent of 4e3872d (fix: code quality and security hardening across 8 files)
