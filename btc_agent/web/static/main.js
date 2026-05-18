@@ -30,7 +30,6 @@ async function signInWithGoogle() {
 _auth.onAuthStateChanged(user => {
   _currentUser = user;
   _updateAuthUI();
-  if (user) fetchJSON('/api/trading/autostart', { method: 'POST' }).catch(() => {});
   // Re-render trading page if it's currently visible
   if (document.getElementById('page-trading')?.classList.contains('active')) {
     _showTradingContent();
@@ -63,21 +62,6 @@ function _updateAuthUI() {
     const mav = document.getElementById('mob-avatar');
     if (mav) mav.src = photo;
   }
-
-  // Admin-only buttons — re-evaluate once auth state is known
-  const admin = _isAdmin();
-  const scanBtn  = document.getElementById('scan-btn');
-  const briefBtn = document.getElementById('brief-btn');
-  if (scanBtn)  scanBtn.style.display  = admin ? '' : 'none';
-  if (briefBtn) briefBtn.style.display = admin ? '' : 'none';
-
-  // Trail offset visible to all logged-in users
-  const trailRow = document.getElementById('cfg-trail-offset-row');
-  if (trailRow) trailRow.style.display = 'flex';
-
-  // Admin-only nav items
-  const navUsers = document.getElementById('nav-users');
-  if (navUsers) navUsers.style.display = admin ? '' : 'none';
 }
 
 const ADMIN_EMAIL = 'shashankreddy509@gmail.com';
@@ -90,13 +74,18 @@ function _renderAccountCard() {
   _show('settings-signed-out', !signedIn);
   _show('settings-auth-note',  !signedIn);
 
-  // Only broker selector card is always visible to signed-in users
-  // All credential cards are controlled by onBrokerChange
-  const brokerCard = document.getElementById('s-card-broker');
-  if (brokerCard) brokerCard.style.display = signedIn ? '' : 'none';
-  if (!signedIn) onBrokerChange('');
-  // Re-gate Vishal page when auth state changes
-  if (document.getElementById('page-vishal')?.classList.contains('active')) _showVishalContent();
+  // Cards visible to all signed-in users
+  ['s-card-coinbase-exchange','s-card-coinbase-creds','s-card-broker'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = signedIn ? '' : 'none';
+  });
+  // Broker credential panels: visibility controlled by onBrokerChange
+  if (!signedIn) {
+    ['binance','bybit','delta','coindcx'].forEach(b => {
+      const el = document.getElementById(`s-card-broker-${b}`);
+      if (el) el.style.display = 'none';
+    });
+  }
 
   // Admin-only cards
   ['s-card-general','s-card-notifications','s-card-scanner'].forEach(id => {
@@ -161,56 +150,28 @@ async function loadUserSettings() {
     const sp = (id, v) => { const el = document.getElementById(id); if (el && v) el.placeholder = v; };
     sp('s-cb-key',    d.coinbase_api_key);
     sp('s-cb-secret', d.coinbase_api_secret);
-    sp('s-pepperstone-client-secret', d.pepperstone_client_secret);
-    const sv2 = (id, v) => { const el = document.getElementById(id); if (el && v) el.value = v; };
-    sv2('s-pepperstone-client-id',  d.pepperstone_client_id);
-    sv2('s-pepperstone-account-id', d.pepperstone_account_id);
-    if (d.pepperstone_is_live !== undefined) sv2('s-pepperstone-is-live', d.pepperstone_is_live);
-    const statusEl = document.getElementById('s-pepperstone-status');
-    if (statusEl) {
-      const connected = d.pepperstone_refresh_token && d.pepperstone_refresh_token.includes('*');
-      statusEl.textContent  = connected ? '✅ Connected' : '⚠️ Not connected';
-      statusEl.style.color  = connected ? 'var(--green, #4caf50)' : 'var(--text-3)';
+    if (d.broker) {
+      const sel = document.getElementById('s-broker-select');
+      if (sel) sel.value = d.broker;
+      onBrokerChange(d.broker);
     }
-    const hintEl = document.getElementById('s-pepperstone-redirect-hint');
-    if (hintEl) hintEl.textContent = `${location.origin}/auth/pepperstone/callback`;
-    const broker = d.broker || '';
-    const sel = document.getElementById('s-broker-select');
-    if (sel) sel.value = broker;
-    onBrokerChange(broker);
-    const nickEl = document.getElementById('s-broker-nickname');
-    if (nickEl && d.broker_nickname) nickEl.value = d.broker_nickname;
   } catch (_) {}
 }
 
-const _BROKER_CRED_CARDS = ['binance','bybit','delta','coindcx','pepperstone'];
+const _BROKER_CRED_CARDS = ['binance','bybit','delta','coindcx'];
 
 function onBrokerChange(broker) {
-  // Non-Coinbase credential panels
   _BROKER_CRED_CARDS.forEach(b => {
     const el = document.getElementById(`s-card-broker-${b}`);
     if (el) el.style.display = (b === broker && _currentUser) ? '' : 'none';
   });
-  // Coinbase-specific cards
-  const isCoinbase = broker === 'coinbase' && !!_currentUser;
-  const el_exchange = document.getElementById('s-card-coinbase-exchange');
-  if (el_exchange) el_exchange.style.display = (isCoinbase && _isAdmin()) ? '' : 'none';
-  const el_creds = document.getElementById('s-card-coinbase-creds');
-  if (el_creds) el_creds.style.display = isCoinbase ? '' : 'none';
 }
 
 async function saveBrokerChoice() {
   if (!_currentUser) return;
-  const broker   = _gv('s-broker-select');
+  const broker = _gv('s-broker-select');
   if (!broker) return;
-  const nickname = _gv('s-broker-nickname');
-  const payload  = { broker };
-  if (nickname !== undefined) payload.broker_nickname = nickname;
-  await fetchJSON('/api/trading/settings', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload),
-  });
+  await _saveSettings('/api/trading/settings', { broker }, 'broker');
   onBrokerChange(broker);
 }
 
@@ -225,52 +186,12 @@ async function saveBrokerCreds(broker) {
     if (errEl) { errEl.textContent = 'Both fields are required.'; errEl.style.display = 'inline'; }
     return;
   }
-  const contractEl = document.getElementById(`s-${broker}-contract`);
-  const contractSize = contractEl ? _gn(`s-${broker}-contract`) : null;
-  const payload = { [`${broker}_api_key`]: key, [`${broker}_api_secret`]: secret };
-  if (contractSize) payload[`${broker}_contract_size`] = contractSize;
-  await _saveSettings('/api/settings/user', payload, `broker-${broker}`);
+  await _saveSettings('/api/settings/user',
+    { [`${broker}_api_key`]: key, [`${broker}_api_secret`]: secret },
+    `broker-${broker}`
+  );
   if (keyEl)    keyEl.value    = '';
   if (secretEl) secretEl.value = '';
-  if (contractEl) contractEl.value = '';
-}
-
-async function savePepperstoneCreds() {
-  if (!_currentUser) return;
-  const clientId    = document.getElementById('s-pepperstone-client-id')?.value.trim()    || '';
-  const clientSec   = document.getElementById('s-pepperstone-client-secret')?.value.trim() || '';
-  const accountId   = document.getElementById('s-pepperstone-account-id')?.value.trim()   || '';
-  const isLive      = document.getElementById('s-pepperstone-is-live')?.value              || 'true';
-  const contractRaw = document.getElementById('s-pepperstone-contract')?.value;
-  const contract    = contractRaw ? parseFloat(contractRaw) : null;
-  const errEl = document.getElementById('s-err-broker-pepperstone');
-  if (!clientId || !accountId) {
-    if (errEl) { errEl.textContent = 'Client ID and Account ID are required.'; errEl.style.display = 'inline'; }
-    return;
-  }
-  const payload = {
-    pepperstone_client_id:  clientId,
-    pepperstone_account_id: accountId,
-    pepperstone_is_live:    isLive,
-  };
-  if (clientSec) payload.pepperstone_client_secret = clientSec;
-  if (contract)  payload.pepperstone_contract_size  = contract;
-  await _saveSettings('/api/settings/user', payload, 'broker-pepperstone');
-  const secEl = document.getElementById('s-pepperstone-client-secret');
-  if (secEl) secEl.value = '';
-}
-
-async function connectPepperstone() {
-  if (!_currentUser) return;
-  const { url } = await fetchJSON('/api/settings/pepperstone/auth-url', { method: 'POST' });
-  if (!url) return;
-  const popup = window.open(url, 'pepperstone_auth', 'width=600,height=700,noopener=no');
-  const timer = setInterval(() => {
-    if (!popup || popup.closed) {
-      clearInterval(timer);
-      loadUserSettings();
-    }
-  }, 1000);
 }
 
 // ── Settings save ─────────────────────────────────────────────────────────────
@@ -295,7 +216,7 @@ function _gn(id) { const v = _gv(id); return v ? Number(v) : null; }
 function _gc(id) { const el = document.getElementById(id); return el ? el.checked : false; }
 
 async function saveAppSection(section) {
-  if (!_currentUser || !_isAdmin()) return;
+  if (!_currentUser) return;
   let data = {};
   if (section === 'general') {
     data = { anthropic_api_key: _gv('s-anthropic-key'), anthropic_model: _gv('s-anthropic-model') };
@@ -357,81 +278,6 @@ function _showTradingContent() {
   }
 }
 
-function _showVishalContent() {
-  const gate    = document.getElementById('vishal-auth-gate');
-  const content = document.getElementById('vishal-content');
-  if (_currentUser) {
-    if (gate)    gate.style.display    = 'none';
-    if (content) content.style.display = '';
-    loadVishalSettings();
-  } else {
-    if (gate)    gate.style.display    = '';
-    if (content) content.style.display = 'none';
-  }
-}
-
-// ── Vishal Sir Strategy settings ──────────────────────────────────────────────
-async function loadVishalSettings() {
-  if (!_currentUser) return;
-  try {
-    const d = await fetchJSON('/api/trading/settings');
-    const vs = d.vishal || {};
-    const sv = (id, v) => { const el = document.getElementById(id); if (el && v != null) el.value = v; };
-    const sc = (id, v) => { const el = document.getElementById(id); if (el) el.checked = !!v; };
-    sc('v-pp-enabled',    vs.pingpong_enabled);
-    sv('v-pp-tf',         vs.pingpong_tf   ?? '4h');
-    sv('v-pp-tp',         vs.pingpong_tp   ?? 1000);
-    sv('v-pp-sl',         vs.pingpong_sl   ?? 500);
-    sc('v-esc-enabled',   vs.escalator_enabled);
-    sv('v-esc-trigger',   vs.escalator_trigger ?? 200);
-    sv('v-esc-max-sl',    vs.escalator_max_sl  ?? 3);
-    sc('v-hwt-enabled',   vs.hwt_enabled);
-    sv('v-hwt-target',    vs.hwt_target ?? 450);
-    sv('v-hwt-sl',        vs.hwt_sl     ?? 100);
-    sv('v-hwt-sz',        vs.hwt_sz     || '');
-    sv('v-hwt-dz',        vs.hwt_dz     || '');
-    sc('v-cpc-enabled',   vs.cpc_enabled);
-    sv('v-cpc-target',    vs.cpc_target ?? 1950);
-    sv('v-cpc-sz',        vs.cpc_sz || '');
-    sv('v-cpc-dz',        vs.cpc_dz || '');
-    sc('v-rain-enabled',  vs.rain_enabled);
-    sv('v-rain-tp',       vs.rain_tp ?? 500);
-    sv('v-rain-sz',       vs.rain_sz || '');
-    sv('v-rain-dz',       vs.rain_dz || '');
-    sc('v-dp-enabled',    vs.dp_enabled);
-    sv('v-dp-t1-pct',     vs.dp_t1_pct ?? 50);
-    sv('v-dp-sz',         vs.dp_sz || '');
-    sv('v-dp-dz',         vs.dp_dz || '');
-  } catch (e) { console.error('loadVishalSettings', e); }
-}
-
-async function saveVishalStrategy(id) {
-  if (!_currentUser) return;
-  const gn = elId => { const el = document.getElementById(elId); return el ? Number(el.value) || 0 : 0; };
-  const gb = elId => { const el = document.getElementById(elId); return el ? el.checked : false; };
-  const existing = await fetchJSON('/api/trading/settings').catch(() => ({}));
-  const vs = Object.assign({}, existing.vishal || {});
-  if (id === 'pingpong') {
-    const ppTf = document.getElementById('v-pp-tf')?.value || '4h';
-    Object.assign(vs, { pingpong_enabled: gb('v-pp-enabled'), pingpong_tf: ppTf, pingpong_tp: gn('v-pp-tp'), pingpong_sl: gn('v-pp-sl') });
-  } else if (id === 'escalator') {
-    Object.assign(vs, { escalator_enabled: gb('v-esc-enabled'), escalator_trigger: gn('v-esc-trigger'), escalator_max_sl: gn('v-esc-max-sl') });
-  } else if (id === 'hwt') {
-    Object.assign(vs, { hwt_enabled: gb('v-hwt-enabled'), hwt_target: gn('v-hwt-target'), hwt_sl: gn('v-hwt-sl'), hwt_sz: gn('v-hwt-sz'), hwt_dz: gn('v-hwt-dz') });
-  } else if (id === 'cpc') {
-    Object.assign(vs, { cpc_enabled: gb('v-cpc-enabled'), cpc_target: gn('v-cpc-target'), cpc_sz: gn('v-cpc-sz'), cpc_dz: gn('v-cpc-dz') });
-  } else if (id === 'rain') {
-    Object.assign(vs, { rain_enabled: gb('v-rain-enabled'), rain_tp: gn('v-rain-tp'), rain_sz: gn('v-rain-sz'), rain_dz: gn('v-rain-dz') });
-  } else if (id === 'dp') {
-    Object.assign(vs, { dp_enabled: gb('v-dp-enabled'), dp_t1_pct: gn('v-dp-t1-pct'), dp_sz: gn('v-dp-sz'), dp_dz: gn('v-dp-dz') });
-  }
-  try {
-    await fetchJSON('/api/trading/settings', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ vishal: vs }) });
-    const btn = document.querySelector(`#v-card-${id === 'pingpong' ? 'pingpong' : id === 'escalator' ? 'escalator' : id === 'hwt' ? 'hwt' : id === 'cpc' ? 'cpc' : id === 'rain' ? 'rain' : 'dp'} .btn`);
-    if (btn) { const orig = btn.textContent; btn.textContent = 'Saved ✓'; setTimeout(() => { btn.textContent = orig; }, 1500); }
-  } catch (e) { console.error('saveVishalStrategy', e); }
-}
-
 // ── Utility helpers ────────────────────────────────────────────────────────────
 function _show(id, visible) {
   const el = document.getElementById(id);
@@ -447,31 +293,19 @@ function _setText(id, text) {
 let _currentSection = 'home';
 let _currentSubTab  = 'briefing';
 
-const SECTION_TITLES = { briefing: 'Morning Briefing', scanner: 'Pattern Scanner', trading: 'Live Trading', settings: 'Settings', users: 'Users' };
+const SECTION_TITLES = { briefing: 'Morning Briefing', scanner: 'Pattern Scanner', trading: 'Live Trading', settings: 'Settings' };
 
 function navTo(section) {
   _currentSection = section;
   const subTabsEl = document.getElementById('sub-tabs');
 
-  if (section === 'vishal') {
-    _showPage('vishal');
-    subTabsEl.style.display = 'none';
-    _setTopbarTitle('Vishal Sir Strategy');
-    _setSidebarActive('nav-vishal');
-    _showVishalContent();
-  } else if (section === 'trading') {
+  if (section === 'trading') {
     _showPage('trading');
     subTabsEl.style.display = 'none';
     _setTopbarTitle('Live Trading');
     _setSidebarActive('nav-trading');
     _setMobTabActive('mob-tab-trading');
     _showTradingContent();
-  } else if (section === 'users') {
-    _showPage('users');
-    subTabsEl.style.display = 'none';
-    _setTopbarTitle('Users');
-    _setSidebarActive('nav-users');
-    _showUsersPage();
   } else if (section === 'settings') {
     _showPage('settings');
     subTabsEl.style.display = 'none';
@@ -479,15 +313,6 @@ function navTo(section) {
     _setSidebarActive('nav-settings');
     _setMobTabActive('mob-tab-settings');
     _renderSettingsPage();
-  } else if (section === 'liquidity') {
-    _showPage('liquidity');
-    subTabsEl.style.display = 'none';
-    _setTopbarTitle('Liquidation Heatmap');
-    _setSidebarActive('nav-liquidity');
-    _setMobTabActive('mob-tab-liquidity');
-    loadLiquidity();
-    clearInterval(window._liqInterval);
-    window._liqInterval = setInterval(() => { if (!document.hidden) loadLiquidity(); }, 30_000);
   } else if (section === 'scanner') {
     _currentSubTab = 'scanner';
     _showPage('scanner');
@@ -505,26 +330,6 @@ function navTo(section) {
     _setSidebarActive('nav-home');
     _setMobTabActive('mob-tab-home');
   }
-}
-
-const _PP_PRESETS = { '1h': {tp:400,sl:200}, '4h': {tp:1000,sl:500}, '6h': {tp:1200,sl:600}, '12h': {tp:2000,sl:200} };
-function onPingPongTfChange() {
-  const tf = document.getElementById('v-pp-tf')?.value;
-  const p  = _PP_PRESETS[tf];
-  if (!p) return;
-  const tp = document.getElementById('v-pp-tp');
-  const sl = document.getElementById('v-pp-sl');
-  if (tp) tp.value = p.tp;
-  if (sl) sl.value = p.sl;
-}
-
-function toggleVishal(id) {
-  const body    = document.getElementById('v-body-' + id);
-  const chevron = document.getElementById('v-chevron-' + id);
-  if (!body) return;
-  const open = body.style.display === 'none';
-  body.style.display = open ? 'block' : 'none';
-  if (chevron) chevron.style.transform = open ? 'rotate(0deg)' : 'rotate(-90deg)';
 }
 
 function toggleCfg() {
@@ -545,7 +350,6 @@ function switchSubTab(tab) {
 }
 
 function _showPage(id) {
-  if (id !== 'liquidity') { clearInterval(window._liqInterval); window._liqInterval = null; }
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   const el = document.getElementById('page-' + id);
   if (el) el.classList.add('active');
@@ -733,46 +537,6 @@ function renderScan() {
   }).join('');
 }
 
-// ── Liquidity Heatmap ──────────────────────────────────────────────────────────
-const LIQ_COLORS = {
-  YELLOW: '#facc15', LIME: '#a3e635', ORANGE: '#fb923c',
-  RED: '#f87171', TEAL: '#2dd4bf', NAVY: '#6366f1', BLACK: '#94a3b8',
-};
-
-async function loadLiquidity() {
-  const status = document.getElementById('liq-status');
-  const tbody  = document.getElementById('liq-tbody');
-  if (!tbody) return;
-  if (status) status.textContent = 'Fetching…';
-  try {
-    const d = await fetchJSON('/api/liquidity');
-    if (d.status === 'no_data') {
-      tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--text-3)">No data yet — run <code>uv run liquidity-collect</code> to start collecting.</td></tr>';
-      if (status) status.textContent = '';
-      return;
-    }
-    const latest = d.rows.at(-1)?.timestamp;
-    const rows = d.rows.filter(r => r.timestamp === latest).reverse();
-    tbody.innerHTML = rows.map(r => {
-      const dot = LIQ_COLORS[r.color] || 'var(--text-3)';
-      const price = r.price && r.price !== 'N/A'
-        ? '$' + Number(r.price).toLocaleString('en-US', {minimumFractionDigits: 1, maximumFractionDigits: 1})
-        : '—';
-      const ts = formatTs(r.timestamp.replace(' UTC', 'Z').replace(' ', 'T'));
-      return `<tr>
-        <td style="font-size:11px;color:var(--text-3)">${ts}</td>
-        <td><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:${dot};margin-right:5px;vertical-align:middle"></span>${r.color}</td>
-        <td style="font-variant-numeric:tabular-nums">${price}</td>
-        <td style="font-variant-numeric:tabular-nums">${r.leverage}</td>
-      </tr>`;
-    }).join('');
-    const lastTs = rows[0]?.timestamp ? formatTs(rows[0].timestamp.replace(' UTC','Z').replace(' ','T')) : '—';
-    if (status) status.textContent = `${rows.length} rows · last: ${lastTs}`;
-  } catch (e) {
-    tbody.innerHTML = `<tr><td colspan="4" style="color:var(--red)">${e}</td></tr>`;
-  }
-}
-
 async function loadScan() {
   try {
     _scanData = await fetchJSON('/api/scan');
@@ -790,12 +554,6 @@ async function pollStatus() {
     _setDot('scan-dot',  s.scan_running);
     _setDot('brief-dot', s.brief_running);
     _setRunningBtn(s.scan_running, s.brief_running);
-    const navVishal  = document.getElementById('nav-vishal');
-    const pageVishal = document.getElementById('page-vishal');
-    if (navVishal)  navVishal.style.display  = s.vishal_enabled ? '' : 'none';
-    if (pageVishal) pageVishal.style.display = s.vishal_enabled ? '' : 'none';
-    const labelRetracement = document.getElementById('label-pattern-retracement');
-    if (labelRetracement) labelRetracement.style.display = s.retracement_enabled ? '' : 'none';
   } catch (_) {}
 }
 
@@ -807,9 +565,6 @@ function _setDot(id, running) {
 function _setRunningBtn(scanRunning, briefRunning) {
   const scanBtn  = document.getElementById('scan-btn');
   const briefBtn = document.getElementById('brief-btn');
-  const adminOnly = _isAdmin();
-  if (scanBtn)  scanBtn.style.display  = adminOnly ? '' : 'none';
-  if (briefBtn) briefBtn.style.display = adminOnly ? '' : 'none';
   if (scanBtn) {
     scanBtn.disabled = scanRunning;
     scanBtn.innerHTML = scanRunning
@@ -841,41 +596,31 @@ async function triggerBrief() {
 
 // ── BTC price ──────────────────────────────────────────────────────────────────
 async function fetchBTCPrice() {
-  const ac = new AbortController();
-  const _t = setTimeout(() => ac.abort(), 5000);
-  try {
-    const r = await fetch('/api/price', { signal: ac.signal });
-    if (!r.ok) return;
-    const { price } = await r.json();
-    if (price) _applyPrice(price);
-  } catch (_) {
-  } finally {
-    clearTimeout(_t);
+  const endpoints = [
+    'https://fapi.binance.com/fapi/v1/ticker/price?symbol=BTCUSDT',
+    'https://api.bybit.com/v5/market/tickers?category=linear&symbol=BTCUSDT',
+  ];
+  for (const url of endpoints) {
+    try {
+      const r = await fetch(url);
+      if (!r.ok) continue;
+      const d = await r.json();
+      const price = d.price
+        ? parseFloat(d.price)
+        : parseFloat(d?.result?.list?.[0]?.lastPrice);
+      if (!price || isNaN(price)) continue;
+      const fmt = '$' + price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      ['btc-price', 'btc-price-mobile'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.textContent = fmt;
+      });
+      return;
+    } catch (_) {}
   }
 }
 
-let _wsPrice = null;
-
-function _applyPrice(price) {
-  _wsPrice = price;
-  const fmt = '$' + price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-  ['btc-price', 'btc-price-mobile', 'trade-live-price'].forEach(id => {
-    const el = document.getElementById(id);
-    if (el) el.textContent = fmt;
-  });
-  document.querySelectorAll('[data-pos-pts]').forEach(td => {
-    const entry = parseFloat(td.dataset.entry);
-    const dir   = td.dataset.dir;
-    const pts   = dir === 'long' ? price - entry : entry - price;
-    td.innerHTML = `<span style="color:${pts >= 0 ? 'var(--green)' : 'var(--red)'}">${pts >= 0 ? '+' : ''}${pts.toFixed(1)}</span>`;
-  });
-}
-
-
 // ── Trading scanner ────────────────────────────────────────────────────────────
 let _tradingData = null;
-let _histPage    = 0;
-const _HIST_PAGE_SIZE = 20;
 
 function fmtPrice(v) {
   return v != null
@@ -911,67 +656,20 @@ function renderLevels(levels, running) {
     <span class="level-item">Bias: <span style="color:${biasColor}">${bias}</span></span>`;
 }
 
-let _ptsModeFilter = 'live';
-
-function _renderPointsStats(history) {
-  const todayEl = document.getElementById('pts-today');
-  const weekEl  = document.getElementById('pts-week');
-  const monthEl = document.getElementById('pts-month');
-  if (!todayEl) return;
-
-  const tz  = localStorage.getItem(TZ_KEY) || DEFAULT_TZ;
-  const now = new Date();
-
-  const toDateStr = (d) => new Intl.DateTimeFormat('en-CA', { timeZone: tz }).format(d);
-  const todayStr  = toDateStr(now);
-
-  const nowLocal   = new Date(now.toLocaleString('en-US', { timeZone: tz }));
-  const dowMon     = (nowLocal.getDay() + 6) % 7; // 0 = Monday
-  const weekStart  = new Date(nowLocal); weekStart.setDate(weekStart.getDate() - dowMon); weekStart.setHours(0,0,0,0);
-  const monthStart = new Date(nowLocal); monthStart.setDate(1); monthStart.setHours(0,0,0,0);
-
-  let todayPts = 0, weekPts = 0, monthPts = 0;
-  let todayN = 0, weekN = 0, monthN = 0;
-
-  for (const r of history) {
-    if (r.close_reason === 'stopped_by_user') continue;
-    if (_ptsModeFilter !== 'all' && (r.mode || 'paper') !== _ptsModeFilter) continue;
-    const p   = r.position;
-    const pts = p.direction === 'long' ? r.close_price - p.entry_price : p.entry_price - r.close_price;
-    const closedAt    = new Date(r.closed_at);
-    const closedLocal = new Date(closedAt.toLocaleString('en-US', { timeZone: tz }));
-    if (toDateStr(closedAt) === todayStr)  { todayPts += pts; todayN++; }
-    if (closedLocal >= weekStart)          { weekPts  += pts; weekN++;  }
-    if (closedLocal >= monthStart)         { monthPts += pts; monthN++; }
-  }
-
-  const fmt = (v, n) => n === 0
-    ? '<span style="color:var(--text-3)">—</span>'
-    : `<span class="${v >= 0 ? 'pnl-pos' : 'pnl-neg'}">${v >= 0 ? '+' : ''}${v.toFixed(1)}</span>`
-      + `<span style="font-size:11px;color:var(--text-3);margin-left:4px">(${n})</span>`;
-
-  todayEl.innerHTML = fmt(todayPts, todayN);
-  weekEl.innerHTML  = fmt(weekPts,  weekN);
-  monthEl.innerHTML = fmt(monthPts, monthN);
-
-  const sel = document.getElementById('pts-mode-filter');
-  if (sel && sel.value !== _ptsModeFilter) sel.value = _ptsModeFilter;
-}
-
 function renderTrading() {
   if (!_tradingData) return;
-  const { signals = [], positions = [], history = [], running, settings = {}, levels = {}, current_price = 0, broker_account_name = '' } = _tradingData;
+  const { signals = [], positions = [], history = [], running, settings = {}, levels = {}, current_price = 0 } = _tradingData;
 
   _setText('trade-mode-label', (settings.mode || 'paper').toUpperCase());
-  const acctLabel = document.getElementById('trade-account-label');
-  const acctName  = document.getElementById('trade-account-name');
-  if (acctLabel && acctName) {
-    const displayName = settings.broker_nickname || _currentUser?.displayName || _currentUser?.email || broker_account_name;
-    const showAcct = running && settings.mode === 'live' && displayName;
-    acctLabel.style.display = showAcct ? '' : 'none';
-    acctName.textContent = displayName;
+  const liveEl = document.getElementById('trade-live-price');
+  if (liveEl) liveEl.textContent = current_price ? `$${fmtPrice(current_price)}` : '—';
+  if (current_price && running) {
+    const fmt = '$' + current_price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    ['btc-price', 'btc-price-mobile'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.textContent = fmt;
+    });
   }
-  if (current_price) _applyPrice(current_price);
 
   const startBtn = document.getElementById('trade-start-btn');
   const stopBtn  = document.getElementById('trade-stop-btn');
@@ -1003,31 +701,14 @@ function renderTrading() {
       const dirBadge = s.direction === 'long'
         ? '<span class="badge badge-bull">▲ Long</span>'
         : '<span class="badge badge-bear">▼ Short</span>';
-      const m = s.meta || {};
-      const patternCell = (s.pattern === 'Retracement' && m.sw_hi)
-        ? `<td>
-            <div style="font-weight:500">Retracement</div>
-            <div style="font-size:10px;margin-top:3px;display:flex;gap:10px">
-              <span style="color:var(--green)">▲ SW High: ${Math.round(m.sw_hi).toLocaleString('en-US')}</span>
-              <span style="color:var(--red)">▼ SW Low: ${Math.round(m.sw_lo).toLocaleString('en-US')}</span>
-            </div>
-            <div style="font-size:10px;color:var(--text-3);margin-top:1px;display:flex;gap:10px">
-              <span>50%: ${Math.round(m.fib_50).toLocaleString('en-US')}</span>
-              <span>61.8%: ${Math.round(m.fib_618).toLocaleString('en-US')}</span>
-            </div>
-           </td>`
-        : `<td>${s.pattern}</td>`;
       return `<tr>
-        ${patternCell}
+        <td>${s.pattern}</td>
         <td><span class="badge badge-neutral">${s.tf}m</span></td>
         <td>${dirBadge}</td>
         <td style="text-align:right;font-variant-numeric:tabular-nums">${Number(s.entry_trigger).toLocaleString('en-US',{minimumFractionDigits:1,maximumFractionDigits:1})}</td>
         <td style="text-align:right;color:var(--red);font-variant-numeric:tabular-nums">${Number(s.sl_wick).toLocaleString('en-US',{minimumFractionDigits:1,maximumFractionDigits:1})}</td>
         <td style="color:var(--text-3);font-size:12px">${formatTs(s.expires_at)}</td>
-        <td style="color:var(--accent)">
-          ${s.status}
-          ${s.note ? `<div style="font-size:10px;color:#f5a623;margin-top:2px">${s.note}</div>` : ''}
-        </td>
+        <td style="color:var(--accent)">${s.status}</td>
       </tr>`;
     }).join('');
   }
@@ -1063,7 +744,7 @@ function renderTrading() {
         <td style="text-align:right;font-variant-numeric:tabular-nums">$${fmtPrice(p.entry_price)}</td>
         <td style="text-align:right;color:${slColor};font-variant-numeric:tabular-nums">$${fmtPrice(p.sl)}</td>
         <td style="text-align:right">${tp1Str}</td>
-        <td style="text-align:right" data-pos-pts data-entry="${p.entry_price}" data-dir="${p.direction}">${ptsStr}</td>
+        <td style="text-align:right">${ptsStr}</td>
         <td style="text-align:right;color:var(--text-3)">${remQty}</td>
         <td>${phaseHtml}</td>
         <td style="color:var(--text-3);font-size:12px">${formatTs(p.opened_at)}</td>
@@ -1072,112 +753,39 @@ function renderTrading() {
     }).join('');
   }
 
-  _renderPointsStats(history);
-
   // history table
-  const histBody  = document.getElementById('trade-history-body');
-  const histPager = document.getElementById('hist-pagination');
-  const sorted    = _applyHistFilters([...history].reverse());
-  const totalPages = Math.max(1, Math.ceil(sorted.length / _HIST_PAGE_SIZE));
-  _histPage = Math.min(_histPage, totalPages - 1);
-  if (!sorted.length) {
-    histBody.innerHTML = '<tr class="empty-row"><td colspan="12">No completed trades</td></tr>';
-    if (histPager) histPager.style.display = 'none';
+  const histBody = document.getElementById('trade-history-body');
+  if (!history.length) {
+    histBody.innerHTML = '<tr class="empty-row"><td colspan="9">No completed trades</td></tr>';
   } else {
-    const start = _histPage * _HIST_PAGE_SIZE;
-    const page  = sorted.slice(start, start + _HIST_PAGE_SIZE);
-    const prevBtn = document.getElementById('hist-prev');
-    const nextBtn = document.getElementById('hist-next');
-    const label   = document.getElementById('hist-page-label');
-    if (histPager) histPager.style.display = totalPages > 1 ? 'flex' : 'none';
-    if (label)   label.textContent  = `Page ${_histPage + 1} of ${totalPages}  (${history.length} trades)`;
-    if (prevBtn) prevBtn.disabled   = _histPage === 0;
-    if (nextBtn) nextBtn.disabled   = _histPage >= totalPages - 1;
-    histBody.innerHTML = page.map(r => {
+    histBody.innerHTML = [...history].reverse().slice(0, 40).map(r => {
       const p          = r.position;
       const isPartial  = r.close_reason === 'tp_partial';
-      const isStopped  = r.close_reason === 'stopped_by_user';
       const dirBadge   = p.direction === 'long'
         ? '<span class="badge badge-bull">▲ Long</span>'
         : '<span class="badge badge-bear">▼ Short</span>';
-      const reasonColor = isStopped ? 'var(--text-3)' : r.close_reason === 'sl' ? 'var(--red)' : 'var(--green)';
-      const reasonLabel = isPartial ? 'TP 50%' : isStopped ? 'Stopped by user' : r.close_reason.toUpperCase();
-      const tradeMode  = r.mode || 'paper';
-      const modeBadge  = tradeMode === 'live'
-        ? '<span class="badge badge-bull" style="font-size:10px">Live</span>'
-        : '<span class="badge badge-neutral" style="font-size:10px">Paper</span>';
-      const pts        = isStopped ? null :
-        (p.direction === 'long' ? r.close_price - p.entry_price : p.entry_price - r.close_price);
-      const ptsStr     = pts === null ? '—' : (pts >= 0 ? '+' : '') + pts.toFixed(1);
-      const ptsClass   = pts === null ? '' : pts >= 0 ? 'pnl-pos' : 'pnl-neg';
-      return `<tr style="${isPartial || isStopped ? 'opacity:0.75' : ''}">
+      const pnl        = r.pnl_closed ?? 0;
+      const pnlClass   = pnl >= 0 ? 'pnl-pos' : 'pnl-neg';
+      const pnlStr     = (pnl >= 0 ? '+' : '') + pnl.toFixed(4);
+      const reasonColor = r.close_reason === 'sl' ? 'var(--red)' : 'var(--green)';
+      return `<tr style="${isPartial ? 'opacity:0.75' : ''}">
         <td>${dirBadge}</td>
         <td><span class="badge badge-neutral">${p.tf ? p.tf + 'm' : '—'}</span></td>
         <td>${p.pattern || '—'}</td>
-        <td>${modeBadge}</td>
         <td style="text-align:right;font-variant-numeric:tabular-nums">$${fmtPrice(p.entry_price)}</td>
-        <td style="text-align:right;font-variant-numeric:tabular-nums">${isStopped ? '—' : '$' + fmtPrice(r.close_price)}</td>
-        <td style="text-align:right;font-variant-numeric:tabular-nums" class="${ptsClass}">${ptsStr}</td>
+        <td style="text-align:right;font-variant-numeric:tabular-nums">$${fmtPrice(r.close_price)}</td>
         <td style="text-align:right;color:var(--text-3)">${r.qty_closed ?? p.qty}</td>
-        <td style="color:${reasonColor}">${reasonLabel}</td>
-        <td style="color:var(--text-3);font-size:12px">${formatTs(p.opened_at)}</td>
+        <td style="text-align:right" class="${pnlClass}">${pnlStr}</td>
+        <td style="color:${reasonColor}">${isPartial ? 'TP 50%' : r.close_reason.toUpperCase()}</td>
         <td style="color:var(--text-3);font-size:12px">${formatTs(r.closed_at)}</td>
       </tr>`;
     }).join('');
   }
-
-  // BSG alerts
-  const bsgAlerts  = _tradingData?.bsg_alerts || [];
-  const bsgEnabled = !!_tradingData?.settings?.bsg_enabled;
-  const bsgSection = document.getElementById('bsg-section');
-  if (bsgSection) {
-    bsgSection.style.display = bsgEnabled ? '' : 'none';
-    const tbody = document.getElementById('bsg-alerts-body');
-    if (tbody) {
-      if (!bsgAlerts.length) {
-        tbody.innerHTML = '<tr class="empty-row"><td colspan="4">No crossovers detected yet — waiting for 15m or 30m SuperTrend flip</td></tr>';
-      } else {
-        tbody.innerHTML = [...bsgAlerts].reverse().map(a => `<tr>
-          <td>${a.direction === 'long'
-            ? '<span class="badge badge-bull">▲ Long</span>'
-            : '<span class="badge badge-bear">▼ Short</span>'}</td>
-          <td><span class="badge badge-neutral">${a.tf}m</span></td>
-          <td style="text-align:right;font-variant-numeric:tabular-nums">$${fmtPrice(a.price)}</td>
-          <td style="color:var(--text-3);font-size:12px">${formatTs(a.bar_time)}</td>
-        </tr>`).join('');
-      }
-    }
-  }
-}
-
-function histPageNav(delta) {
-  const history = (_tradingData?.history) || [];
-  const totalPages = Math.max(1, Math.ceil(history.length / _HIST_PAGE_SIZE));
-  _histPage = Math.max(0, Math.min(_histPage + delta, totalPages - 1));
-  renderTrading();
-}
-
-function histFilterChanged() {
-  _histPage = 0;
-  renderTrading();
-}
-
-function _applyHistFilters(history) {
-  const modeVal    = document.getElementById('hist-filter-mode')?.value    || 'all';
-  const patternVal = document.getElementById('hist-filter-pattern')?.value || 'all';
-  return history.filter(r => {
-    if (modeVal    !== 'all' && (r.mode || 'paper') !== modeVal)          return false;
-    if (patternVal !== 'all' && (r.position?.pattern || '') !== patternVal) return false;
-    return true;
-  });
 }
 
 async function loadTrading() {
   try {
-    const fresh  = await fetchJSON('/api/trading/state');
-    const prevLen = (_tradingData?.history || []).length;
-    _tradingData  = fresh;
-    if ((fresh.history || []).length !== prevLen) _histPage = 0;
+    _tradingData = await fetchJSON('/api/trading/state');
     renderTrading();
   } catch (e) {
     if (e.status === 401) _showTradingContent();  // re-show gate if token expired
@@ -1217,27 +825,8 @@ function _syncSettingsInputs(settings) {
     if (el && document.activeElement !== el) el.value = val ?? '';
   }
   const activePatterns = settings.patterns || ['4-Flag', 'Engulfing'];
-  document.getElementById('cfg-pattern-4flag').checked       = activePatterns.includes('4-Flag');
-  document.getElementById('cfg-pattern-engulfing').checked    = activePatterns.includes('Engulfing');
-  document.getElementById('cfg-pattern-retracement').checked  = activePatterns.includes('Retracement');
-  document.getElementById('cfg-bias-filter').checked = !!settings.bias_filter;
-  const cmeEl = document.getElementById('cfg-cme-close-skip');
-  if (cmeEl) cmeEl.checked = !!settings.cme_close_skip;
-  const bsgEl = document.getElementById('cfg-bsg-enabled');
-  if (bsgEl) bsgEl.checked = !!settings.bsg_enabled;
-  const bsgTradeEl = document.getElementById('cfg-bsg-trade-enabled');
-  if (bsgTradeEl) bsgTradeEl.checked = !!settings.bsg_trade_enabled;
-  const trailEl = document.getElementById('cfg-trail-offset');
-  if (trailEl && document.activeElement !== trailEl)
-    trailEl.value = settings.trail_offset ?? 50;
-  const lcEl = document.getElementById('cfg-lookback-candles');
-  if (lcEl && document.activeElement !== lcEl)
-    lcEl.value = settings.lookback_candles ?? 3;
-  const emEl = document.getElementById('cfg-entry-mode');
-  if (emEl) emEl.value = settings.entry_mode ?? 'immediate';
-  const dptEl = document.getElementById('cfg-daily-pts');
-  if (dptEl && document.activeElement !== dptEl)
-    dptEl.value = settings.daily_pts_target ?? 0;
+  document.getElementById('cfg-pattern-4flag').checked    = activePatterns.includes('4-Flag');
+  document.getElementById('cfg-pattern-engulfing').checked = activePatterns.includes('Engulfing');
 }
 
 async function _renderSettingsPage() {
@@ -1266,18 +855,9 @@ async function saveTradingSettings() {
     min_tp:            parseFloat(document.getElementById('cfg-min-tp').value),
     max_concurrent:    parseInt(document.getElementById('cfg-max-conc').value),
     patterns: [
-      ...(document.getElementById('cfg-pattern-4flag').checked       ? ['4-Flag']      : []),
-      ...(document.getElementById('cfg-pattern-engulfing').checked    ? ['Engulfing']   : []),
-      ...(document.getElementById('cfg-pattern-retracement').checked  ? ['Retracement'] : []),
+      ...(document.getElementById('cfg-pattern-4flag').checked    ? ['4-Flag']    : []),
+      ...(document.getElementById('cfg-pattern-engulfing').checked ? ['Engulfing'] : []),
     ],
-    bias_filter:      document.getElementById('cfg-bias-filter').checked,
-    cme_close_skip:   !!document.getElementById('cfg-cme-close-skip')?.checked,
-    bsg_enabled:       !!document.getElementById('cfg-bsg-enabled')?.checked,
-    bsg_trade_enabled: !!document.getElementById('cfg-bsg-trade-enabled')?.checked,
-    lookback_candles: parseInt(document.getElementById('cfg-lookback-candles')?.value) || 3,
-    entry_mode:       document.getElementById('cfg-entry-mode')?.value || 'immediate',
-    trail_offset: parseInt(document.getElementById('cfg-trail-offset')?.value || '50'),
-    daily_pts_target: parseFloat(document.getElementById('cfg-daily-pts')?.value) || 0,
   };
   await fetchJSON('/api/trading/settings', {
     method: 'POST',
@@ -1341,156 +921,9 @@ _updateAuthUI();
   updateThHeader();
   // Briefing + scanner are public — load immediately
   await Promise.all([loadBriefing(), loadScan(), fetchBTCPrice(), pollStatus()]);
-  setInterval(() => { if (!document.hidden) Promise.all([loadBriefing(), loadScan()]); }, REFRESH_MS);
-  setInterval(() => { if (!document.hidden) fetchBTCPrice(); }, 2_000);
-  setInterval(() => { if (!document.hidden) pollStatus(); }, 3000);
+  setInterval(() => Promise.all([loadBriefing(), loadScan()]), REFRESH_MS);
+  setInterval(fetchBTCPrice, 10_000);
+  setInterval(pollStatus, 3000);
   // Trading polling only when signed in
-  setInterval(() => { if (!document.hidden && _currentUser) loadTrading(); }, 5000);
-  // Users page auto-refresh when visible
-  setInterval(() => {
-    if (!document.hidden && document.getElementById('page-users')?.classList.contains('active')) _showUsersPage();
-  }, 8000);
+  setInterval(() => { if (_currentUser) loadTrading(); }, 5000);
 })();
-
-// ── Admin Users Page ───────────────────────────────────────────────────────────
-
-async function _showUsersPage() {
-  const tbody = document.getElementById('users-tbody');
-  if (!tbody) return;
-
-  // Skip auto-refresh while any trade panel is open — avoids collapsing expanded rows
-  const anyOpen = [...tbody.querySelectorAll('tr[id^="utr-"]')].some(r => r.style.display !== 'none');
-  if (anyOpen) return;
-
-  try {
-    const users = await fetchJSON('/api/admin/users');
-    if (!users.length) {
-      tbody.innerHTML = '<tr class="empty-row"><td colspan="5">No users found</td></tr>';
-      return;
-    }
-    tbody.innerHTML = users.map(u => {
-      const uid = u.uid;
-      const runBadge = u.scanner_running
-        ? '<span class="badge badge-bull">Running</span>'
-        : '<span class="badge" style="background:var(--surface-3);color:var(--text-2)">Stopped</span>';
-      const modeBadge = u.mode === 'live'
-        ? '<span class="badge badge-bear">Live</span>'
-        : '<span class="badge" style="background:var(--surface-3);color:var(--text-2)">Paper</span>';
-      const stopBtn = u.scanner_running
-        ? `<button class="btn btn-danger" style="font-size:11px;padding:3px 10px" onclick="event.stopPropagation();_adminStopUser('${uid}')">Stop</button>`
-        : '';
-      const modeBtn = u.mode === 'live'
-        ? `<button class="btn" style="font-size:11px;padding:3px 10px" onclick="event.stopPropagation();_adminSetMode('${uid}','paper')">→ Paper</button>`
-        : `<button class="btn" style="font-size:11px;padding:3px 10px" onclick="event.stopPropagation();_adminSetMode('${uid}','live')">→ Live</button>`;
-      const chevron = `<svg id="uch-${uid}" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="transition:transform 0.2s;transform:rotate(-90deg);flex-shrink:0"><polyline points="6 9 12 15 18 9"/></svg>`;
-      return `
-        <tr style="cursor:pointer" onclick="_toggleUserTrades('${uid}')">
-          <td>
-            <div style="display:flex;align-items:center;gap:8px">
-              ${chevron}
-              <div>
-                <div style="font-weight:500">${u.display_name}</div>
-                <div style="font-size:11px;color:var(--text-3)">${u.email}</div>
-              </div>
-            </div>
-          </td>
-          <td>${modeBadge}</td>
-          <td style="text-transform:capitalize">${u.broker}</td>
-          <td>${runBadge}</td>
-          <td style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">${stopBtn}${modeBtn}</td>
-        </tr>
-        <tr id="utr-${uid}" style="display:none">
-          <td colspan="5" style="padding:0;background:var(--surface-2)">
-            <div id="utd-${uid}" style="padding:14px 18px">
-              <span style="color:var(--text-3);font-size:12px">Loading…</span>
-            </div>
-          </td>
-        </tr>`;
-    }).join('');
-  } catch(e) {
-    tbody.innerHTML = `<tr class="empty-row"><td colspan="5">Error: ${e.message}</td></tr>`;
-  }
-}
-
-async function _toggleUserTrades(uid) {
-  const row     = document.getElementById(`utr-${uid}`);
-  const chevron = document.getElementById(`uch-${uid}`);
-  const detail  = document.getElementById(`utd-${uid}`);
-  if (!row) return;
-  const isOpen = row.style.display !== 'none';
-  row.style.display = isOpen ? 'none' : '';
-  if (chevron) chevron.style.transform = isOpen ? 'rotate(-90deg)' : 'rotate(0deg)';
-  if (!isOpen && detail && !detail.dataset.loaded) {
-    detail.dataset.loaded = '1';
-    try {
-      const state = await fetchJSON(`/api/admin/users/${uid}/state`);
-      detail.innerHTML = _renderUserTrades(state);
-    } catch(e) {
-      detail.innerHTML = `<span style="color:var(--bear);font-size:12px">Error loading trades: ${e.message}</span>`;
-    }
-  }
-}
-
-function _renderUserTrades(state) {
-  const fmt    = n => n == null ? '—' : Number(n).toFixed(1);
-  const fmtPnl = n => {
-    if (n == null) return '—';
-    const col = Number(n) >= 0 ? 'var(--bull)' : 'var(--bear)';
-    return `<span style="color:${col}">${Number(n) >= 0 ? '+' : ''}${Number(n).toFixed(4)}</span>`;
-  };
-  const fmtDate = s => s ? new Date(s).toLocaleString([], {month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}) : '—';
-  const dirBadge = d => d === 'long'
-    ? '<span class="badge badge-bull" style="font-size:10px;padding:1px 6px">Long</span>'
-    : '<span class="badge badge-bear" style="font-size:10px;padding:1px 6px">Short</span>';
-
-  const positions = state.positions || [];
-  const posHtml = positions.length
-    ? `<div style="overflow-x:auto"><table class="scan-table" style="font-size:11px">
-        <thead><tr><th>Dir</th><th>Pattern</th><th>TF</th><th>Entry</th><th>SL</th><th>TP</th><th>PnL</th><th>Opened</th></tr></thead>
-        <tbody>${positions.map(p => `<tr>
-          <td>${dirBadge(p.direction)}</td>
-          <td>${p.pattern}</td><td>${p.tf}m</td>
-          <td>${fmt(p.entry_price)}</td><td>${fmt(p.sl)}</td><td>${fmt(p.tp)}</td>
-          <td>${fmtPnl(p.pnl)}</td><td>${fmtDate(p.opened_at)}</td>
-        </tr>`).join('')}</tbody>
-      </table></div>`
-    : '<p style="color:var(--text-3);font-size:12px;margin:4px 0 0">No open positions</p>';
-
-  const history = state.history || [];
-  const histHtml = history.length
-    ? `<div style="overflow-x:auto"><table class="scan-table" style="font-size:11px">
-        <thead><tr><th>Dir</th><th>Pattern</th><th>TF</th><th>Entry</th><th>Close</th><th>Reason</th><th>PnL</th><th>Closed</th></tr></thead>
-        <tbody>${history.map(h => {
-          const p = h.position || {};
-          return `<tr>
-            <td>${dirBadge(p.direction)}</td>
-            <td>${p.pattern || '—'}</td><td>${p.tf ? p.tf + 'm' : '—'}</td>
-            <td>${fmt(p.entry_price)}</td><td>${fmt(h.close_price)}</td>
-            <td style="text-transform:capitalize">${(h.close_reason || '').replace(/_/g,' ')}</td>
-            <td>${fmtPnl(h.pnl_closed)}</td><td>${fmtDate(h.closed_at)}</td>
-          </tr>`;
-        }).join('')}</tbody>
-      </table></div>`
-    : '<p style="color:var(--text-3);font-size:12px;margin:4px 0 0">No completed trades</p>';
-
-  const label = s => `<div style="font-size:10px;font-weight:600;color:var(--text-3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">${s}</div>`;
-  return `
-    <div style="margin-bottom:14px">${label(`Open Positions (${positions.length})`)}${posHtml}</div>
-    <div>${label(`Completed Trades (${history.length})`)}${histHtml}</div>`;
-}
-
-async function _adminStopUser(uid) {
-  await fetchJSON(`/api/admin/users/${uid}/stop`, { method: 'POST' });
-  _showUsersPage();
-}
-
-async function _adminSetMode(uid, mode) {
-  await fetchJSON(`/api/admin/users/${uid}/mode`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ mode }),
-  });
-  _showUsersPage();
-}
-
-function _refreshUsers() { _showUsersPage(); }

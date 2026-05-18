@@ -11,17 +11,12 @@ Reads (load_state) are synchronous — called once at scanner startup.
 """
 from __future__ import annotations
 
-import atexit
 import threading
-from concurrent.futures import ThreadPoolExecutor
 from typing import Any
 
 from rich.console import Console
-from google.cloud.firestore_v1.base_query import FieldFilter
 
 console = Console()
-_write_pool = ThreadPoolExecutor(max_workers=4, thread_name_prefix="fs-write")
-atexit.register(_write_pool.shutdown, wait=True)
 
 
 def _get_db():
@@ -32,8 +27,8 @@ def _get_db():
 
 
 def _bg(fn, *args) -> None:
-    """Submit fn(*args) to the write pool — fire and forget."""
-    _write_pool.submit(fn, *args)
+    """Run fn(*args) in a daemon thread — fire and forget."""
+    threading.Thread(target=fn, args=args, daemon=True).start()
 
 
 # ── Writes ─────────────────────────────────────────────────────────────────────
@@ -130,13 +125,13 @@ def load_state(uid: str) -> dict | None:
         is_admin = uid == _cfg.FIREBASE_OWNER_UID
 
         if is_admin:
-            sig_query = db.collection("trading_signals").where(filter=FieldFilter("status", "==", "pending"))
-            pos_query = db.collection("trading_positions").where(filter=FieldFilter("status", "==", "open"))
+            sig_query = db.collection("trading_signals").where("status", "==", "pending")
+            pos_query = db.collection("trading_positions").where("status", "==", "open")
             hist_query = db.collection("trading_history")
         else:
-            sig_query  = db.collection("trading_signals").where(filter=FieldFilter("uid", "==", uid)).where(filter=FieldFilter("status", "==", "pending"))
-            pos_query  = db.collection("trading_positions").where(filter=FieldFilter("uid", "==", uid)).where(filter=FieldFilter("status", "==", "open"))
-            hist_query = db.collection("trading_history").where(filter=FieldFilter("uid", "==", uid))
+            sig_query  = db.collection("trading_signals").where("uid", "==", uid).where("status", "==", "pending")
+            pos_query  = db.collection("trading_positions").where("uid", "==", uid).where("status", "==", "open")
+            hist_query = db.collection("trading_history").where("uid", "==", uid)
 
         signals   = [doc.to_dict() for doc in sig_query.stream()]
         positions = [doc.to_dict() for doc in pos_query.stream()]

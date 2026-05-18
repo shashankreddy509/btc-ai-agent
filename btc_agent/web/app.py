@@ -1,14 +1,9 @@
 import json
-import secrets
 import threading
-import time
-import urllib.error
-import urllib.parse
-import urllib.request
 from pathlib import Path
 
 from fastapi import FastAPI, Body, Depends, APIRouter, HTTPException
-from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from starlette.requests import Request
@@ -37,61 +32,6 @@ _brief_running   = False
 _scan_lock  = threading.Lock()
 _brief_lock = threading.Lock()
 
-# Pepperstone OAuth2 state store — maps state token → {uid, expires}
-_pepperstone_states: dict[str, dict] = {}
-_pp_lock = threading.Lock()
-
-# Feature flag cache — re-reads Firestore at most once every 30 s
-_flag_cache: dict = {}
-_flag_cache_ts: float = 0.0
-_FLAG_TTL = 30.0
-_flag_lock = threading.Lock()
-
-# Keys passed to the trading scanner on start/autostart — must stay in sync with scanner.py
-_SCANNER_SEED_KEYS = frozenset({
-    "mode", "tf_min", "tf_max", "scan_interval_min", "qty",
-    "max_sl", "min_tp", "max_concurrent", "patterns", "broker", "broker_nickname",
-    "bias_filter", "trail_offset", "lookback_candles", "entry_mode",
-    "bsg_enabled", "bsg_trade_enabled", "daily_pts_target", "cme_close_skip",
-    "coinbase_api_key", "coinbase_api_secret",
-    "binance_api_key", "binance_api_secret",
-    "bybit_api_key", "bybit_api_secret",
-    "delta_api_key", "delta_api_secret",
-    "coindcx_api_key", "coindcx_api_secret",
-    "pepperstone_client_id", "pepperstone_client_secret",
-    "pepperstone_refresh_token", "pepperstone_account_id",
-    "pepperstone_is_live",
-})
-
-# Behavioural settings persisted to Firestore via the settings page (no credentials)
-_BEHAVIOUR_SETTING_KEYS = frozenset({
-    "mode", "tf_min", "tf_max", "scan_interval_min", "qty",
-    "max_sl", "min_tp", "max_concurrent", "patterns", "broker", "broker_nickname",
-    "bias_filter", "trail_offset", "lookback_candles", "entry_mode",
-    "bsg_enabled", "bsg_trade_enabled", "daily_pts_target", "cme_close_skip",
-    "vishal",
-})
-
-
-def _get_feature_flags() -> dict:
-    global _flag_cache, _flag_cache_ts
-    if time.time() - _flag_cache_ts < _FLAG_TTL:
-        return _flag_cache
-    with _flag_lock:
-        if time.time() - _flag_cache_ts < _FLAG_TTL:
-            return _flag_cache
-        try:
-            from btc_agent.trading.firestore_store import load_app_settings
-            data = load_app_settings() or {}
-            _flag_cache = {
-                "vishal_enabled":      bool(data.get("vishal_enabled", False)),
-                "retracement_enabled": bool(data.get("retracement_enabled", False)),
-            }
-        except Exception as e:
-            print(f"[feature_flags] load failed: {e}")
-        _flag_cache_ts = time.time()
-    return _flag_cache
-
 
 def _mask(s: str) -> str:
     s = str(s)
@@ -118,12 +58,8 @@ def _is_valid_qty(qty) -> bool:
 async def _require_admin(token: dict = Depends(verify_token)) -> dict:
     from btc_agent import config
     owner = config.FIREBASE_OWNER_UID
-    if owner:
-        if token.get("uid") != owner:
-            raise HTTPException(status_code=403, detail="Admin only")
-    else:
-        if token.get("email") != config.FIREBASE_ADMIN_EMAIL:
-            raise HTTPException(status_code=403, detail="Admin only")
+    if not owner or token.get("uid") != owner:
+        raise HTTPException(status_code=403, detail="Admin only")
     return token
 
 
@@ -141,185 +77,23 @@ async def _load_firestore_settings():
             user_data = load_user_prefs(config.FIREBASE_OWNER_UID)
             if user_data:
                 config.apply_settings(user_data)
-                if user_data.get("scanner_running"):
-                    _auto_restart_scanner(config.FIREBASE_OWNER_UID, user_data)
     except Exception as e:
         print(f"[startup] Firestore settings load skipped: {e}")
 
 
-def _auto_restart_scanner(uid: str, user_data: dict) -> None:
-    from btc_agent.trading.scanner import run_trading_scanner
-    user_settings = {k: v for k, v in user_data.items() if k in _SCANNER_SEED_KEYS}
-    user_email = ""
-    try:
-        from firebase_admin import auth as fb_auth
-        user_email = fb_auth.get_user(uid).email or ""
-    except Exception:
-        pass
-    threading.Thread(
-        target=run_trading_scanner,
-        args=(uid,),
-        kwargs={"user_settings": user_settings, "email": user_email},
-        daemon=True,
-        name=f"trading-{uid[:8]}-autostart",
-    ).start()
-    print(f"[startup] Auto-restarting trading scanner for uid={uid[:8]}…")
-
-
 # ── Public pages ──────────────────────────────────────────────────────────────
-
-def _firebase_web_config() -> dict:
-    from btc_agent import config
-    return {
-        "fb_api_key":            config.FIREBASE_WEB_API_KEY,
-        "fb_auth_domain":        config.FIREBASE_AUTH_DOMAIN,
-        "fb_project_id":         config.FIREBASE_PROJECT_ID,
-        "fb_storage_bucket":     config.FIREBASE_STORAGE_BUCKET,
-        "fb_messaging_sender_id": config.FIREBASE_MESSAGING_SENDER_ID,
-        "fb_app_id":             config.FIREBASE_APP_ID,
-    }
-
 
 @app.get("/", response_class=HTMLResponse)
 async def index(request: Request):
-    return templates.TemplateResponse(request=request, name="index.html", context=_firebase_web_config())
+    return templates.TemplateResponse(request=request, name="index.html")
 
 
 @app.get("/login", response_class=HTMLResponse)
 async def login_page(request: Request):
-    return templates.TemplateResponse(request=request, name="login.html", context=_firebase_web_config())
-
-
-# ── Pepperstone OAuth2 flow ───────────────────────────────────────────────────
-
-def _pepperstone_redirect_uri(request: Request) -> str:
-    from btc_agent import config
-    if config.PEPPERSTONE_REDIRECT_URI:
-        return config.PEPPERSTONE_REDIRECT_URI
-    scheme = request.headers.get("X-Forwarded-Proto", request.url.scheme)
-    host   = request.headers.get("X-Forwarded-Host", request.url.netloc)
-    return f"{scheme}://{host}/auth/pepperstone/callback"
-
-
-@app.get("/auth/pepperstone")
-async def pepperstone_auth_start(token: str, request: Request):
-    """Step 1: validate Firebase token, generate state, redirect to cTrader authorize."""
-    from btc_agent import config
-    try:
-        from firebase_admin import auth as fb_auth
-        decoded = fb_auth.verify_id_token(token)
-        uid = decoded["uid"]
-    except Exception:
-        return HTMLResponse("<p>Invalid session. Close this window and try again.</p>", status_code=401)
-
-    from btc_agent.trading.firestore_store import load_user_prefs
-    prefs = load_user_prefs(uid) or {}
-    client_id = prefs.get("pepperstone_client_id") or config.PEPPERSTONE_CLIENT_ID
-    if not client_id:
-        return HTMLResponse("<p>Save your Pepperstone Client ID in Settings first.</p>", status_code=400)
-
-    state = secrets.token_urlsafe(32)
-    now = time.time()
-    with _pp_lock:
-        _pepperstone_states[state] = {"uid": uid, "expires": now + 300}
-        for k in [k for k, v in _pepperstone_states.items() if v["expires"] < now]:
-            _pepperstone_states.pop(k, None)
-
-    params = urllib.parse.urlencode({
-        "response_type": "code",
-        "client_id":     client_id,
-        "redirect_uri":  _pepperstone_redirect_uri(request),
-        "scope":         "trading",
-        "state":         state,
-    })
-    return RedirectResponse(f"https://id.ctrader.com/connect/authorize?{params}")
-
-
-@app.get("/auth/pepperstone/callback")
-async def pepperstone_callback(request: Request, code: str = None, state: str = None, error: str = None):
-    """Step 2: exchange code for tokens, save refresh_token to Firestore."""
-    if error:
-        return HTMLResponse(f"<html><body><p>Authorization denied: {error}</p>"
-                            "<script>setTimeout(()=>window.close(),2000);</script></body></html>")
-
-    now_t = time.time()
-    with _pp_lock:
-        for k in [k for k, v in _pepperstone_states.items() if v["expires"] < now_t]:
-            _pepperstone_states.pop(k, None)
-        state_data = _pepperstone_states.pop(state or "", None)
-    if not state_data or now_t > state_data["expires"]:
-        return HTMLResponse("<html><body><p>Invalid or expired state. Please try again.</p>"
-                            "<script>setTimeout(()=>window.close(),2000);</script></body></html>",
-                            status_code=400)
-
-    uid = state_data["uid"]
-    from btc_agent import config
-    from btc_agent.trading.firestore_store import load_user_prefs, save_user_prefs
-    prefs = load_user_prefs(uid) or {}
-    client_id     = prefs.get("pepperstone_client_id")     or config.PEPPERSTONE_CLIENT_ID
-    client_secret = prefs.get("pepperstone_client_secret") or config.PEPPERSTONE_CLIENT_SECRET
-
-    try:
-        data = urllib.parse.urlencode({
-            "grant_type":    "authorization_code",
-            "code":          code,
-            "redirect_uri":  _pepperstone_redirect_uri(request),
-            "client_id":     client_id,
-            "client_secret": client_secret,
-        }).encode()
-        req = urllib.request.Request(
-            "https://id.ctrader.com/connect/token", data=data,
-            headers={"Content-Type": "application/x-www-form-urlencoded"},
-        )
-        with urllib.request.urlopen(req, timeout=15) as resp:
-            result = json.loads(resp.read())
-    except Exception as e:
-        return HTMLResponse(f"<html><body><p>Token exchange failed: {e}</p>"
-                            "<script>setTimeout(()=>window.close(),3000);</script></body></html>",
-                            status_code=500)
-
-    refresh_token = result.get("refresh_token", "")
-    if not refresh_token:
-        return HTMLResponse("<html><body><p>No refresh_token in response. "
-                            "Ensure your cTrader app has offline_access scope.</p>"
-                            "<script>setTimeout(()=>window.close(),3000);</script></body></html>",
-                            status_code=500)
-
-    save_user_prefs(uid, {"pepperstone_refresh_token": refresh_token})
-    return HTMLResponse("""
-        <html><body style="font-family:sans-serif;text-align:center;padding:40px">
-        <h2>&#x2705; Pepperstone Connected!</h2>
-        <p>This window will close automatically.</p>
-        <script>setTimeout(()=>{ window.close(); if(window.opener) window.opener.location.reload(); }, 1500);</script>
-        </body></html>
-    """)
+    return templates.TemplateResponse(request=request, name="login.html")
 
 
 # ── Public API: scan + briefing ───────────────────────────────────────────────
-
-@pub.get("/price")
-async def get_price():
-    from btc_agent.trading.scanner import get_any_price
-    price = get_any_price()
-    if not price:
-        from btc_agent.scanner.data import fetch_current_price
-        price = fetch_current_price()
-    return JSONResponse({"price": price})
-
-
-@pub.get("/liquidity")
-async def get_liquidity():
-    import csv as _csv
-    from pathlib import Path
-    csv_path = Path("leverage_data.csv")
-    if not csv_path.exists():
-        return JSONResponse({"rows": [], "status": "no_data"})
-    rows = []
-    with open(csv_path, newline="") as f:
-        for row in _csv.DictReader(f):
-            rows.append(row)
-    return JSONResponse({"rows": rows[-200:], "status": "ok"})
-
 
 @pub.get("/scan")
 async def get_scan():
@@ -374,12 +148,9 @@ async def trigger_brief():
 @pub.get("/status")
 async def status():
     from btc_agent.trading.scanner import is_any_running
-    flags = _get_feature_flags()
     return JSONResponse(
         {"scan_running": _scan_running, "brief_running": _brief_running,
-         "trading_running": is_any_running(),
-         "vishal_enabled": flags.get("vishal_enabled", False),
-         "retracement_enabled": flags.get("retracement_enabled", False)}
+         "trading_running": is_any_running()}
     )
 
 
@@ -388,22 +159,7 @@ async def status():
 @priv.get("/state")
 async def trading_state(token: dict = Depends(verify_token)):
     from btc_agent.trading.scanner import get_state
-    from btc_agent.trading.firestore_store import load_user_prefs
-    uid = token["uid"]
-    state = get_state(uid)
-    if not state["running"]:
-        try:
-            prefs = load_user_prefs(uid) or {}
-            fs_keys = {"mode", "tf_min", "tf_max", "scan_interval_min", "qty",
-                       "max_sl", "min_tp", "max_concurrent", "patterns", "broker",
-                       "broker_nickname", "bias_filter", "trail_offset", "lookback_candles",
-                       "entry_mode", "bsg_enabled", "bsg_trade_enabled", "daily_pts_target", "cme_close_skip"}
-            for k in fs_keys:
-                if k in prefs:
-                    state["settings"][k] = prefs[k]
-        except Exception as e:
-            print(f"[trading_state] user prefs load failed: {e}")
-    return JSONResponse(state)
+    return JSONResponse(get_state(token["uid"]))
 
 
 @priv.post("/start")
@@ -419,38 +175,18 @@ async def trading_start(token: dict = Depends(verify_token)):
     try:
         from btc_agent.trading.firestore_store import load_user_prefs
         prefs = load_user_prefs(uid) or {}
-        user_settings = {k: v for k, v in prefs.items() if k in _SCANNER_SEED_KEYS}
+        setting_keys = {"mode", "tf_min", "tf_max", "scan_interval_min", "qty",
+                        "max_sl", "min_tp", "max_concurrent", "patterns", "broker"}
+        user_settings = {k: v for k, v in prefs.items() if k in setting_keys}
     except Exception as e:
-        console.print(f"[yellow][/start] settings load failed: {e}[/yellow]")
+        pass
 
     threading.Thread(
         target=run_trading_scanner,
         args=(uid,),
-        kwargs={"user_settings": user_settings, "email": token.get("email", "")},
+        kwargs={"user_settings": user_settings},
         daemon=True,
         name=f"trading-{uid[:8]}",
-    ).start()
-    return JSONResponse({"status": "started"})
-
-
-@priv.post("/autostart")
-async def trading_autostart(token: dict = Depends(verify_token)):
-    """Called by frontend on login — restarts scanner if Firestore says it was running."""
-    from btc_agent.trading.scanner import get_state, run_trading_scanner
-    from btc_agent.trading.firestore_store import load_user_prefs
-    uid = token["uid"]
-    if get_state(uid)["running"]:
-        return JSONResponse({"status": "already_running"})
-    prefs = load_user_prefs(uid) or {}
-    if not prefs.get("scanner_running"):
-        return JSONResponse({"status": "not_requested"})
-    user_settings = {k: v for k, v in prefs.items() if k in _SCANNER_SEED_KEYS}
-    threading.Thread(
-        target=run_trading_scanner,
-        args=(uid,),
-        kwargs={"user_settings": user_settings, "email": token.get("email", "")},
-        daemon=True,
-        name=f"trading-{uid[:8]}-autostart",
     ).start()
     return JSONResponse({"status": "started"})
 
@@ -465,18 +201,7 @@ async def trading_stop(token: dict = Depends(verify_token)):
 @priv.get("/settings")
 async def trading_get_settings(token: dict = Depends(verify_token)):
     from btc_agent.trading.scanner import get_state
-    from btc_agent.trading.firestore_store import load_user_prefs
-    uid = token["uid"]
-    settings = get_state(uid)["settings"]
-    # Merge Firestore prefs so UI shows correct values even when scanner is stopped
-    try:
-        prefs = load_user_prefs(uid) or {}
-        for k in _BEHAVIOUR_SETTING_KEYS:
-            if k in prefs:
-                settings[k] = prefs[k]
-    except Exception:
-        pass
-    return JSONResponse(settings)
+    return JSONResponse(get_state(token["uid"])["settings"])
 
 
 @priv.post("/settings")
@@ -487,7 +212,9 @@ async def trading_save_settings(body: dict = Body(...), token: dict = Depends(ve
     if qty is not None and not _is_valid_qty(qty):
         raise HTTPException(status_code=422, detail="Qty must be a multiple of 2")
     uid = token["uid"]
-    clean = {k: v for k, v in body.items() if k in _BEHAVIOUR_SETTING_KEYS and v is not None}
+    setting_keys = {"mode", "tf_min", "tf_max", "scan_interval_min", "qty",
+                    "max_sl", "min_tp", "max_concurrent", "patterns"}
+    clean = {k: v for k, v in body.items() if k in setting_keys and v is not None}
     save_user_prefs(uid, clean)
     # Update live scanner if running
     sc = _scanners.get(uid)
@@ -497,7 +224,7 @@ async def trading_save_settings(body: dict = Body(...), token: dict = Depends(ve
 
 
 @priv.post("/position/{signal_id}/cancel")
-async def cancel_position(signal_id: str, token: dict = Depends(verify_token)):
+async def cancel_position(signal_id: str, token: dict = Depends(_require_admin)):
     from btc_agent.trading import scanner
     sc = scanner._scanners.get(token["uid"])
     if sc is None:
@@ -523,7 +250,6 @@ _SENSITIVE_USER = [
     "bybit_api_key", "bybit_api_secret",
     "delta_api_key", "delta_api_secret",
     "coindcx_api_key", "coindcx_api_secret",
-    "pepperstone_client_secret", "pepperstone_refresh_token",
 ]
 
 
@@ -551,147 +277,16 @@ async def settings_get_user(token: dict = Depends(verify_token)):
     return JSONResponse(_mask_dict(data, _SENSITIVE_USER))
 
 
-@priv_cfg.post("/pepperstone/auth-url")
-async def pepperstone_auth_url(request: Request, token: dict = Depends(verify_token)):
-    """Return the cTrader authorize URL without exposing the Firebase token in the browser URL."""
-    from btc_agent import config
-    from btc_agent.trading.firestore_store import load_user_prefs
-    uid = token["uid"]
-    prefs = load_user_prefs(uid) or {}
-    client_id = prefs.get("pepperstone_client_id") or config.PEPPERSTONE_CLIENT_ID
-    if not client_id:
-        raise HTTPException(status_code=400, detail="Save your Pepperstone Client ID in Settings first.")
-    state = secrets.token_urlsafe(32)
-    now = time.time()
-    with _pp_lock:
-        _pepperstone_states[state] = {"uid": uid, "expires": now + 300}
-        for k in [k for k, v in _pepperstone_states.items() if v["expires"] < now]:
-            _pepperstone_states.pop(k, None)
-    params = urllib.parse.urlencode({
-        "response_type": "code",
-        "client_id":     client_id,
-        "redirect_uri":  _pepperstone_redirect_uri(request),
-        "scope":         "trading",
-        "state":         state,
-    })
-    return JSONResponse({"url": f"https://id.ctrader.com/connect/authorize?{params}"})
-
-
 @priv_cfg.put("/user")
 async def settings_save_user(body: dict = Body(...), token: dict = Depends(verify_token)):
+    from btc_agent import config
     from btc_agent.trading.firestore_store import save_user_prefs
-    from btc_agent.trading.scanner import _scanners
     clean = {k: v for k, v in body.items() if v is not None and "****" not in str(v)}
     save_user_prefs(token["uid"], clean)
-    sc = _scanners.get(token["uid"])
-    if sc is not None:
-        sc.settings.update(clean)
+    config.apply_settings(clean)
     return JSONResponse({"status": "saved"})
-
-
-# Admin API — owner only
-admin_router = APIRouter(prefix="/api/admin", dependencies=[Depends(_require_admin)])
-
-
-@admin_router.get("/users")
-async def admin_list_users():
-    import firebase_admin.auth as fb_auth
-    from btc_agent.trading.scanner import _scanners
-    from btc_agent.trading.firestore_store import load_user_prefs
-    users = []
-    try:
-        page = fb_auth.list_users()
-        for user in page.users:
-            uid = user.uid
-            sc = _scanners.get(uid)
-            if sc:
-                mode   = sc.settings.get("mode", "paper")
-                broker = sc.settings.get("broker", "coinbase")
-                running = sc.running
-            else:
-                prefs  = load_user_prefs(uid) or {}
-                mode   = prefs.get("mode", "paper")
-                broker = prefs.get("broker", "coinbase")
-                running = False
-            users.append({
-                "uid":          uid,
-                "email":        user.email or "",
-                "display_name": user.display_name or user.email or uid[:8],
-                "mode":         mode,
-                "broker":       broker,
-                "scanner_running": running,
-            })
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-    return JSONResponse(users)
-
-
-@admin_router.post("/users/{uid}/stop")
-async def admin_stop_user(uid: str):
-    from btc_agent.trading.scanner import stop_trading_scanner
-    stop_trading_scanner(uid)
-    return JSONResponse({"status": "stopped"})
-
-
-@admin_router.post("/users/{uid}/mode")
-async def admin_set_mode(uid: str, body: dict = Body(...)):
-    from btc_agent.trading.firestore_store import save_user_prefs
-    from btc_agent.trading.scanner import _scanners
-    mode = body.get("mode")
-    if mode not in ("paper", "live"):
-        raise HTTPException(status_code=422, detail="mode must be 'paper' or 'live'")
-    save_user_prefs(uid, {"mode": mode})
-    sc = _scanners.get(uid)
-    if sc:
-        sc.settings["mode"] = mode
-    return JSONResponse({"status": "saved"})
-
-
-@admin_router.get("/users/{uid}/state")
-async def admin_user_state(uid: str, token: dict = Depends(_require_admin)):
-    from btc_agent.trading.scanner import get_state, _scanners
-    # If scanner is live in memory, return its current state
-    if uid in _scanners:
-        return JSONResponse(get_state(uid))
-    # Scanner not running — load historical data directly from Firestore
-    try:
-        from btc_agent.trading.firestore_store import load_state as fs_load_state
-        state = fs_load_state(uid) or {}
-        return JSONResponse({
-            "signals":   state.get("signals", []),
-            "positions": state.get("positions", []),
-            "history":   state.get("history", []),
-            "running":   False,
-        })
-    except Exception:
-        return JSONResponse({"signals": [], "positions": [], "history": [], "running": False})
 
 
 app.include_router(pub)
 app.include_router(priv)
 app.include_router(priv_cfg)
-app.include_router(admin_router)
-
-
-@app.on_event("startup")
-async def _start_liquidity_collector():
-    import os
-    if os.getenv("LIQUIDITY_ENABLED", "true").lower() == "false":
-        return
-    import asyncio
-
-    def _run():
-        import time as _time
-        delay = 60
-        while True:
-            try:
-                from btc_agent.liquidity.collector import run_collect
-                asyncio.run(run_collect())
-                delay = 60  # reset backoff on clean exit
-            except Exception as exc:
-                print(f"[liquidity-collector] crashed: {exc} — restarting in {delay}s")
-                delay = min(delay * 2, 1800)  # cap at 30 min
-            _time.sleep(delay)
-
-    t = threading.Thread(target=_run, daemon=True, name="liquidity-collector")
-    t.start()

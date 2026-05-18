@@ -17,11 +17,10 @@ _CONTRACT_SIZE = 0.001  # approximate — Delta uses USD-settled contracts
 class DeltaAdapter(BrokerAdapter):
     """Delta Exchange Perpetual Futures via REST API v2."""
 
-    def __init__(self, api_key: str, api_secret: str, contract_size_val: float | None = None):
+    def __init__(self, api_key: str, api_secret: str):
         self._api_key = api_key
         self._api_secret = api_secret
         self._product_id: int | None = None
-        self._contract_size = contract_size_val if contract_size_val else _CONTRACT_SIZE
 
     def _sign(self, method: str, path: str, timestamp: str, body: str) -> str:
         message = method + timestamp + path + body
@@ -75,17 +74,6 @@ class DeltaAdapter(BrokerAdapter):
         })
         return {"order_id": str(resp.get("result", {}).get("id", ""))}
 
-    def place_take_profit_order(self, side: str, qty: str, stop_price: float, limit_price: float) -> dict:
-        resp = self._request("POST", "/v2/orders", {
-            "product_id":  self._resolve_product_id(),
-            "side":        "sell" if side.upper() == "SELL" else "buy",
-            "order_type":  "take_profit_order",
-            "size":        int(qty),
-            "stop_price":  f"{stop_price:.2f}",
-            "limit_price": f"{limit_price:.2f}",
-        })
-        return {"order_id": str(resp.get("result", {}).get("id", ""))}
-
     def cancel_order(self, order_id: str) -> dict:
         return self._request("DELETE", f"/v2/orders/{order_id}", {
             "product_id": self._resolve_product_id(),
@@ -93,4 +81,4 @@ class DeltaAdapter(BrokerAdapter):
 
     @property
     def contract_size(self) -> float:
-        return self._contract_size
+        return _CONTRACT_SIZE
