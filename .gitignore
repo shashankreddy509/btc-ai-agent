@@ -22,3 +22,11 @@ data/
 *.log
 
 serviceAccountKey.json
+
+# Liquidity scraper generated files
+.coinglass_session.json
+leverage_data.csv
+debug_hover.html
+debug_text.txt
+screenshots/
+collector.log
