@@ -192,50 +192,6 @@ async function saveBrokerCreds(broker) {
   );
   if (keyEl)    keyEl.value    = '';
   if (secretEl) secretEl.value = '';
-<<<<<<< HEAD
-=======
-  if (contractEl) contractEl.value = '';
-}
-
-async function savePepperstoneCreds() {
-  if (!_currentUser) return;
-  const clientId    = document.getElementById('s-pepperstone-client-id')?.value.trim()    || '';
-  const clientSec   = document.getElementById('s-pepperstone-client-secret')?.value.trim() || '';
-  const accountId   = document.getElementById('s-pepperstone-account-id')?.value.trim()   || '';
-  const isLive      = document.getElementById('s-pepperstone-is-live')?.value              || 'true';
-  const contractRaw = document.getElementById('s-pepperstone-contract')?.value;
-  const contract    = contractRaw ? parseFloat(contractRaw) : null;
-  const errEl = document.getElementById('s-err-broker-pepperstone');
-  if (!clientId || !accountId) {
-    if (errEl) { errEl.textContent = 'Client ID and Account ID are required.'; errEl.style.display = 'inline'; }
-    return;
-  }
-  const payload = {
-    pepperstone_client_id:  clientId,
-    pepperstone_account_id: accountId,
-    pepperstone_is_live:    isLive,
-  };
-  if (clientSec) payload.pepperstone_client_secret = clientSec;
-  if (contract)  payload.pepperstone_contract_size  = contract;
-  await _saveSettings('/api/settings/user', payload, 'broker-pepperstone');
-  const secEl = document.getElementById('s-pepperstone-client-secret');
-  if (secEl) secEl.value = '';
-}
-
-async function connectPepperstone() {
-  if (!_currentUser) return;
-  const token = await _currentUser.getIdToken();
-  const popup = window.open(
-    `/auth/pepperstone?token=${encodeURIComponent(token)}`,
-    'pepperstone_auth', 'width=600,height=700,noopener=no'
-  );
-  const timer = setInterval(() => {
-    if (!popup || popup.closed) {
-      clearInterval(timer);
-      loadUserSettings();
-    }
-  }, 1000);
->>>>>>> parent of 4e3872d (fix: code quality and security hardening across 8 files)
 }
 
 // ── Settings save ─────────────────────────────────────────────────────────────
@@ -640,7 +596,6 @@ async function triggerBrief() {
 
 // ── BTC price ──────────────────────────────────────────────────────────────────
 async function fetchBTCPrice() {
-<<<<<<< HEAD
   const endpoints = [
     'https://fapi.binance.com/fapi/v1/ticker/price?symbol=BTCUSDT',
     'https://api.bybit.com/v5/market/tickers?category=linear&symbol=BTCUSDT',
@@ -662,14 +617,6 @@ async function fetchBTCPrice() {
       return;
     } catch (_) {}
   }
-=======
-  try {
-    const r = await fetch('/api/price');
-    if (!r.ok) return;
-    const { price } = await r.json();
-    if (price) _applyPrice(price);
-  } catch (_) {}
->>>>>>> parent of 4e3872d (fix: code quality and security hardening across 8 files)
 }
 
 // ── Trading scanner ────────────────────────────────────────────────────────────
