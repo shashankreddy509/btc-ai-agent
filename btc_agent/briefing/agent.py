@@ -30,12 +30,7 @@ def run_briefing() -> str:
         return cached["text"]
 
     console.print("Generating AI summary...")
-    try:
-        text = summarize(data)
-    except Exception as e:
-        console.print(f"[red]Summarize failed: {e} — falling back to cached briefing.[/red]")
-        cached = storage.load_briefing()
-        return cached.get("text", "")
+    text = summarize(data)
     storage.save_briefing(text)
     notifiers.deliver("BTC Morning Briefing", text)
     return text

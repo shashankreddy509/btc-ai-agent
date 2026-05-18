@@ -20,8 +20,6 @@ class Signal:
     created_at: datetime
     expires_at: datetime      # created_at + tf minutes (signal valid for 1 bar)
     status: str = "pending"   # "pending" | "triggered" | "expired" | "skipped"
-    custom_tp: float = 0.0    # 0 = use market structure TP; > 0 = fixed TP price (Vishal strategies)
-    meta: dict = field(default_factory=dict)  # extra display data (e.g. Retracement fib levels)
 
 
 @dataclass
@@ -42,12 +40,7 @@ class Position:
     partial_closed: bool = False # True after TP1 hit and half qty sold
     trail_anchor: float | None = None  # price at which partial TP was hit (trailing reference)
     partial_pnl: float = 0.0     # PnL banked from the partial close
-    sl_order_id: str | None = None     # broker SL order ID (cancel/replace on trail)
-    tp_order_id: str | None = None     # broker TP order ID (cancel when SL hits or full close)
-    depo_line: float | None = None     # DEPO level touched at signal creation
-    depo_tp1: float | None = None      # 950pt partial-close target
-    depo_tp2: float | None = None      # next DEPO level (final target), also stored in pos.tp
-    depo_be_done: bool = False         # True after 500pt breakeven SL triggered
+    sl_order_id: str | None = None     # Coinbase SL order ID (cancel/replace on trail)
 
 
 @dataclass
@@ -58,4 +51,3 @@ class TradeResult:
     closed_at: datetime
     qty_closed: float = 0.0   # how much BTC was closed in this event
     pnl_closed: float = 0.0   # PnL for this specific close event (USD)
-    mode: str = "paper"       # "live" | "paper"
