@@ -855,6 +855,18 @@ async function fetchBTCPrice() {
 }
 
 let _wsPrice = null;
+let _priceSocket = null;
+
+function _connectPriceWS() {
+  const proto = location.protocol === 'https:' ? 'wss' : 'ws';
+  const ws = new WebSocket(`${proto}://${location.host}/ws/price`);
+  _priceSocket = ws;
+  ws.onmessage = (e) => {
+    try { const { price } = JSON.parse(e.data); if (price) _applyPrice(price); } catch (_) {}
+  };
+  ws.onclose = () => { _priceSocket = null; setTimeout(_connectPriceWS, 5000); };
+  ws.onerror = () => ws.close();
+}
 
 function _applyPrice(price) {
   _wsPrice = price;
@@ -1344,8 +1356,8 @@ _updateAuthUI();
   updateThHeader();
   // Briefing + scanner are public — load immediately
   await Promise.all([loadBriefing(), loadScan(), fetchBTCPrice(), pollStatus()]);
+  _connectPriceWS();  // replaces 2s polling — Binance mark price via WebSocket
   setInterval(() => { if (!document.hidden) Promise.all([loadBriefing(), loadScan()]); }, REFRESH_MS);
-  setInterval(() => { if (!document.hidden) fetchBTCPrice(); }, 2_000);
   setInterval(() => { if (!document.hidden) pollStatus(); }, 3000);
   // Trading polling only when signed in
   setInterval(() => { if (!document.hidden && _currentUser) loadTrading(); }, 5000);

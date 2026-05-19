@@ -1,3 +1,4 @@
+import asyncio
 import json
 import secrets
 import threading
@@ -7,7 +8,7 @@ import urllib.parse
 import urllib.request
 from pathlib import Path
 
-from fastapi import FastAPI, Body, Depends, APIRouter, HTTPException
+from fastapi import FastAPI, Body, Depends, APIRouter, HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -126,6 +127,58 @@ async def _require_admin(token: dict = Depends(verify_token)) -> dict:
         if token.get("email") != config.FIREBASE_ADMIN_EMAIL:
             raise HTTPException(status_code=403, detail="Admin only")
     return token
+
+
+# ── WebSocket price broadcaster ───────────────────────────────────────────────
+
+_price_queues: dict[int, asyncio.Queue] = {}  # id(ws) → Queue
+_latest_ws_price: float | None = None
+
+
+async def _price_broadcaster():
+    loop = asyncio.get_event_loop()
+    while True:
+        try:
+            from btc_agent.trading.scanner import get_any_price
+            price = get_any_price()  # free if scanner running
+            if not price:
+                from btc_agent.scanner.data import fetch_current_price
+                price = await loop.run_in_executor(None, fetch_current_price)
+            if price:
+                global _latest_ws_price
+                _latest_ws_price = price
+                for q in list(_price_queues.values()):
+                    try:
+                        q.put_nowait(price)
+                    except asyncio.QueueFull:
+                        pass
+        except Exception as e:
+            print(f"[price-ws] fetch error: {e}")
+        await asyncio.sleep(1)
+
+
+@app.on_event("startup")
+async def _start_price_broadcaster():
+    asyncio.create_task(_price_broadcaster())
+
+
+@app.websocket("/ws/price")
+async def ws_price(ws: WebSocket):
+    await ws.accept()
+    q: asyncio.Queue = asyncio.Queue(maxsize=10)
+    _price_queues[id(ws)] = q
+    try:
+        if _latest_ws_price:
+            await ws.send_json({"price": _latest_ws_price})
+        while True:
+            price = await q.get()
+            await ws.send_json({"price": price})
+    except WebSocketDisconnect:
+        pass
+    except Exception:
+        pass
+    finally:
+        _price_queues.pop(id(ws), None)
 
 
 # ── Startup: load Firestore settings into config ──────────────────────────────
