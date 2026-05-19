@@ -284,6 +284,13 @@
                     <option value="candle_close">Candle Close</option>
                   </select>
                 </div>
+                <div style="padding:0 16px 14px;display:flex;align-items:center;gap:12px;">
+                  <span style="font-size:13px;min-width:90px">Opposite Signal</span>
+                  <select id="cfg-opposite-signal-action" style="font-size:13px;padding:4px 8px;border-radius:6px;border:1px solid var(--border);background:var(--surface-2);color:var(--text-1);min-width:200px">
+                    <option value="skip">Skip — ignore opposite signal</option>
+                    <option value="flip">Flip — close existing, open new</option>
+                  </select>
+                </div>
                 <div style="padding:0 16px 14px;">
                   <span style="font-size:11px;color:var(--text-3);text-transform:uppercase;letter-spacing:.06em;display:block;margin-bottom:8px;">Patterns to Scan</span>
                   <label style="display:inline-flex;align-items:center;gap:6px;margin-right:16px;font-size:12px;cursor:pointer;">

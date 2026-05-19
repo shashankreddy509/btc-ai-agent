@@ -1238,6 +1238,8 @@ function _syncSettingsInputs(settings) {
   const dptEl = document.getElementById('cfg-daily-pts');
   if (dptEl && document.activeElement !== dptEl)
     dptEl.value = settings.daily_pts_target ?? 0;
+  const osaEl = document.getElementById('cfg-opposite-signal-action');
+  if (osaEl) osaEl.value = settings.opposite_signal_action ?? 'skip';
 }
 
 async function _renderSettingsPage() {
@@ -1277,7 +1279,8 @@ async function saveTradingSettings() {
     lookback_candles: parseInt(document.getElementById('cfg-lookback-candles')?.value) || 3,
     entry_mode:       document.getElementById('cfg-entry-mode')?.value || 'immediate',
     trail_offset: parseInt(document.getElementById('cfg-trail-offset')?.value || '50'),
-    daily_pts_target: parseFloat(document.getElementById('cfg-daily-pts')?.value) || 0,
+    daily_pts_target:        parseFloat(document.getElementById('cfg-daily-pts')?.value) || 0,
+    opposite_signal_action:  document.getElementById('cfg-opposite-signal-action')?.value || 'skip',
   };
   await fetchJSON('/api/trading/settings', {
     method: 'POST',

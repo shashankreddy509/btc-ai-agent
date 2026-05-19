@@ -203,6 +203,9 @@ def _append_history(sc: "_Scanner", result) -> None:
 def _cme_close_skip_enabled(sc: _Scanner) -> bool:
     return bool(sc.settings.get("cme_close_skip", config.TRADING_CME_CLOSE_SKIP))
 
+def _opposite_signal_action(sc: _Scanner) -> str:
+    return sc.settings.get("opposite_signal_action", config.TRADING_OPPOSITE_SIGNAL_ACTION)
+
 
 def _is_cme_closed() -> bool:
     """True during CME closure: Fri 16:00 CT → Sun 17:00 CT."""
@@ -621,6 +624,19 @@ def _execute_entry(sc: _Scanner, sig: Signal, current_price: float) -> None:
         if _FS: _fs.update_signal_status(sig.id, "skipped")
         _save_state(sc)
         return
+
+    opp_pos = [p for p in sc.open_positions if p.status == "open" and p.direction != sig.direction]
+    if opp_pos:
+        if _opposite_signal_action(sc) == "flip":
+            for opp in opp_pos:
+                console.print(f"[cyan]Flip: closing opposite {opp.direction} {opp.tf}m before {sig.direction} entry[/cyan]")
+                _close_position(sc, opp, current_price, "opposite_signal")
+        else:
+            sig.status = "skipped"
+            console.print(f"[yellow]Signal {sig.id} skipped — opposite direction position open (action=skip)[/yellow]")
+            if _FS: _fs.update_signal_status(sig.id, "skipped")
+            _save_state(sc)
+            return
 
     n_open = sum(1 for p in sc.open_positions if p.status == "open")
     cap = _max_concurrent(sc)
@@ -1177,8 +1193,9 @@ def get_state(uid: str | None = None) -> dict:
             "broker_nickname":   sc.settings.get("broker_nickname", ""),
             "bsg_enabled":       _bsg_enabled(sc),
             "bsg_trade_enabled": _bsg_trade_enabled(sc),
-            "cme_close_skip":    _cme_close_skip_enabled(sc),
-            "daily_pts_target":  float(sc.settings.get("daily_pts_target") or 0) or config.TRADING_DAILY_PTS_TARGET,
+            "cme_close_skip":           _cme_close_skip_enabled(sc),
+            "daily_pts_target":         float(sc.settings.get("daily_pts_target") or 0) or config.TRADING_DAILY_PTS_TARGET,
+            "opposite_signal_action":   _opposite_signal_action(sc),
         },
     }
 

@@ -57,6 +57,7 @@ BSG_ENABLED               = os.getenv("BSG_ENABLED", "false").lower() == "true"
 BSG_TRADE_ENABLED         = os.getenv("BSG_TRADE_ENABLED", "false").lower() == "true"
 TRADING_DAILY_PTS_TARGET  = float(os.getenv("TRADING_DAILY_PTS_TARGET", "0.0"))  # 0 = unlimited
 TRADING_CME_CLOSE_SKIP    = os.getenv("TRADING_CME_CLOSE_SKIP", "false").lower() == "true"
+TRADING_OPPOSITE_SIGNAL_ACTION = os.getenv("TRADING_OPPOSITE_SIGNAL_ACTION", "skip")  # "skip" | "flip"
 WEEKLY_ADJ                = float(os.getenv("WEEKLY_ADJ", "0.0324"))
 
 # Firebase owner UID — Coinbase keys stored in Firestore are tied to this UID
@@ -147,6 +148,7 @@ def apply_settings(d: dict) -> None:
         "email_pass": "EMAIL_PASS", "email_to": "EMAIL_TO",
         "briefing_time": "BRIEFING_TIME", "scanner_time": "SCANNER_TIME",
         "trading_mode": "TRADING_MODE", "trading_broker": "TRADING_BROKER",
+        "opposite_signal_action": "TRADING_OPPOSITE_SIGNAL_ACTION",
         "coinbase_api_key": "COINBASE_API_KEY", "coinbase_api_secret": "COINBASE_API_SECRET",
         "coinbase_product_id": "COINBASE_PRODUCT_ID",
         "binance_api_key": "BINANCE_API_KEY", "binance_api_secret": "BINANCE_API_SECRET",
