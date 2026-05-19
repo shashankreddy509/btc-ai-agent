@@ -617,14 +617,6 @@ def _execute_entry(sc: _Scanner, sig: Signal, current_price: float) -> None:
         console.print(f"[yellow]Signal {sig.id} skipped — CME closed (Fri 16:00–Sun 17:00 CT)[/yellow]")
         return
 
-    same_dir = any(p.status == "open" and p.direction == sig.direction for p in sc.open_positions)
-    if same_dir:
-        sig.status = "skipped"
-        console.print(f"[yellow]Signal {sig.id} skipped — already have open {sig.direction} position[/yellow]")
-        if _FS: _fs.update_signal_status(sig.id, "skipped")
-        _save_state(sc)
-        return
-
     opp_pos = [p for p in sc.open_positions if p.status == "open" and p.direction != sig.direction]
     if opp_pos:
         if _opposite_signal_action(sc) == "flip":
@@ -1376,6 +1368,11 @@ def run_trading_scanner(uid: str, user_settings: dict | None = None, email: str 
                     df = fetch_1m_candles()
                     arr, ts_arr, minutes_of_day, unix_days = df_to_numpy(df)
                     sc.current_levels = compute_levels(df, weekly_adj=config.WEEKLY_ADJ)
+                    _dl = _get_depo_lines()
+                    _above = _dl[_dl > current_price]
+                    _below = _dl[_dl < current_price]
+                    sc.current_levels["depo_upper"] = float(_above.min()) if len(_above) else None
+                    sc.current_levels["depo_lower"] = float(_below.max()) if len(_below) else None
                     bias = _trend_bias(current_price, sc.current_levels)
                     sc.current_bias = bias
                     mrp_str  = f"{sc.current_levels['mrp']:.1f}"       if sc.current_levels.get("mrp")       else "—"

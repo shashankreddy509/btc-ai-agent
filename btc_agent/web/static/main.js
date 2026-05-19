@@ -904,9 +904,11 @@ function renderLevels(levels, running) {
   if (!el) return;
   if (!running) { el.style.display = 'none'; return; }
   el.style.display = '';
-  const mrpStr  = levels.mrp       ? `<span style="color:var(--accent)">$${fmtPrice(levels.mrp)}</span>`      : '<span style="color:var(--text-3)">—</span>';
-  const dpocStr = levels.daily_poc  ? `<span style="color:var(--green)">$${fmtPrice(levels.daily_poc)}</span>` : '<span style="color:var(--text-3)">—</span>';
-  const wpocStr = levels.weekly_poc ? `<span style="color:#c084fc">$${fmtPrice(levels.weekly_poc)}</span>`     : '<span style="color:var(--text-3)">—</span>';
+  const mrpStr  = levels.mrp        ? `<span style="color:var(--accent)">$${fmtPrice(levels.mrp)}</span>`        : '<span style="color:var(--text-3)">—</span>';
+  const dpocStr = levels.daily_poc  ? `<span style="color:var(--green)">$${fmtPrice(levels.daily_poc)}</span>`   : '<span style="color:var(--text-3)">—</span>';
+  const wpocStr = levels.weekly_poc ? `<span style="color:#c084fc">$${fmtPrice(levels.weekly_poc)}</span>`       : '<span style="color:var(--text-3)">—</span>';
+  const duStr   = levels.depo_upper ? `<span style="color:#f97316">$${fmtPrice(levels.depo_upper)}</span>`       : '<span style="color:var(--text-3)">—</span>';
+  const dlStr   = levels.depo_lower ? `<span style="color:#38bdf8">$${fmtPrice(levels.depo_lower)}</span>`       : '<span style="color:var(--text-3)">—</span>';
 
   const price = _tradingData?.current_price;
   let bias = '—', biasColor = 'var(--text-3)';
@@ -924,6 +926,8 @@ function renderLevels(levels, running) {
     <span class="level-item">MRP: ${mrpStr}</span><span class="level-sep">·</span>
     <span class="level-item">D-POC: ${dpocStr}</span><span class="level-sep">·</span>
     <span class="level-item">W-POC: ${wpocStr}</span><span class="level-sep">·</span>
+    <span class="level-item">DEPO ↑: ${duStr}</span><span class="level-sep">·</span>
+    <span class="level-item">DEPO ↓: ${dlStr}</span><span class="level-sep">·</span>
     <span class="level-item">Bias: <span style="color:${biasColor}">${bias}</span></span>`;
 }
 
