@@ -856,13 +856,17 @@ async function fetchBTCPrice() {
 
 let _wsPrice = null;
 let _priceSocket = null;
+let _lastPriceTick = 0;
 
 function _connectPriceWS() {
   const proto = location.protocol === 'https:' ? 'wss' : 'ws';
   const ws = new WebSocket(`${proto}://${location.host}/ws/price`);
   _priceSocket = ws;
   ws.onmessage = (e) => {
-    try { const { price } = JSON.parse(e.data); if (price) _applyPrice(price); } catch (_) {}
+    try {
+      const { price } = JSON.parse(e.data);
+      if (price) { _lastPriceTick = Date.now(); _applyPrice(price); }
+    } catch (_) {}
   };
   ws.onclose = () => { _priceSocket = null; setTimeout(_connectPriceWS, 5000); };
   ws.onerror = () => ws.close();
@@ -1356,7 +1360,9 @@ _updateAuthUI();
   updateThHeader();
   // Briefing + scanner are public — load immediately
   await Promise.all([loadBriefing(), loadScan(), fetchBTCPrice(), pollStatus()]);
-  _connectPriceWS();  // replaces 2s polling — Binance mark price via WebSocket
+  _connectPriceWS();
+  // Fallback: if WebSocket goes silent for 3s (browser throttle), poll REST
+  setInterval(() => { if (!document.hidden && Date.now() - _lastPriceTick > 3000) fetchBTCPrice(); }, 2000);
   setInterval(() => { if (!document.hidden) Promise.all([loadBriefing(), loadScan()]); }, REFRESH_MS);
   setInterval(() => { if (!document.hidden) pollStatus(); }, 3000);
   // Trading polling only when signed in
