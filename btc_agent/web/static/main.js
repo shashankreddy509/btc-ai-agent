@@ -1258,8 +1258,25 @@ function _syncSettingsInputs(settings) {
   const dptEl = document.getElementById('cfg-daily-pts');
   if (dptEl && document.activeElement !== dptEl)
     dptEl.value = settings.daily_pts_target ?? 0;
+  const slMode = (settings.daily_sl_pts > 0) ? 'pts' : (settings.daily_sl_limit > 0) ? 'count' : 'off';
+  const slModeEl = document.getElementById('cfg-daily-sl-mode');
+  if (slModeEl) slModeEl.value = slMode;
+  const dslPtsEl = document.getElementById('cfg-daily-sl-pts');
+  if (dslPtsEl && document.activeElement !== dslPtsEl)
+    dslPtsEl.value = settings.daily_sl_pts ?? 0;
+  const dslCntEl = document.getElementById('cfg-daily-sl-limit');
+  if (dslCntEl && document.activeElement !== dslCntEl)
+    dslCntEl.value = settings.daily_sl_limit ?? 1;
+  _updateSlStopRow(slMode);
   const osaEl = document.getElementById('cfg-opposite-signal-action');
   if (osaEl) osaEl.value = settings.opposite_signal_action ?? 'skip';
+}
+
+function _updateSlStopRow(mode) {
+  const ptsRow   = document.getElementById('cfg-sl-pts-row');
+  const countRow = document.getElementById('cfg-sl-count-row');
+  if (ptsRow)   ptsRow.style.display   = mode === 'pts'   ? 'flex' : 'none';
+  if (countRow) countRow.style.display = mode === 'count' ? 'flex' : 'none';
 }
 
 async function _renderSettingsPage() {
@@ -1299,7 +1316,9 @@ async function saveTradingSettings() {
     lookback_candles: parseInt(document.getElementById('cfg-lookback-candles')?.value) || 3,
     entry_mode:       document.getElementById('cfg-entry-mode')?.value || 'immediate',
     trail_offset: parseInt(document.getElementById('cfg-trail-offset')?.value || '50'),
-    daily_pts_target:        parseFloat(document.getElementById('cfg-daily-pts')?.value) || 0,
+    daily_pts_target: parseFloat(document.getElementById('cfg-daily-pts')?.value) || 0,
+    daily_sl_pts:  (() => { const m = document.getElementById('cfg-daily-sl-mode')?.value; return m === 'pts'   ? (parseFloat(document.getElementById('cfg-daily-sl-pts')?.value)   || 0) : 0; })(),
+    daily_sl_limit: (() => { const m = document.getElementById('cfg-daily-sl-mode')?.value; return m === 'count' ? (parseInt(document.getElementById('cfg-daily-sl-limit')?.value) || 0) : 0; })(),
     opposite_signal_action:  document.getElementById('cfg-opposite-signal-action')?.value || 'skip',
   };
   await fetchJSON('/api/trading/settings', {

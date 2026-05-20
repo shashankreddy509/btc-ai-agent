@@ -331,12 +331,31 @@
                     <span style="font-size:11px;color:var(--text-3)">After TP hit on TF ≥ 30m: close 50% and move SL to entry ± this value, trails every 100pts. TF &lt; 30m: full exit at TP.</span>
                   </div>
                 </div>
-                <div style="padding:0 16px 14px;flex-direction:column;gap:6px;border-top:1px solid var(--border);padding-top:12px;display:flex">
-                  <span style="font-size:11px;color:var(--text-3);text-transform:uppercase;letter-spacing:.06em">Daily Points Target (pts) <span style="font-weight:400;text-transform:none;letter-spacing:0"> · 0 = unlimited</span></span>
-                  <div style="display:flex;align-items:center;gap:12px">
+                <div style="padding:0 16px 14px;flex-direction:column;gap:8px;border-top:1px solid var(--border);padding-top:12px;display:flex">
+                  <span style="font-size:11px;color:var(--text-3);text-transform:uppercase;letter-spacing:.06em">Daily Stop</span>
+                  <div style="display:flex;align-items:center;gap:10px">
                     <input type="number" id="cfg-daily-pts" min="0" step="50" value="0"
-                      style="width:80px;padding:4px 8px;border-radius:6px;border:1px solid var(--border);background:var(--surface-2);color:var(--text-1);font-size:13px">
-                    <span style="font-size:11px;color:var(--text-3)">Bot stops opening new trades once today's closed-trade points reach this target. Open trades run to their TP/SL as normal.</span>
+                      style="width:72px;padding:4px 8px;border-radius:6px;border:1px solid var(--border);background:var(--surface-2);color:var(--text-1);font-size:13px">
+                    <span style="font-size:12px;color:var(--text-2)">pts profit target <span style="color:var(--text-3)">(0 = off)</span></span>
+                  </div>
+                  <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+                    <span style="font-size:12px;color:var(--text-2)">Stop on SL loss</span>
+                    <select id="cfg-daily-sl-mode" onchange="_updateSlStopRow(this.value)"
+                      style="font-size:12px;padding:3px 6px;border-radius:6px;border:1px solid var(--border);background:var(--surface-2);color:var(--text-1)">
+                      <option value="off">Don't stop</option>
+                      <option value="pts">By points lost</option>
+                      <option value="count">By order count</option>
+                    </select>
+                    <div id="cfg-sl-pts-row" style="display:none;align-items:center;gap:6px">
+                      <input type="number" id="cfg-daily-sl-pts" min="0" step="50" value="0"
+                        style="width:72px;padding:4px 8px;border-radius:6px;border:1px solid var(--border);background:var(--surface-2);color:var(--text-1);font-size:13px">
+                      <span style="font-size:11px;color:var(--text-3)">pts</span>
+                    </div>
+                    <div id="cfg-sl-count-row" style="display:none;align-items:center;gap:6px">
+                      <input type="number" id="cfg-daily-sl-limit" min="1" step="1" value="1"
+                        style="width:72px;padding:4px 8px;border-radius:6px;border:1px solid var(--border);background:var(--surface-2);color:var(--text-1);font-size:13px">
+                      <span style="font-size:11px;color:var(--text-3)">orders</span>
+                    </div>
                   </div>
                 </div>
               </div>

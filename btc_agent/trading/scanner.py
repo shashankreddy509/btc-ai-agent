@@ -612,6 +612,33 @@ def _today_pts(sc: _Scanner) -> float:
     return total
 
 
+def _sl_pts_lost(r) -> float:
+    """Points lost on an SL close. Positive = real loss. Zero/negative = breakeven or better."""
+    if r.position.direction == "long":
+        return r.position.entry_price - r.close_price
+    return r.close_price - r.position.entry_price
+
+
+def _today_sl_count(sc: _Scanner) -> int:
+    today = datetime.now(timezone.utc).date()
+    return sum(
+        1 for r in sc.trade_history
+        if r.closed_at and r.closed_at.date() == today
+        and r.close_reason == "sl"
+        and _sl_pts_lost(r) > 0
+    )
+
+
+def _today_sl_pts(sc: _Scanner) -> float:
+    today = datetime.now(timezone.utc).date()
+    return sum(
+        _sl_pts_lost(r) for r in sc.trade_history
+        if r.closed_at and r.closed_at.date() == today
+        and r.close_reason == "sl"
+        and _sl_pts_lost(r) > 0
+    )
+
+
 def _execute_entry(sc: _Scanner, sig: Signal, current_price: float) -> None:
     if _cme_close_skip_enabled(sc) and _is_cme_closed():
         console.print(f"[yellow]Signal {sig.id} skipped — CME closed (Fri 16:00–Sun 17:00 CT)[/yellow]")
@@ -645,6 +672,26 @@ def _execute_entry(sc: _Scanner, sig: Signal, current_price: float) -> None:
         if today_pts >= daily_target:
             sig.status = "skipped"
             console.print(f"[yellow]Signal {sig.id} skipped — daily {today_pts:.0f}pts ≥ target {daily_target:.0f}pts[/yellow]")
+            if _FS: _fs.update_signal_status(sig.id, "skipped")
+            _save_state(sc)
+            return
+
+    daily_sl_pts = float(sc.settings.get("daily_sl_pts") or 0) or config.TRADING_DAILY_SL_PTS
+    if daily_sl_pts > 0:
+        sl_pts_lost = _today_sl_pts(sc)
+        if sl_pts_lost >= daily_sl_pts:
+            sig.status = "skipped"
+            console.print(f"[yellow]Signal {sig.id} skipped — daily SL loss {sl_pts_lost:.0f}pts ≥ limit {daily_sl_pts:.0f}pts[/yellow]")
+            if _FS: _fs.update_signal_status(sig.id, "skipped")
+            _save_state(sc)
+            return
+
+    daily_sl_limit = int(sc.settings.get("daily_sl_limit") or 0) or config.TRADING_DAILY_SL_LIMIT
+    if daily_sl_limit > 0:
+        sl_count = _today_sl_count(sc)
+        if sl_count >= daily_sl_limit:
+            sig.status = "skipped"
+            console.print(f"[yellow]Signal {sig.id} skipped — daily SL count {sl_count} ≥ limit {daily_sl_limit}[/yellow]")
             if _FS: _fs.update_signal_status(sig.id, "skipped")
             _save_state(sc)
             return
@@ -1187,6 +1234,8 @@ def get_state(uid: str | None = None) -> dict:
             "bsg_trade_enabled": _bsg_trade_enabled(sc),
             "cme_close_skip":           _cme_close_skip_enabled(sc),
             "daily_pts_target":         float(sc.settings.get("daily_pts_target") or 0) or config.TRADING_DAILY_PTS_TARGET,
+            "daily_sl_pts":             float(sc.settings.get("daily_sl_pts") or 0) or config.TRADING_DAILY_SL_PTS,
+            "daily_sl_limit":           int(sc.settings.get("daily_sl_limit") or 0) or config.TRADING_DAILY_SL_LIMIT,
             "opposite_signal_action":   _opposite_signal_action(sc),
         },
     }

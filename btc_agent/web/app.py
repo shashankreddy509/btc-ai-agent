@@ -53,7 +53,7 @@ _SCANNER_SEED_KEYS = frozenset({
     "mode", "tf_min", "tf_max", "scan_interval_min", "qty",
     "max_sl", "min_tp", "max_concurrent", "patterns", "broker", "broker_nickname",
     "bias_filter", "trail_offset", "lookback_candles", "entry_mode",
-    "bsg_enabled", "bsg_trade_enabled", "daily_pts_target", "cme_close_skip",
+    "bsg_enabled", "bsg_trade_enabled", "daily_pts_target", "daily_sl_pts", "daily_sl_limit", "cme_close_skip",
     "opposite_signal_action",
     "coinbase_api_key", "coinbase_api_secret",
     "binance_api_key", "binance_api_secret",
@@ -70,7 +70,7 @@ _BEHAVIOUR_SETTING_KEYS = frozenset({
     "mode", "tf_min", "tf_max", "scan_interval_min", "qty",
     "max_sl", "min_tp", "max_concurrent", "patterns", "broker", "broker_nickname",
     "bias_filter", "trail_offset", "lookback_candles", "entry_mode",
-    "bsg_enabled", "bsg_trade_enabled", "daily_pts_target", "cme_close_skip",
+    "bsg_enabled", "bsg_trade_enabled", "daily_pts_target", "daily_sl_pts", "daily_sl_limit", "cme_close_skip",
     "opposite_signal_action", "vishal",
 })
 
@@ -454,7 +454,7 @@ async def trading_state(token: dict = Depends(verify_token)):
             fs_keys = {"mode", "tf_min", "tf_max", "scan_interval_min", "qty",
                        "max_sl", "min_tp", "max_concurrent", "patterns", "broker",
                        "broker_nickname", "bias_filter", "trail_offset", "lookback_candles",
-                       "entry_mode", "bsg_enabled", "bsg_trade_enabled", "daily_pts_target", "cme_close_skip",
+                       "entry_mode", "bsg_enabled", "bsg_trade_enabled", "daily_pts_target", "daily_sl_pts", "daily_sl_limit", "cme_close_skip",
                        "opposite_signal_action"}
             for k in fs_keys:
                 if k in prefs:

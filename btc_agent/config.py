@@ -58,6 +58,8 @@ BSG_TRADE_ENABLED         = os.getenv("BSG_TRADE_ENABLED", "false").lower() == "
 TRADING_DAILY_PTS_TARGET  = float(os.getenv("TRADING_DAILY_PTS_TARGET", "0.0"))  # 0 = unlimited
 TRADING_CME_CLOSE_SKIP    = os.getenv("TRADING_CME_CLOSE_SKIP", "false").lower() == "true"
 TRADING_OPPOSITE_SIGNAL_ACTION = os.getenv("TRADING_OPPOSITE_SIGNAL_ACTION", "skip")  # "skip" | "flip"
+TRADING_DAILY_SL_LIMIT        = int(os.getenv("TRADING_DAILY_SL_LIMIT", "0"))         # 0 = off
+TRADING_DAILY_SL_PTS          = float(os.getenv("TRADING_DAILY_SL_PTS", "0.0"))       # 0 = off
 WEEKLY_ADJ                = float(os.getenv("WEEKLY_ADJ", "0.0324"))
 
 # Firebase owner UID — Coinbase keys stored in Firestore are tied to this UID
@@ -167,6 +169,7 @@ def apply_settings(d: dict) -> None:
         "trading_tf_min": "TRADING_TF_MIN", "trading_tf_max": "TRADING_TF_MAX",
         "trading_scan_interval_min": "TRADING_SCAN_INTERVAL_MIN",
         "trading_max_concurrent": "TRADING_MAX_CONCURRENT", "trading_qty": "TRADING_QTY",
+        "trading_daily_sl_limit": "TRADING_DAILY_SL_LIMIT",
     }
     _bool = {
         "vishal_enabled": "VISHAL_ENABLED",
@@ -178,6 +181,7 @@ def apply_settings(d: dict) -> None:
     _float = {
         "trading_max_sl": "TRADING_MAX_SL", "trading_min_tp": "TRADING_MIN_TP",
         "trading_daily_pts_target": "TRADING_DAILY_PTS_TARGET",
+        "trading_daily_sl_pts": "TRADING_DAILY_SL_PTS",
         "weekly_adj": "WEEKLY_ADJ", "coinbase_contract_size": "COINBASE_CONTRACT_SIZE",
         "binance_contract_size": "BINANCE_CONTRACT_SIZE", "bybit_contract_size": "BYBIT_CONTRACT_SIZE",
         "delta_contract_size": "DELTA_CONTRACT_SIZE", "coindcx_contract_size": "COINDCX_CONTRACT_SIZE",
