@@ -1,51 +1,56 @@
 """One-shot probe: find chart API + correct selectors for leverage and price."""
-import asyncio
-import os
+import io
+import time
 from dotenv import load_dotenv
-from playwright.async_api import async_playwright
-from btc_agent.liquidity.collector import make_browser, login, load_chart, CHART_URL
+from PIL import Image
+from selenium.webdriver.common.by import By
+
+from btc_agent.liquidity.collector import (
+    _make_driver,
+    login,
+    load_chart,
+    CHART_URL,
+    CHART_Y_START,
+    CHART_Y_END,
+    classify_pixel,
+)
 
 load_dotenv()
 
 
-async def main():
-    async with async_playwright() as pw:
-        browser, context, page = await make_browser(pw, headless=False)
-
+def main():
+    driver = _make_driver(headless=False)
+    try:
         print("Logging in...")
-        if not await login(page):
+        if not login(driver):
             print("Login failed.")
             return
         print("Loading chart...")
+        load_chart(driver)
 
-        await load_chart(page)
-
-        # Detect lines from screenshot first
-        import io
-        from PIL import Image
-        png = await page.screenshot(full_page=False)
-        img = Image.open(io.BytesIO(png)).convert("RGB")
+        import pathlib
+        pathlib.Path("screenshots").mkdir(exist_ok=True)
+        png_bytes = driver.get_screenshot_as_png()
+        img = Image.open(io.BytesIO(png_bytes)).convert("RGB")
         img.save("screenshots/probe_shot.png")
 
-        # Scan multiple X positions near right edge for colored pixels
         pixels = img.load()
         width, height = img.size
         results_by_x = {}
         for test_x in [1250, 1220, 1200, 1180, 1150, 1100, 800, 600]:
             found = []
             for y in range(55, 740):
-                r, g, b = pixels[min(test_x, width-1), y]
-                if (220<=r<=255 and 220<=g<=255 and 0<=b<=40):
-                    found.append(('YELLOW', y))
-                elif (220<=r<=255 and 80<=g<=180 and 0<=b<=40):
-                    found.append(('ORANGE', y))
-                elif (0<=r<=25 and 0<=g<=25 and 0<=b<=25):
-                    found.append(('BLACK', y))
+                r, g, b = pixels[min(test_x, width - 1), y]
+                if (220 <= r <= 255 and 220 <= g <= 255 and 0 <= b <= 40):
+                    found.append(("YELLOW", y))
+                elif (220 <= r <= 255 and 80 <= g <= 180 and 0 <= b <= 40):
+                    found.append(("ORANGE", y))
+                elif (0 <= r <= 25 and 0 <= g <= 25 and 0 <= b <= 25):
+                    found.append(("BLACK", y))
             if found:
                 results_by_x[test_x] = found[:3]
         print("Colored pixels by X:", results_by_x)
 
-        # Pick best X (rightmost with colored lines) and first line's Y
         best_x, best_y = 1250, 367
         for tx in [1250, 1220, 1200, 1180, 1150, 1100, 800, 600]:
             if tx in results_by_x:
@@ -54,14 +59,16 @@ async def main():
                 break
         print(f"Hovering at x={best_x}, y={best_y}")
 
-        # Enter chart first then move to target
-        await page.mouse.move(best_x, 400)
-        await page.wait_for_timeout(300)
-        await page.mouse.move(best_x, best_y)
-        await page.wait_for_timeout(1200)
+        driver.execute_cdp_cmd("Input.dispatchMouseEvent", {
+            "type": "mouseMoved", "x": best_x, "y": 400, "button": "none",
+        })
+        time.sleep(0.3)
+        driver.execute_cdp_cmd("Input.dispatchMouseEvent", {
+            "type": "mouseMoved", "x": best_x, "y": best_y, "button": "none",
+        })
+        time.sleep(1.2)
 
-        result = await page.evaluate("""() => {
-            // Find ALL elements with EXACTLY 'Leverage' text and show their structure
+        result = driver.execute_script("""
             const found = [];
             const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_ELEMENT);
             let node;
@@ -81,23 +88,20 @@ async def main():
                     });
                 }
             }
-
-            // All visible text that looks like a price
             const allText = document.body.innerText;
             const priceMatches = allText.match(/\\b8[0-9],[0-9]{3}(?:\\.[0-9]+)?\\b/g) || [];
-
             return { found, priceMatches: [...new Set(priceMatches)] };
-        }""")
+        """)
 
         print("Leverage elements found:")
         for f in result["found"]:
             print(" ", f)
-        print("Price matches    :", result["priceMatches"])
+        print("Price matches:", result["priceMatches"])
 
-        await context.close()
-        await browser.close()
         print("Done.")
+    finally:
+        driver.quit()
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    main()
