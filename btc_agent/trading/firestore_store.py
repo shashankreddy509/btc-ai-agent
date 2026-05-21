@@ -117,6 +117,52 @@ def load_user_prefs(uid: str) -> dict | None:
         return None
 
 
+# ── Regime log (app-level, no uid) ────────────────────────────────────────────
+
+def save_regime_prediction(date_str: str, d: dict) -> None:
+    def _write():
+        try:
+            _get_db().collection("regime_log").document(date_str).set(d)
+        except Exception as e:
+            console.print(f"[dim yellow]FS regime write failed: {e}[/dim yellow]")
+    _bg(_write)
+
+
+def update_regime_actual(date_str: str, actual_regime: str, correct: bool) -> None:
+    def _write():
+        try:
+            _get_db().collection("regime_log").document(date_str).update({
+                "actual_regime": actual_regime,
+                "correct": correct,
+            })
+        except Exception as e:
+            console.print(f"[dim yellow]FS regime update failed: {e}[/dim yellow]")
+    _bg(_write)
+
+
+def get_regime_prediction(date_str: str) -> dict | None:
+    try:
+        doc = _get_db().collection("regime_log").document(date_str).get()
+        return doc.to_dict() if doc.exists else None
+    except Exception as e:
+        console.print(f"[yellow]Firestore get_regime_prediction failed: {e}[/yellow]")
+        return None
+
+
+def load_regime_log(limit: int = 30) -> list[dict]:
+    try:
+        docs = (
+            _get_db().collection("regime_log")
+            .order_by("date", direction="DESCENDING")
+            .limit(limit)
+            .stream()
+        )
+        return [doc.to_dict() for doc in docs]
+    except Exception as e:
+        console.print(f"[yellow]Firestore load_regime_log failed: {e}[/yellow]")
+        return []
+
+
 # ── Read ───────────────────────────────────────────────────────────────────────
 
 def load_state(uid: str) -> dict | None:

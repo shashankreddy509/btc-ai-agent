@@ -488,6 +488,13 @@ function navTo(section) {
     loadLiquidity();
     clearInterval(window._liqInterval);
     window._liqInterval = setInterval(() => { if (!document.hidden) loadLiquidity(); }, 30_000);
+  } else if (section === 'oi') {
+    _showPage('oi');
+    subTabsEl.style.display = 'none';
+    _setTopbarTitle('OI Flow');
+    _setSidebarActive('nav-oi');
+    loadOIStatus();
+    loadOISettingsInputs();
   } else if (section === 'scanner') {
     _currentSubTab = 'scanner';
     _showPage('scanner');
@@ -773,6 +780,93 @@ async function loadLiquidity() {
   }
 }
 
+async function loadOIStatus() {
+  const grid = document.getElementById('oi-status-grid');
+  const msg  = document.getElementById('oi-status-msg');
+  if (!grid) return;
+  if (msg) msg.textContent = 'Fetching…';
+  try {
+    const d = await fetchJSON('/api/trading/oi/status');
+    if (!d.ok) {
+      grid.innerHTML = '<div style="color:var(--red);grid-column:1/-1">OI data unavailable — Binance API error.</div>';
+      if (msg) msg.textContent = '';
+      return;
+    }
+    const col = (v, t, f) => v ? t : f;
+    grid.innerHTML = `
+      <div class="oi-stat-box">
+        <div class="oi-stat-label">OI Δ (BTC)</div>
+        <div class="oi-stat-val" style="color:${d.latest_delta >= 0 ? 'var(--green)' : 'var(--red)'}">${d.latest_delta >= 0 ? '+' : ''}${d.latest_delta.toFixed(2)}</div>
+      </div>
+      <div class="oi-stat-box">
+        <div class="oi-stat-label">+ Threshold</div>
+        <div class="oi-stat-val">${d.p_thresh.toFixed(2)}</div>
+      </div>
+      <div class="oi-stat-box">
+        <div class="oi-stat-label">− Threshold</div>
+        <div class="oi-stat-val">${d.n_thresh.toFixed(2)}</div>
+      </div>
+      <div class="oi-stat-box">
+        <div class="oi-stat-label">Large OI Up</div>
+        <div class="oi-stat-val" style="color:${col(d.large_oi_up,'#00BCD4','var(--text3)')}">${d.large_oi_up ? '▲ YES' : '—'}</div>
+      </div>
+      <div class="oi-stat-box">
+        <div class="oi-stat-label">Large OI Down</div>
+        <div class="oi-stat-val" style="color:${col(d.large_oi_down,'#00897B','var(--text3)')}">${d.large_oi_down ? '▼ YES' : '—'}</div>
+      </div>
+      <div class="oi-stat-box">
+        <div class="oi-stat-label">Bullish Div</div>
+        <div class="oi-stat-val" style="color:${col(d.bull_div,'var(--green)','var(--text3)')}">${d.bull_div ? '⚡ YES' : '—'}</div>
+      </div>
+      <div class="oi-stat-box">
+        <div class="oi-stat-label">Bearish Div</div>
+        <div class="oi-stat-val" style="color:${col(d.bear_div,'var(--red)','var(--text3)')}">${d.bear_div ? '⚡ YES' : '—'}</div>
+      </div>
+      <div class="oi-stat-box">
+        <div class="oi-stat-label">TF used</div>
+        <div class="oi-stat-val">${d.tf}m</div>
+      </div>
+    `;
+    if (msg) msg.textContent = `Last fetched: ${formatTs(d.fetched_at)}`;
+  } catch(e) {
+    if (grid) grid.innerHTML = `<div style="color:var(--red);grid-column:1/-1">${e}</div>`;
+    if (msg) msg.textContent = '';
+  }
+}
+
+async function loadOISettingsInputs() {
+  try {
+    const d = await fetchJSON('/api/trading/state');
+    if (!d.settings) return;
+    const s = d.settings;
+    const en = document.getElementById('cfg-oi-filter-enabled');
+    if (en) en.checked = !!s.oi_filter_enabled;
+    const m = document.getElementById('cfg-oi-threshold-mult');
+    if (m && document.activeElement !== m) m.value = s.oi_threshold_mult ?? 4.0;
+    const lb = document.getElementById('cfg-oi-lookback-bars');
+    if (lb && document.activeElement !== lb) lb.value = s.oi_lookback_bars ?? 300;
+    const dv = document.getElementById('cfg-oi-div-lookback');
+    if (dv && document.activeElement !== dv) dv.value = s.oi_div_lookback ?? 5;
+    const tf = document.getElementById('cfg-oi-tf');
+    if (tf) tf.value = s.oi_tf ?? 5;
+  } catch(_) {}
+}
+
+async function saveOISettings() {
+  const payload = {
+    oi_filter_enabled: !!document.getElementById('cfg-oi-filter-enabled')?.checked,
+    oi_threshold_mult: parseFloat(document.getElementById('cfg-oi-threshold-mult')?.value) || 4.0,
+    oi_lookback_bars:  parseInt(document.getElementById('cfg-oi-lookback-bars')?.value) || 300,
+    oi_div_lookback:   parseInt(document.getElementById('cfg-oi-div-lookback')?.value) || 5,
+    oi_tf:             parseInt(document.getElementById('cfg-oi-tf')?.value) || 5,
+  };
+  try {
+    await fetchJSON('/api/trading/settings', { method: 'POST', body: JSON.stringify(payload) });
+    const msg = document.getElementById('oi-save-msg');
+    if (msg) { msg.style.display = ''; setTimeout(() => msg.style.display = 'none', 2000); }
+  } catch(e) { alert('Save failed: ' + e); }
+}
+
 async function loadScan() {
   try {
     _scanData = await fetchJSON('/api/scan');
@@ -899,7 +993,7 @@ function fmtPrice(v) {
     : '—';
 }
 
-function renderLevels(levels, running) {
+function renderLevels(levels, running, regime) {
   const el = document.getElementById('levels-row');
   if (!el) return;
   if (!running) { el.style.display = 'none'; return; }
@@ -928,7 +1022,12 @@ function renderLevels(levels, running) {
     <span class="level-item">W-POC: ${wpocStr}</span><span class="level-sep">·</span>
     <span class="level-item">DEPO ↑: ${duStr}</span><span class="level-sep">·</span>
     <span class="level-item">DEPO ↓: ${dlStr}</span><span class="level-sep">·</span>
-    <span class="level-item">Bias: <span style="color:${biasColor}">${bias}</span></span>`;
+    <span class="level-item">Bias: <span style="color:${biasColor}">${bias}</span></span>${(() => {
+      if (!regime?.regime || regime?.error) return '';
+      const cls = regime.regime === 'Bull' ? 'badge-bull' : regime.regime === 'Bear' ? 'badge-bear' : 'badge-neutral';
+      const pct = regime.conviction != null ? `${(regime.conviction * 100) >= 0 ? '+' : ''}${(regime.conviction * 100).toFixed(0)}%` : '';
+      return `<span class="level-sep">·</span><span class="level-item">Regime: <span class="badge ${cls}">${regime.regime}</span><span style="font-size:11px;color:var(--text-3);margin-left:4px">${pct}</span></span>`;
+    })()}`;
 }
 
 let _ptsModeFilter = 'live';
@@ -978,9 +1077,51 @@ function _renderPointsStats(history) {
   if (sel && sel.value !== _ptsModeFilter) sel.value = _ptsModeFilter;
 }
 
+let _regimeData = null;
+
+async function loadRegimeLog() {
+  try {
+    _regimeData = await fetchJSON('/api/regime-log');
+    renderRegimeLog();
+  } catch (e) { /* regime log is observational — swallow silently */ }
+}
+
+function renderRegimeLog() {
+  if (!_regimeData) return;
+  const { rows = [], accuracy, graded_count } = _regimeData;
+  const accEl = document.getElementById('regime-accuracy');
+  if (accEl) {
+    if (accuracy !== null && accuracy !== undefined) {
+      const pct = (accuracy * 100).toFixed(1);
+      const color = accuracy >= 0.6 ? 'var(--green)' : accuracy >= 0.45 ? 'var(--accent)' : 'var(--red)';
+      accEl.innerHTML = `<span style="color:${color};font-weight:600">${pct}%</span><span style="font-size:11px;color:var(--text-3);margin-left:4px">(${graded_count} graded)</span>`;
+    } else {
+      accEl.innerHTML = '<span style="color:var(--text-3)">—</span>';
+    }
+  }
+  const tbody = document.getElementById('regime-log-body');
+  if (!tbody) return;
+  if (!rows.length) { tbody.innerHTML = '<tr class="empty-row"><td colspan="5">No data yet</td></tr>'; return; }
+  tbody.innerHTML = rows.map(r => {
+    const predCls = r.predicted_regime === 'Bull' ? 'badge-bull' : r.predicted_regime === 'Bear' ? 'badge-bear' : 'badge-neutral';
+    const actCls  = r.actual_regime === 'Bull' ? 'badge-bull' : r.actual_regime === 'Bear' ? 'badge-bear' : 'badge-neutral';
+    const correctCell = r.correct === null || r.correct === undefined
+      ? '<span style="color:var(--text-3)">—</span>'
+      : r.correct ? '<span style="color:var(--green)">✓</span>' : '<span style="color:var(--red)">✗</span>';
+    const conv = r.conviction != null ? `${(r.conviction * 100) >= 0 ? '+' : ''}${(r.conviction * 100).toFixed(0)}%` : '—';
+    return `<tr>
+      <td style="font-variant-numeric:tabular-nums;color:var(--text-3)">${r.date}</td>
+      <td>${r.predicted_regime ? `<span class="badge ${predCls}">${r.predicted_regime}</span>` : '—'}</td>
+      <td style="color:var(--text-3);font-size:12px">${conv}</td>
+      <td>${r.actual_regime ? `<span class="badge ${actCls}">${r.actual_regime}</span>` : '<span style="color:var(--text-3)">pending</span>'}</td>
+      <td>${correctCell}</td>
+    </tr>`;
+  }).join('');
+}
+
 function renderTrading() {
   if (!_tradingData) return;
-  const { signals = [], positions = [], history = [], running, settings = {}, levels = {}, current_price = 0, broker_account_name = '' } = _tradingData;
+  const { signals = [], positions = [], history = [], running, settings = {}, levels = {}, current_regime = {}, current_price = 0, broker_account_name = '' } = _tradingData;
 
   _setText('trade-mode-label', (settings.mode || 'paper').toUpperCase());
   const acctLabel = document.getElementById('trade-account-label');
@@ -1006,7 +1147,7 @@ function renderTrading() {
     if (dot)      dot.className = 'status-dot dot-ok';
   }
 
-  renderLevels(levels, running);
+  renderLevels(levels, running, current_regime);
 
   // sync settings inputs only when config panel is collapsed (not being edited)
   if (document.getElementById('cfg-body')?.style.display === 'none') {
@@ -1390,6 +1531,9 @@ _updateAuthUI();
   setInterval(() => { if (!document.hidden) pollStatus(); }, 3000);
   // Trading polling only when signed in
   setInterval(() => { if (!document.hidden && _currentUser) loadTrading(); }, 5000);
+  // Regime log — load once, then once per minute (changes at most daily)
+  if (_currentUser) loadRegimeLog();
+  setInterval(() => { if (!document.hidden && _currentUser) loadRegimeLog(); }, 60_000);
   // Users page auto-refresh when visible
   setInterval(() => {
     if (!document.hidden && document.getElementById('page-users')?.classList.contains('active')) _showUsersPage();

@@ -55,6 +55,7 @@ class _Scanner:
     running: bool = False
     last_scan_time: Optional[datetime] = None
     current_levels: dict = field(default_factory=dict)
+    current_regime: dict = field(default_factory=dict)
     last_price: float = 0.0
     settings: dict = field(default_factory=dict)
     broker: object = field(default=None, repr=False)
@@ -62,6 +63,7 @@ class _Scanner:
     current_bias: str = ""
     broker_account_name: str = ""
     user_email: str = ""
+    _oi_signals_cache: object = field(default=None, repr=False)
 
     @property
     def state_path(self) -> Path:
@@ -205,6 +207,21 @@ def _cme_close_skip_enabled(sc: _Scanner) -> bool:
 
 def _opposite_signal_action(sc: _Scanner) -> str:
     return sc.settings.get("opposite_signal_action", config.TRADING_OPPOSITE_SIGNAL_ACTION)
+
+def _oi_filter_enabled(sc: _Scanner) -> bool:
+    return bool(sc.settings.get("oi_filter_enabled", config.OI_FILTER_ENABLED))
+
+def _oi_threshold_mult(sc: _Scanner) -> float:
+    return float(sc.settings.get("oi_threshold_mult", config.OI_THRESHOLD_MULT))
+
+def _oi_lookback_bars(sc: _Scanner) -> int:
+    return int(sc.settings.get("oi_lookback_bars", config.OI_LOOKBACK_BARS))
+
+def _oi_div_lookback(sc: _Scanner) -> int:
+    return int(sc.settings.get("oi_div_lookback", config.OI_DIV_LOOKBACK))
+
+def _oi_tf(sc: _Scanner) -> int:
+    return int(sc.settings.get("oi_tf", config.OI_TF))
 
 
 def _is_cme_closed() -> bool:
@@ -945,6 +962,25 @@ def _close_position(sc: _Scanner, pos: Position, price: float, reason: str) -> N
 
 def _monitor_positions(sc: _Scanner, current_price: float) -> None:
     offset = _trail_offset(sc)
+    _oi_cache = sc._oi_signals_cache
+    if _oi_filter_enabled(sc) and _oi_cache is not None and _oi_cache.ok:
+        for _pos in sc.open_positions:
+            if _pos.status != "open":
+                continue
+            if _pos.direction == "long" and _oi_cache.bear_div:
+                _new_sl = round(_pos.entry_price + 50, 2)
+                if _new_sl > _pos.sl:
+                    console.print(f"[yellow]OI bear_div: LONG SL {_pos.sl:.1f} → {_new_sl:.1f}[/yellow]")
+                    _pos.sl = _new_sl
+                    if _is_live(sc):
+                        _update_live_sl(sc, _pos, _new_sl)
+            elif _pos.direction == "short" and _oi_cache.bull_div:
+                _new_sl = round(_pos.entry_price - 50, 2)
+                if _new_sl < _pos.sl:
+                    console.print(f"[yellow]OI bull_div: SHORT SL {_pos.sl:.1f} → {_new_sl:.1f}[/yellow]")
+                    _pos.sl = _new_sl
+                    if _is_live(sc):
+                        _update_live_sl(sc, _pos, _new_sl)
     for pos in sc.open_positions:
         if pos.status != "open":
             continue
@@ -1186,6 +1222,7 @@ def get_state(uid: str | None = None) -> dict:
         return {
             "signals": [], "positions": [], "history": [],
             "running": False, "current_price": 0.0, "levels": {},
+            "current_regime": {},
             "settings": {
                 "mode":              config.TRADING_MODE,
                 "tf_min":            config.TRADING_TF_MIN,
@@ -1214,6 +1251,7 @@ def get_state(uid: str | None = None) -> dict:
         "current_bias":        sc.current_bias,
         "broker_account_name": sc.broker_account_name,
         "levels":              sc.current_levels,
+        "current_regime":      sc.current_regime,
         "bsg_alerts":          sc.bsg_alerts[-2:],
         "settings": {
             "mode":              _trading_mode(sc),
@@ -1237,6 +1275,11 @@ def get_state(uid: str | None = None) -> dict:
             "daily_sl_pts":             float(sc.settings.get("daily_sl_pts") or 0) or config.TRADING_DAILY_SL_PTS,
             "daily_sl_limit":           int(sc.settings.get("daily_sl_limit") or 0) or config.TRADING_DAILY_SL_LIMIT,
             "opposite_signal_action":   _opposite_signal_action(sc),
+            "oi_filter_enabled":        _oi_filter_enabled(sc),
+            "oi_threshold_mult":        _oi_threshold_mult(sc),
+            "oi_lookback_bars":         _oi_lookback_bars(sc),
+            "oi_div_lookback":          _oi_div_lookback(sc),
+            "oi_tf":                    _oi_tf(sc),
         },
     }
 
@@ -1334,6 +1377,14 @@ def run_trading_scanner(uid: str, user_settings: dict | None = None, email: str 
         except Exception:
             sc.broker_account_name = ""
 
+    try:
+        from btc_agent.scanner.markov_regime import refresh_regime_blocking
+        _r = refresh_regime_blocking()
+        if _r and not _r.get("error"):
+            sc.current_regime = _r
+    except Exception as _re:
+        console.print(f"[dim yellow]Regime init skipped: {_re}[/dim yellow]")
+
     arr = ts_arr = minutes_of_day = unix_days = None
     last_state_save = datetime.now(timezone.utc)
 
@@ -1422,6 +1473,14 @@ def run_trading_scanner(uid: str, user_settings: dict | None = None, email: str 
                     _below = _dl[_dl < current_price]
                     sc.current_levels["depo_upper"] = float(_above.min()) if len(_above) else None
                     sc.current_levels["depo_lower"] = float(_below.max()) if len(_below) else None
+                    try:
+                        from btc_agent.scanner.markov_regime import refresh_regime_if_stale, get_regime as _get_regime
+                        refresh_regime_if_stale()
+                        _r = _get_regime()
+                        if _r:
+                            sc.current_regime = _r
+                    except Exception:
+                        pass
                     bias = _trend_bias(current_price, sc.current_levels)
                     sc.current_bias = bias
                     mrp_str  = f"{sc.current_levels['mrp']:.1f}"       if sc.current_levels.get("mrp")       else "—"
@@ -1442,6 +1501,24 @@ def run_trading_scanner(uid: str, user_settings: dict | None = None, email: str 
                         for s in filtered:
                             console.print(f"[dim]Bias filter dropped {s.direction} {s.pattern} ({bias})[/dim]")
                         new_sigs = [s for s in new_sigs if s.direction == allowed]
+                    if _oi_filter_enabled(sc):
+                        try:
+                            from btc_agent.scanner.oi_data import fetch_oi_snapshot, compute_oi_signals
+                            _snap = fetch_oi_snapshot(_oi_tf(sc), lookback=_oi_lookback_bars(sc))
+                            _oi_bars, _ = aggregate_tf(arr, ts_arr, minutes_of_day, unix_days,
+                                                       _oi_tf(sc), last_n=_oi_lookback_bars(sc))
+                            _closes = [float(b[3]) for b in _oi_bars] if (_oi_bars is not None and len(_oi_bars)) else []
+                            _oi_sigs = compute_oi_signals(_snap, _closes,
+                                                          mult=_oi_threshold_mult(sc),
+                                                          div_lookback=_oi_div_lookback(sc))
+                            sc._oi_signals_cache = _oi_sigs
+                            if new_sigs and _oi_sigs.ok and not (_oi_sigs.large_oi_up or _oi_sigs.large_oi_down):
+                                for s in new_sigs:
+                                    s.meta["skip_reason"] = "oi_no_confirm"
+                                console.print(f"[dim]OI filter: no large spike — dropped {len(new_sigs)} signal(s)[/dim]")
+                                new_sigs = []
+                        except Exception as _oi_e:
+                            console.print(f"[yellow]OI filter skipped: {_oi_e}[/yellow]")
                     if new_sigs:
                         sc.pending_signals.extend(new_sigs)
                         if _FS:
