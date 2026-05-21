@@ -57,7 +57,15 @@ BSG_ENABLED               = os.getenv("BSG_ENABLED", "false").lower() == "true"
 BSG_TRADE_ENABLED         = os.getenv("BSG_TRADE_ENABLED", "false").lower() == "true"
 TRADING_DAILY_PTS_TARGET  = float(os.getenv("TRADING_DAILY_PTS_TARGET", "0.0"))  # 0 = unlimited
 TRADING_CME_CLOSE_SKIP    = os.getenv("TRADING_CME_CLOSE_SKIP", "false").lower() == "true"
+TRADING_OPPOSITE_SIGNAL_ACTION = os.getenv("TRADING_OPPOSITE_SIGNAL_ACTION", "skip")  # "skip" | "flip"
+TRADING_DAILY_SL_LIMIT        = int(os.getenv("TRADING_DAILY_SL_LIMIT", "0"))         # 0 = off
+TRADING_DAILY_SL_PTS          = float(os.getenv("TRADING_DAILY_SL_PTS", "0.0"))       # 0 = off
 WEEKLY_ADJ                = float(os.getenv("WEEKLY_ADJ", "0.0324"))
+OI_FILTER_ENABLED         = os.getenv("OI_FILTER_ENABLED", "false").lower() == "true"
+OI_THRESHOLD_MULT         = float(os.getenv("OI_THRESHOLD_MULT", "4.0"))
+OI_LOOKBACK_BARS          = int(os.getenv("OI_LOOKBACK_BARS", "300"))
+OI_DIV_LOOKBACK           = int(os.getenv("OI_DIV_LOOKBACK", "5"))
+OI_TF                     = int(os.getenv("OI_TF", "5"))
 
 # Firebase owner UID — Coinbase keys stored in Firestore are tied to this UID
 FIREBASE_OWNER_UID        = os.getenv("FIREBASE_OWNER_UID", "")
@@ -147,6 +155,7 @@ def apply_settings(d: dict) -> None:
         "email_pass": "EMAIL_PASS", "email_to": "EMAIL_TO",
         "briefing_time": "BRIEFING_TIME", "scanner_time": "SCANNER_TIME",
         "trading_mode": "TRADING_MODE", "trading_broker": "TRADING_BROKER",
+        "opposite_signal_action": "TRADING_OPPOSITE_SIGNAL_ACTION",
         "coinbase_api_key": "COINBASE_API_KEY", "coinbase_api_secret": "COINBASE_API_SECRET",
         "coinbase_product_id": "COINBASE_PRODUCT_ID",
         "binance_api_key": "BINANCE_API_KEY", "binance_api_secret": "BINANCE_API_SECRET",
@@ -165,6 +174,10 @@ def apply_settings(d: dict) -> None:
         "trading_tf_min": "TRADING_TF_MIN", "trading_tf_max": "TRADING_TF_MAX",
         "trading_scan_interval_min": "TRADING_SCAN_INTERVAL_MIN",
         "trading_max_concurrent": "TRADING_MAX_CONCURRENT", "trading_qty": "TRADING_QTY",
+        "trading_daily_sl_limit": "TRADING_DAILY_SL_LIMIT",
+        "oi_lookback_bars": "OI_LOOKBACK_BARS",
+        "oi_div_lookback":  "OI_DIV_LOOKBACK",
+        "oi_tf":            "OI_TF",
     }
     _bool = {
         "vishal_enabled": "VISHAL_ENABLED",
@@ -172,11 +185,14 @@ def apply_settings(d: dict) -> None:
         "trading_cme_close_skip": "TRADING_CME_CLOSE_SKIP",
         "bsg_enabled": "BSG_ENABLED",
         "bsg_trade_enabled": "BSG_TRADE_ENABLED",
+        "oi_filter_enabled": "OI_FILTER_ENABLED",
     }
     _float = {
         "trading_max_sl": "TRADING_MAX_SL", "trading_min_tp": "TRADING_MIN_TP",
         "trading_daily_pts_target": "TRADING_DAILY_PTS_TARGET",
-        "weekly_adj": "WEEKLY_ADJ", "coinbase_contract_size": "COINBASE_CONTRACT_SIZE",
+        "trading_daily_sl_pts": "TRADING_DAILY_SL_PTS",
+        "weekly_adj": "WEEKLY_ADJ",
+        "oi_threshold_mult": "OI_THRESHOLD_MULT", "coinbase_contract_size": "COINBASE_CONTRACT_SIZE",
         "binance_contract_size": "BINANCE_CONTRACT_SIZE", "bybit_contract_size": "BYBIT_CONTRACT_SIZE",
         "delta_contract_size": "DELTA_CONTRACT_SIZE", "coindcx_contract_size": "COINDCX_CONTRACT_SIZE",
     }

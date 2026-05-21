@@ -1,3 +1,4 @@
+import asyncio
 import json
 import secrets
 import threading
@@ -7,7 +8,7 @@ import urllib.parse
 import urllib.request
 from pathlib import Path
 
-from fastapi import FastAPI, Body, Depends, APIRouter, HTTPException
+from fastapi import FastAPI, Body, Depends, APIRouter, HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -52,7 +53,9 @@ _SCANNER_SEED_KEYS = frozenset({
     "mode", "tf_min", "tf_max", "scan_interval_min", "qty",
     "max_sl", "min_tp", "max_concurrent", "patterns", "broker", "broker_nickname",
     "bias_filter", "trail_offset", "lookback_candles", "entry_mode",
-    "bsg_enabled", "bsg_trade_enabled", "daily_pts_target", "cme_close_skip",
+    "bsg_enabled", "bsg_trade_enabled", "daily_pts_target", "daily_sl_pts", "daily_sl_limit", "cme_close_skip",
+    "opposite_signal_action",
+    "oi_filter_enabled", "oi_threshold_mult", "oi_lookback_bars", "oi_div_lookback", "oi_tf",
     "coinbase_api_key", "coinbase_api_secret",
     "binance_api_key", "binance_api_secret",
     "bybit_api_key", "bybit_api_secret",
@@ -68,8 +71,9 @@ _BEHAVIOUR_SETTING_KEYS = frozenset({
     "mode", "tf_min", "tf_max", "scan_interval_min", "qty",
     "max_sl", "min_tp", "max_concurrent", "patterns", "broker", "broker_nickname",
     "bias_filter", "trail_offset", "lookback_candles", "entry_mode",
-    "bsg_enabled", "bsg_trade_enabled", "daily_pts_target", "cme_close_skip",
-    "vishal",
+    "bsg_enabled", "bsg_trade_enabled", "daily_pts_target", "daily_sl_pts", "daily_sl_limit", "cme_close_skip",
+    "opposite_signal_action", "vishal",
+    "oi_filter_enabled", "oi_threshold_mult", "oi_lookback_bars", "oi_div_lookback", "oi_tf",
 })
 
 
@@ -125,6 +129,58 @@ async def _require_admin(token: dict = Depends(verify_token)) -> dict:
         if token.get("email") != config.FIREBASE_ADMIN_EMAIL:
             raise HTTPException(status_code=403, detail="Admin only")
     return token
+
+
+# ── WebSocket price broadcaster ───────────────────────────────────────────────
+
+_price_queues: dict[int, asyncio.Queue] = {}  # id(ws) → Queue
+_latest_ws_price: float | None = None
+
+
+async def _price_broadcaster():
+    loop = asyncio.get_event_loop()
+    while True:
+        try:
+            from btc_agent.trading.scanner import get_any_price
+            price = get_any_price()  # free if scanner running
+            if not price:
+                from btc_agent.scanner.data import fetch_current_price
+                price = await loop.run_in_executor(None, fetch_current_price)
+            if price:
+                global _latest_ws_price
+                _latest_ws_price = price
+                for q in list(_price_queues.values()):
+                    try:
+                        q.put_nowait(price)
+                    except asyncio.QueueFull:
+                        pass
+        except Exception as e:
+            print(f"[price-ws] fetch error: {e}")
+        await asyncio.sleep(1)
+
+
+@app.on_event("startup")
+async def _start_price_broadcaster():
+    asyncio.create_task(_price_broadcaster())
+
+
+@app.websocket("/ws/price")
+async def ws_price(ws: WebSocket):
+    await ws.accept()
+    q: asyncio.Queue = asyncio.Queue(maxsize=10)
+    _price_queues[id(ws)] = q
+    try:
+        if _latest_ws_price:
+            await ws.send_json({"price": _latest_ws_price})
+        while True:
+            price = await q.get()
+            await ws.send_json({"price": price})
+    except WebSocketDisconnect:
+        pass
+    except Exception:
+        pass
+    finally:
+        _price_queues.pop(id(ws), None)
 
 
 # ── Startup: load Firestore settings into config ──────────────────────────────
@@ -302,8 +358,11 @@ async def get_price():
     from btc_agent.trading.scanner import get_any_price
     price = get_any_price()
     if not price:
-        from btc_agent.scanner.data import fetch_current_price
-        price = fetch_current_price()
+        try:
+            from btc_agent.scanner.data import fetch_current_price
+            price = fetch_current_price()
+        except Exception:
+            price = None
     return JSONResponse({"price": price})
 
 
@@ -371,6 +430,21 @@ async def trigger_brief():
     return JSONResponse({"status": "started"})
 
 
+@pub.get("/regime-log")
+async def regime_log():
+    from btc_agent.trading.firestore_store import load_regime_log
+    from btc_agent.scanner.markov_regime import get_regime
+    rows = load_regime_log(30)
+    graded = [r for r in rows if r.get("actual_regime") is not None]
+    accuracy = round(sum(1 for r in graded if r.get("correct")) / len(graded), 4) if graded else None
+    return JSONResponse({
+        "rows": rows,
+        "accuracy": accuracy,
+        "graded_count": len(graded),
+        "live_regime": get_regime(),
+    })
+
+
 @pub.get("/status")
 async def status():
     from btc_agent.trading.scanner import is_any_running
@@ -397,7 +471,8 @@ async def trading_state(token: dict = Depends(verify_token)):
             fs_keys = {"mode", "tf_min", "tf_max", "scan_interval_min", "qty",
                        "max_sl", "min_tp", "max_concurrent", "patterns", "broker",
                        "broker_nickname", "bias_filter", "trail_offset", "lookback_candles",
-                       "entry_mode", "bsg_enabled", "bsg_trade_enabled", "daily_pts_target", "cme_close_skip"}
+                       "entry_mode", "bsg_enabled", "bsg_trade_enabled", "daily_pts_target", "daily_sl_pts", "daily_sl_limit", "cme_close_skip",
+                       "opposite_signal_action"}
             for k in fs_keys:
                 if k in prefs:
                     state["settings"][k] = prefs[k]
@@ -512,6 +587,34 @@ async def cancel_position(signal_id: str, token: dict = Depends(verify_token)):
     scanner._close_position(sc, pos, price, "manual")
     scanner._save_state(sc)
     return JSONResponse({"status": "cancelled"})
+
+
+@priv.get("/oi/status")
+async def oi_status(token: dict = Depends(verify_token)):
+    from datetime import datetime, timezone
+    from btc_agent.scanner.oi_data import fetch_oi_snapshot, compute_oi_signals
+    from btc_agent.trading.scanner import _scanners
+    import btc_agent.config as cfg
+    uid = token["uid"]
+    sc = _scanners.get(uid)
+    tf   = int(sc.settings.get("oi_tf", cfg.OI_TF)) if sc else cfg.OI_TF
+    mult = float(sc.settings.get("oi_threshold_mult", cfg.OI_THRESHOLD_MULT)) if sc else cfg.OI_THRESHOLD_MULT
+    lb   = int(sc.settings.get("oi_lookback_bars", cfg.OI_LOOKBACK_BARS)) if sc else cfg.OI_LOOKBACK_BARS
+    div  = int(sc.settings.get("oi_div_lookback", cfg.OI_DIV_LOOKBACK)) if sc else cfg.OI_DIV_LOOKBACK
+    snap = fetch_oi_snapshot(tf, lookback=lb)
+    sigs = compute_oi_signals(snap, snap.oi, mult=mult, div_lookback=div)
+    return JSONResponse({
+        "ok":           sigs.ok,
+        "tf":           tf,
+        "latest_delta": round(sigs.latest_delta, 4),
+        "p_thresh":     round(sigs.p_thresh, 4),
+        "n_thresh":     round(sigs.n_thresh, 4),
+        "large_oi_up":  sigs.large_oi_up,
+        "large_oi_down": sigs.large_oi_down,
+        "bull_div":     sigs.bull_div,
+        "bear_div":     sigs.bear_div,
+        "fetched_at":   datetime.now(timezone.utc).isoformat(),
+    })
 
 
 # ── Settings API ──────────────────────────────────────────────────────────────

@@ -76,12 +76,14 @@ function _updateAuthUI() {
   if (trailRow) trailRow.style.display = 'flex';
 
   // Admin-only nav items
-  const navUsers = document.getElementById('nav-users');
-  if (navUsers) navUsers.style.display = admin ? '' : 'none';
+  const navUsers  = document.getElementById('nav-users');
+  const navRegime = document.getElementById('nav-regime');
+  if (navUsers)  navUsers.style.display  = admin ? '' : 'none';
+  if (navRegime) navRegime.style.display = admin ? '' : 'none';
 }
 
-const ADMIN_EMAIL = 'shashankreddy509@gmail.com';
-function _isAdmin() { return _currentUser?.email === ADMIN_EMAIL; }
+const ADMIN_EMAILS = ['shashankreddy509@gmail.com', 'gsreddy509@gmail.com'];
+function _isAdmin() { return ADMIN_EMAILS.includes(_currentUser?.email); }
 
 function _renderAccountCard() {
   const signedIn = !!_currentUser;
@@ -447,7 +449,7 @@ function _setText(id, text) {
 let _currentSection = 'home';
 let _currentSubTab  = 'briefing';
 
-const SECTION_TITLES = { briefing: 'Morning Briefing', scanner: 'Pattern Scanner', trading: 'Live Trading', settings: 'Settings', users: 'Users' };
+const SECTION_TITLES = { briefing: 'Morning Briefing', scanner: 'Pattern Scanner', trading: 'Live Trading', settings: 'Settings', users: 'Users', regime: 'Regime Analytics' };
 
 function navTo(section) {
   _currentSection = section;
@@ -472,6 +474,12 @@ function navTo(section) {
     _setTopbarTitle('Users');
     _setSidebarActive('nav-users');
     _showUsersPage();
+  } else if (section === 'regime') {
+    _showPage('regime');
+    subTabsEl.style.display = 'none';
+    _setTopbarTitle('Regime Analytics');
+    _setSidebarActive('nav-regime');
+    loadRegimeLog().then(renderRegimePage);
   } else if (section === 'settings') {
     _showPage('settings');
     subTabsEl.style.display = 'none';
@@ -488,6 +496,13 @@ function navTo(section) {
     loadLiquidity();
     clearInterval(window._liqInterval);
     window._liqInterval = setInterval(() => { if (!document.hidden) loadLiquidity(); }, 30_000);
+  } else if (section === 'oi') {
+    _showPage('oi');
+    subTabsEl.style.display = 'none';
+    _setTopbarTitle('OI Flow');
+    _setSidebarActive('nav-oi');
+    loadOIStatus();
+    loadOISettingsInputs();
   } else if (section === 'scanner') {
     _currentSubTab = 'scanner';
     _showPage('scanner');
@@ -773,6 +788,93 @@ async function loadLiquidity() {
   }
 }
 
+async function loadOIStatus() {
+  const grid = document.getElementById('oi-status-grid');
+  const msg  = document.getElementById('oi-status-msg');
+  if (!grid) return;
+  if (msg) msg.textContent = 'Fetching…';
+  try {
+    const d = await fetchJSON('/api/trading/oi/status');
+    if (!d.ok) {
+      grid.innerHTML = '<div style="color:var(--red);grid-column:1/-1">OI data unavailable — Binance API error.</div>';
+      if (msg) msg.textContent = '';
+      return;
+    }
+    const col = (v, t, f) => v ? t : f;
+    grid.innerHTML = `
+      <div class="oi-stat-box">
+        <div class="oi-stat-label">OI Δ (BTC)</div>
+        <div class="oi-stat-val" style="color:${d.latest_delta >= 0 ? 'var(--green)' : 'var(--red)'}">${d.latest_delta >= 0 ? '+' : ''}${d.latest_delta.toFixed(2)}</div>
+      </div>
+      <div class="oi-stat-box">
+        <div class="oi-stat-label">+ Threshold</div>
+        <div class="oi-stat-val">${d.p_thresh.toFixed(2)}</div>
+      </div>
+      <div class="oi-stat-box">
+        <div class="oi-stat-label">− Threshold</div>
+        <div class="oi-stat-val">${d.n_thresh.toFixed(2)}</div>
+      </div>
+      <div class="oi-stat-box">
+        <div class="oi-stat-label">Large OI Up</div>
+        <div class="oi-stat-val" style="color:${col(d.large_oi_up,'#00BCD4','var(--text3)')}">${d.large_oi_up ? '▲ YES' : '—'}</div>
+      </div>
+      <div class="oi-stat-box">
+        <div class="oi-stat-label">Large OI Down</div>
+        <div class="oi-stat-val" style="color:${col(d.large_oi_down,'#00897B','var(--text3)')}">${d.large_oi_down ? '▼ YES' : '—'}</div>
+      </div>
+      <div class="oi-stat-box">
+        <div class="oi-stat-label">Bullish Div</div>
+        <div class="oi-stat-val" style="color:${col(d.bull_div,'var(--green)','var(--text3)')}">${d.bull_div ? '⚡ YES' : '—'}</div>
+      </div>
+      <div class="oi-stat-box">
+        <div class="oi-stat-label">Bearish Div</div>
+        <div class="oi-stat-val" style="color:${col(d.bear_div,'var(--red)','var(--text3)')}">${d.bear_div ? '⚡ YES' : '—'}</div>
+      </div>
+      <div class="oi-stat-box">
+        <div class="oi-stat-label">TF used</div>
+        <div class="oi-stat-val">${d.tf}m</div>
+      </div>
+    `;
+    if (msg) msg.textContent = `Last fetched: ${formatTs(d.fetched_at)}`;
+  } catch(e) {
+    if (grid) grid.innerHTML = `<div style="color:var(--red);grid-column:1/-1">${e}</div>`;
+    if (msg) msg.textContent = '';
+  }
+}
+
+async function loadOISettingsInputs() {
+  try {
+    const d = await fetchJSON('/api/trading/state');
+    if (!d.settings) return;
+    const s = d.settings;
+    const en = document.getElementById('cfg-oi-filter-enabled');
+    if (en) en.checked = !!s.oi_filter_enabled;
+    const m = document.getElementById('cfg-oi-threshold-mult');
+    if (m && document.activeElement !== m) m.value = s.oi_threshold_mult ?? 4.0;
+    const lb = document.getElementById('cfg-oi-lookback-bars');
+    if (lb && document.activeElement !== lb) lb.value = s.oi_lookback_bars ?? 300;
+    const dv = document.getElementById('cfg-oi-div-lookback');
+    if (dv && document.activeElement !== dv) dv.value = s.oi_div_lookback ?? 5;
+    const tf = document.getElementById('cfg-oi-tf');
+    if (tf) tf.value = s.oi_tf ?? 5;
+  } catch(_) {}
+}
+
+async function saveOISettings() {
+  const payload = {
+    oi_filter_enabled: !!document.getElementById('cfg-oi-filter-enabled')?.checked,
+    oi_threshold_mult: parseFloat(document.getElementById('cfg-oi-threshold-mult')?.value) || 4.0,
+    oi_lookback_bars:  parseInt(document.getElementById('cfg-oi-lookback-bars')?.value) || 300,
+    oi_div_lookback:   parseInt(document.getElementById('cfg-oi-div-lookback')?.value) || 5,
+    oi_tf:             parseInt(document.getElementById('cfg-oi-tf')?.value) || 5,
+  };
+  try {
+    await fetchJSON('/api/trading/settings', { method: 'POST', body: JSON.stringify(payload) });
+    const msg = document.getElementById('oi-save-msg');
+    if (msg) { msg.style.display = ''; setTimeout(() => msg.style.display = 'none', 2000); }
+  } catch(e) { alert('Save failed: ' + e); }
+}
+
 async function loadScan() {
   try {
     _scanData = await fetchJSON('/api/scan');
@@ -855,6 +957,22 @@ async function fetchBTCPrice() {
 }
 
 let _wsPrice = null;
+let _priceSocket = null;
+let _lastPriceTick = 0;
+
+function _connectPriceWS() {
+  const proto = location.protocol === 'https:' ? 'wss' : 'ws';
+  const ws = new WebSocket(`${proto}://${location.host}/ws/price`);
+  _priceSocket = ws;
+  ws.onmessage = (e) => {
+    try {
+      const { price } = JSON.parse(e.data);
+      if (price) { _lastPriceTick = Date.now(); _applyPrice(price); }
+    } catch (_) {}
+  };
+  ws.onclose = () => { _priceSocket = null; setTimeout(_connectPriceWS, 5000); };
+  ws.onerror = () => ws.close();
+}
 
 function _applyPrice(price) {
   _wsPrice = price;
@@ -883,14 +1001,16 @@ function fmtPrice(v) {
     : '—';
 }
 
-function renderLevels(levels, running) {
+function renderLevels(levels, running, regime) {
   const el = document.getElementById('levels-row');
   if (!el) return;
   if (!running) { el.style.display = 'none'; return; }
   el.style.display = '';
-  const mrpStr  = levels.mrp       ? `<span style="color:var(--accent)">$${fmtPrice(levels.mrp)}</span>`      : '<span style="color:var(--text-3)">—</span>';
-  const dpocStr = levels.daily_poc  ? `<span style="color:var(--green)">$${fmtPrice(levels.daily_poc)}</span>` : '<span style="color:var(--text-3)">—</span>';
-  const wpocStr = levels.weekly_poc ? `<span style="color:#c084fc">$${fmtPrice(levels.weekly_poc)}</span>`     : '<span style="color:var(--text-3)">—</span>';
+  const mrpStr  = levels.mrp        ? `<span style="color:var(--accent)">$${fmtPrice(levels.mrp)}</span>`        : '<span style="color:var(--text-3)">—</span>';
+  const dpocStr = levels.daily_poc  ? `<span style="color:var(--green)">$${fmtPrice(levels.daily_poc)}</span>`   : '<span style="color:var(--text-3)">—</span>';
+  const wpocStr = levels.weekly_poc ? `<span style="color:#c084fc">$${fmtPrice(levels.weekly_poc)}</span>`       : '<span style="color:var(--text-3)">—</span>';
+  const duStr   = levels.depo_upper ? `<span style="color:#f97316">$${fmtPrice(levels.depo_upper)}</span>`       : '<span style="color:var(--text-3)">—</span>';
+  const dlStr   = levels.depo_lower ? `<span style="color:#38bdf8">$${fmtPrice(levels.depo_lower)}</span>`       : '<span style="color:var(--text-3)">—</span>';
 
   const price = _tradingData?.current_price;
   let bias = '—', biasColor = 'var(--text-3)';
@@ -908,7 +1028,14 @@ function renderLevels(levels, running) {
     <span class="level-item">MRP: ${mrpStr}</span><span class="level-sep">·</span>
     <span class="level-item">D-POC: ${dpocStr}</span><span class="level-sep">·</span>
     <span class="level-item">W-POC: ${wpocStr}</span><span class="level-sep">·</span>
-    <span class="level-item">Bias: <span style="color:${biasColor}">${bias}</span></span>`;
+    <span class="level-item">DEPO ↑: ${duStr}</span><span class="level-sep">·</span>
+    <span class="level-item">DEPO ↓: ${dlStr}</span><span class="level-sep">·</span>
+    <span class="level-item">Bias: <span style="color:${biasColor}">${bias}</span></span>${(() => {
+      if (!regime?.regime || regime?.error) return '';
+      const cls = regime.regime === 'Bull' ? 'badge-bull' : regime.regime === 'Bear' ? 'badge-bear' : 'badge-neutral';
+      const pct = regime.conviction != null ? `${(regime.conviction * 100) >= 0 ? '+' : ''}${(regime.conviction * 100).toFixed(0)}%` : '';
+      return `<span class="level-sep">·</span><span class="level-item">Regime: <span class="badge ${cls}">${regime.regime}</span><span style="font-size:11px;color:var(--text-3);margin-left:4px">${pct}</span></span>`;
+    })()}`;
 }
 
 let _ptsModeFilter = 'live';
@@ -958,9 +1085,127 @@ function _renderPointsStats(history) {
   if (sel && sel.value !== _ptsModeFilter) sel.value = _ptsModeFilter;
 }
 
+let _regimeData = null;
+
+async function loadRegimeLog() {
+  try {
+    _regimeData = await fetchJSON('/api/regime-log');
+    renderRegimeLog();
+  } catch (e) { /* regime log is observational — swallow silently */ }
+}
+
+function renderRegimeLog() {
+  if (!_regimeData) return;
+  const { rows = [], accuracy, graded_count } = _regimeData;
+  const accEl = document.getElementById('regime-accuracy');
+  if (accEl) {
+    if (accuracy !== null && accuracy !== undefined) {
+      const pct = (accuracy * 100).toFixed(1);
+      const color = accuracy >= 0.6 ? 'var(--green)' : accuracy >= 0.45 ? 'var(--accent)' : 'var(--red)';
+      accEl.innerHTML = `<span style="color:${color};font-weight:600">${pct}%</span><span style="font-size:11px;color:var(--text-3);margin-left:4px">(${graded_count} graded)</span>`;
+    } else {
+      accEl.innerHTML = '<span style="color:var(--text-3)">—</span>';
+    }
+  }
+  const tbody = document.getElementById('regime-log-body');
+  if (!tbody) return;
+  if (!rows.length) { tbody.innerHTML = '<tr class="empty-row"><td colspan="5">No data yet</td></tr>'; return; }
+  tbody.innerHTML = rows.map(r => {
+    const predCls = r.predicted_regime === 'Bull' ? 'badge-bull' : r.predicted_regime === 'Bear' ? 'badge-bear' : 'badge-neutral';
+    const actCls  = r.actual_regime === 'Bull' ? 'badge-bull' : r.actual_regime === 'Bear' ? 'badge-bear' : 'badge-neutral';
+    const correctCell = r.correct === null || r.correct === undefined
+      ? '<span style="color:var(--text-3)">—</span>'
+      : r.correct ? '<span style="color:var(--green)">✓</span>' : '<span style="color:var(--red)">✗</span>';
+    const conv = r.conviction != null ? `${(r.conviction * 100) >= 0 ? '+' : ''}${(r.conviction * 100).toFixed(0)}%` : '—';
+    return `<tr>
+      <td style="font-variant-numeric:tabular-nums;color:var(--text-3)">${r.date}</td>
+      <td>${r.predicted_regime ? `<span class="badge ${predCls}">${r.predicted_regime}</span>` : '—'}</td>
+      <td style="color:var(--text-3);font-size:12px">${conv}</td>
+      <td>${r.actual_regime ? `<span class="badge ${actCls}">${r.actual_regime}</span>` : '<span style="color:var(--text-3)">pending</span>'}</td>
+      <td>${correctCell}</td>
+    </tr>`;
+  }).join('');
+}
+
+function renderRegimePage() {
+  if (!_regimeData) return;
+  const { rows = [], accuracy, graded_count, live_regime } = _regimeData;
+
+  // Live regime card
+  const liveEl = document.getElementById('regime-page-live');
+  if (liveEl && live_regime) {
+    if (live_regime.error) {
+      liveEl.innerHTML = `<span style="color:var(--red)">Regime unavailable: ${live_regime.error}</span>`;
+    } else {
+      const cls = live_regime.regime === 'Bull' ? 'badge-bull' : live_regime.regime === 'Bear' ? 'badge-bear' : 'badge-neutral';
+      const pct = live_regime.conviction != null ? `${(live_regime.conviction * 100) >= 0 ? '+' : ''}${(live_regime.conviction * 100).toFixed(1)}%` : '—';
+      const ts  = live_regime.computed_at ? new Date(live_regime.computed_at).toLocaleString() : '—';
+      liveEl.innerHTML = `
+        <span class="badge ${cls}" style="font-size:15px;padding:4px 14px">${live_regime.regime}</span>
+        <span style="font-size:13px;color:var(--text-2);margin-left:10px">Conviction: <strong>${pct}</strong></span>
+        <span style="font-size:11px;color:var(--text-3);margin-left:12px">computed ${ts}</span>`;
+    }
+  }
+
+  // Accuracy summary
+  const accEl = document.getElementById('regime-page-accuracy');
+  if (accEl) {
+    if (accuracy !== null && accuracy !== undefined) {
+      const pct   = (accuracy * 100).toFixed(1);
+      const color = accuracy >= 0.6 ? 'var(--green)' : accuracy >= 0.45 ? 'var(--accent)' : 'var(--red)';
+      accEl.innerHTML = `<span style="font-size:28px;font-weight:700;color:${color}">${pct}%</span>
+        <span style="font-size:12px;color:var(--text-3);margin-left:8px">${graded_count} graded days</span>`;
+    } else {
+      accEl.innerHTML = '<span style="color:var(--text-3)">No graded data yet</span>';
+    }
+  }
+
+  // Regime distribution from graded rows
+  const graded = rows.filter(r => r.actual_regime != null);
+  const distEl = document.getElementById('regime-page-dist');
+  if (distEl && graded.length) {
+    const counts = { Bull: 0, Bear: 0, Sideways: 0 };
+    graded.forEach(r => { if (counts[r.actual_regime] != null) counts[r.actual_regime]++; });
+    const total = graded.length;
+    distEl.innerHTML = ['Bull','Sideways','Bear'].map(s => {
+      const cls = s === 'Bull' ? 'badge-bull' : s === 'Bear' ? 'badge-bear' : 'badge-neutral';
+      const pct = total ? ((counts[s] / total) * 100).toFixed(0) : 0;
+      return `<div style="text-align:center;padding:10px 20px">
+        <div style="font-size:22px;font-weight:700">${pct}%</div>
+        <div style="margin-top:4px"><span class="badge ${cls}">${s}</span></div>
+        <div style="font-size:11px;color:var(--text-3);margin-top:4px">${counts[s]} days</div>
+      </div>`;
+    }).join('<div style="width:1px;background:var(--border)"></div>');
+  }
+
+  // Full log table
+  const tbody = document.getElementById('regime-page-body');
+  if (!tbody) return;
+  if (!rows.length) { tbody.innerHTML = '<tr class="empty-row"><td colspan="6">No data yet</td></tr>'; return; }
+  tbody.innerHTML = rows.map(r => {
+    const predCls = r.predicted_regime === 'Bull' ? 'badge-bull' : r.predicted_regime === 'Bear' ? 'badge-bear' : 'badge-neutral';
+    const actCls  = r.actual_regime === 'Bull' ? 'badge-bull' : r.actual_regime === 'Bear' ? 'badge-bear' : 'badge-neutral';
+    const correctCell = r.correct === null || r.correct === undefined
+      ? '<span style="color:var(--text-3)">pending</span>'
+      : r.correct
+        ? '<span style="color:var(--green);font-weight:600">✓ Correct</span>'
+        : '<span style="color:var(--red)">✗ Wrong</span>';
+    const conv = r.conviction != null ? `${(r.conviction * 100) >= 0 ? '+' : ''}${(r.conviction * 100).toFixed(1)}%` : '—';
+    const row_bg = r.correct === true ? 'background:rgba(34,197,94,0.04)' : r.correct === false ? 'background:rgba(239,68,68,0.04)' : '';
+    return `<tr style="${row_bg}">
+      <td style="font-variant-numeric:tabular-nums;color:var(--text-3)">${r.date}</td>
+      <td>${r.predicted_regime ? `<span class="badge ${predCls}">${r.predicted_regime}</span>` : '—'}</td>
+      <td style="color:var(--text-2)">${conv}</td>
+      <td>${r.actual_regime ? `<span class="badge ${actCls}">${r.actual_regime}</span>` : '<span style="color:var(--text-3)">—</span>'}</td>
+      <td>${correctCell}</td>
+      <td style="font-size:11px;color:var(--text-3)">${r.computed_at ? new Date(r.computed_at).toLocaleString() : '—'}</td>
+    </tr>`;
+  }).join('');
+}
+
 function renderTrading() {
   if (!_tradingData) return;
-  const { signals = [], positions = [], history = [], running, settings = {}, levels = {}, current_price = 0, broker_account_name = '' } = _tradingData;
+  const { signals = [], positions = [], history = [], running, settings = {}, levels = {}, current_regime = {}, current_price = 0, broker_account_name = '' } = _tradingData;
 
   _setText('trade-mode-label', (settings.mode || 'paper').toUpperCase());
   const acctLabel = document.getElementById('trade-account-label');
@@ -986,7 +1231,7 @@ function renderTrading() {
     if (dot)      dot.className = 'status-dot dot-ok';
   }
 
-  renderLevels(levels, running);
+  renderLevels(levels, running, current_regime);
 
   // sync settings inputs only when config panel is collapsed (not being edited)
   if (document.getElementById('cfg-body')?.style.display === 'none') {
@@ -1238,6 +1483,25 @@ function _syncSettingsInputs(settings) {
   const dptEl = document.getElementById('cfg-daily-pts');
   if (dptEl && document.activeElement !== dptEl)
     dptEl.value = settings.daily_pts_target ?? 0;
+  const slMode = (settings.daily_sl_pts > 0) ? 'pts' : (settings.daily_sl_limit > 0) ? 'count' : 'off';
+  const slModeEl = document.getElementById('cfg-daily-sl-mode');
+  if (slModeEl) slModeEl.value = slMode;
+  const dslPtsEl = document.getElementById('cfg-daily-sl-pts');
+  if (dslPtsEl && document.activeElement !== dslPtsEl)
+    dslPtsEl.value = settings.daily_sl_pts ?? 0;
+  const dslCntEl = document.getElementById('cfg-daily-sl-limit');
+  if (dslCntEl && document.activeElement !== dslCntEl)
+    dslCntEl.value = settings.daily_sl_limit ?? 1;
+  _updateSlStopRow(slMode);
+  const osaEl = document.getElementById('cfg-opposite-signal-action');
+  if (osaEl) osaEl.value = settings.opposite_signal_action ?? 'skip';
+}
+
+function _updateSlStopRow(mode) {
+  const ptsRow   = document.getElementById('cfg-sl-pts-row');
+  const countRow = document.getElementById('cfg-sl-count-row');
+  if (ptsRow)   ptsRow.style.display   = mode === 'pts'   ? 'flex' : 'none';
+  if (countRow) countRow.style.display = mode === 'count' ? 'flex' : 'none';
 }
 
 async function _renderSettingsPage() {
@@ -1278,6 +1542,9 @@ async function saveTradingSettings() {
     entry_mode:       document.getElementById('cfg-entry-mode')?.value || 'immediate',
     trail_offset: parseInt(document.getElementById('cfg-trail-offset')?.value || '50'),
     daily_pts_target: parseFloat(document.getElementById('cfg-daily-pts')?.value) || 0,
+    daily_sl_pts:  (() => { const m = document.getElementById('cfg-daily-sl-mode')?.value; return m === 'pts'   ? (parseFloat(document.getElementById('cfg-daily-sl-pts')?.value)   || 0) : 0; })(),
+    daily_sl_limit: (() => { const m = document.getElementById('cfg-daily-sl-mode')?.value; return m === 'count' ? (parseInt(document.getElementById('cfg-daily-sl-limit')?.value) || 0) : 0; })(),
+    opposite_signal_action:  document.getElementById('cfg-opposite-signal-action')?.value || 'skip',
   };
   await fetchJSON('/api/trading/settings', {
     method: 'POST',
@@ -1341,11 +1608,16 @@ _updateAuthUI();
   updateThHeader();
   // Briefing + scanner are public — load immediately
   await Promise.all([loadBriefing(), loadScan(), fetchBTCPrice(), pollStatus()]);
+  _connectPriceWS();
+  // Fallback: if WebSocket goes silent for 3s (browser throttle), poll REST
+  setInterval(() => { if (!document.hidden && Date.now() - _lastPriceTick > 3000) fetchBTCPrice(); }, 2000);
   setInterval(() => { if (!document.hidden) Promise.all([loadBriefing(), loadScan()]); }, REFRESH_MS);
-  setInterval(() => { if (!document.hidden) fetchBTCPrice(); }, 2_000);
   setInterval(() => { if (!document.hidden) pollStatus(); }, 3000);
   // Trading polling only when signed in
   setInterval(() => { if (!document.hidden && _currentUser) loadTrading(); }, 5000);
+  // Regime log — load once, then once per minute (changes at most daily)
+  if (_currentUser) loadRegimeLog();
+  setInterval(() => { if (!document.hidden && _currentUser) loadRegimeLog(); }, 60_000);
   // Users page auto-refresh when visible
   setInterval(() => {
     if (!document.hidden && document.getElementById('page-users')?.classList.contains('active')) _showUsersPage();

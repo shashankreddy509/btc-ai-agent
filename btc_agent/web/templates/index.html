@@ -36,6 +36,10 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a10 10 0 1 0 0 20A10 10 0 0 0 12 2z"/><path d="M12 6v6l4 2"/></svg>
         Liquidity
       </button>
+      <button class="nav-item" id="nav-oi" onclick="navTo('oi')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><circle cx="5" cy="19" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="5" r="2"/></svg>
+        OI Flow
+      </button>
       <button class="nav-item" id="nav-settings" onclick="navTo('settings')">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
         Settings
@@ -43,6 +47,10 @@
       <button class="nav-item" id="nav-users" onclick="navTo('users')" style="display:none">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
         Users
+      </button>
+      <button class="nav-item" id="nav-regime" onclick="navTo('regime')" style="display:none">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+        Regime
       </button>
     </nav>
 
@@ -284,6 +292,13 @@
                     <option value="candle_close">Candle Close</option>
                   </select>
                 </div>
+                <div style="padding:0 16px 14px;display:flex;align-items:center;gap:12px;">
+                  <span style="font-size:13px;min-width:90px">Opposite Signal</span>
+                  <select id="cfg-opposite-signal-action" style="font-size:13px;padding:4px 8px;border-radius:6px;border:1px solid var(--border);background:var(--surface-2);color:var(--text-1);min-width:200px">
+                    <option value="skip">Skip — ignore opposite signal</option>
+                    <option value="flip">Flip — close existing, open new</option>
+                  </select>
+                </div>
                 <div style="padding:0 16px 14px;">
                   <span style="font-size:11px;color:var(--text-3);text-transform:uppercase;letter-spacing:.06em;display:block;margin-bottom:8px;">Patterns to Scan</span>
                   <label style="display:inline-flex;align-items:center;gap:6px;margin-right:16px;font-size:12px;cursor:pointer;">
@@ -324,12 +339,31 @@
                     <span style="font-size:11px;color:var(--text-3)">After TP hit on TF ≥ 30m: close 50% and move SL to entry ± this value, trails every 100pts. TF &lt; 30m: full exit at TP.</span>
                   </div>
                 </div>
-                <div style="padding:0 16px 14px;flex-direction:column;gap:6px;border-top:1px solid var(--border);padding-top:12px;display:flex">
-                  <span style="font-size:11px;color:var(--text-3);text-transform:uppercase;letter-spacing:.06em">Daily Points Target (pts) <span style="font-weight:400;text-transform:none;letter-spacing:0"> · 0 = unlimited</span></span>
-                  <div style="display:flex;align-items:center;gap:12px">
+                <div style="padding:0 16px 14px;flex-direction:column;gap:8px;border-top:1px solid var(--border);padding-top:12px;display:flex">
+                  <span style="font-size:11px;color:var(--text-3);text-transform:uppercase;letter-spacing:.06em">Daily Stop</span>
+                  <div style="display:flex;align-items:center;gap:10px">
                     <input type="number" id="cfg-daily-pts" min="0" step="50" value="0"
-                      style="width:80px;padding:4px 8px;border-radius:6px;border:1px solid var(--border);background:var(--surface-2);color:var(--text-1);font-size:13px">
-                    <span style="font-size:11px;color:var(--text-3)">Bot stops opening new trades once today's closed-trade points reach this target. Open trades run to their TP/SL as normal.</span>
+                      style="width:72px;padding:4px 8px;border-radius:6px;border:1px solid var(--border);background:var(--surface-2);color:var(--text-1);font-size:13px">
+                    <span style="font-size:12px;color:var(--text-2)">pts profit target <span style="color:var(--text-3)">(0 = off)</span></span>
+                  </div>
+                  <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+                    <span style="font-size:12px;color:var(--text-2)">Stop on SL loss</span>
+                    <select id="cfg-daily-sl-mode" onchange="_updateSlStopRow(this.value)"
+                      style="font-size:12px;padding:3px 6px;border-radius:6px;border:1px solid var(--border);background:var(--surface-2);color:var(--text-1)">
+                      <option value="off">Don't stop</option>
+                      <option value="pts">By points lost</option>
+                      <option value="count">By order count</option>
+                    </select>
+                    <div id="cfg-sl-pts-row" style="display:none;align-items:center;gap:6px">
+                      <input type="number" id="cfg-daily-sl-pts" min="0" step="50" value="0"
+                        style="width:72px;padding:4px 8px;border-radius:6px;border:1px solid var(--border);background:var(--surface-2);color:var(--text-1);font-size:13px">
+                      <span style="font-size:11px;color:var(--text-3)">pts</span>
+                    </div>
+                    <div id="cfg-sl-count-row" style="display:none;align-items:center;gap:6px">
+                      <input type="number" id="cfg-daily-sl-limit" min="1" step="1" value="1"
+                        style="width:72px;padding:4px 8px;border-radius:6px;border:1px solid var(--border);background:var(--surface-2);color:var(--text-1);font-size:13px">
+                      <span style="font-size:11px;color:var(--text-3)">orders</span>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -408,6 +442,24 @@
                   <div style="font-size:11px;color:var(--text-3);margin-bottom:6px;letter-spacing:0.05em">THIS MONTH</div>
                   <div id="pts-month" style="font-size:20px;font-weight:600;font-variant-numeric:tabular-nums"><span style="color:var(--text-3)">—</span></div>
                 </div>
+              </div>
+            </div>
+
+            <!-- Markov Regime Log -->
+            <div class="card" id="regime-log-card">
+              <div class="card-header" style="display:flex;align-items:center;justify-content:space-between">
+                <span class="card-title">Markov Regime (Observational)</span>
+                <div style="font-size:12px;color:var(--text-3)">30-day accuracy: <span id="regime-accuracy"><span style="color:var(--text-3)">—</span></span></div>
+              </div>
+              <div class="table-wrap">
+                <table>
+                  <thead><tr>
+                    <th>Date</th><th>Predicted</th><th>Conviction</th><th>Actual</th><th>Correct</th>
+                  </tr></thead>
+                  <tbody id="regime-log-body">
+                    <tr class="empty-row"><td colspan="5">Loading…</td></tr>
+                  </tbody>
+                </table>
               </div>
             </div>
 
@@ -1071,6 +1123,55 @@
         </div>
       </div><!-- /page-users -->
 
+      <!-- ── Regime Analytics (admin only) ─────────────────────────────── -->
+      <div id="page-regime" class="page">
+        <div class="page-body">
+
+          <!-- Live regime -->
+          <div class="card">
+            <div class="card-header"><span class="card-title">Current Regime</span></div>
+            <div style="padding:16px 20px;display:flex;align-items:center;flex-wrap:wrap;gap:8px" id="regime-page-live">
+              <span style="color:var(--text-3)">Loading…</span>
+            </div>
+          </div>
+
+          <!-- Accuracy + distribution -->
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:0">
+            <div class="card">
+              <div class="card-header"><span class="card-title">30-Day Accuracy</span></div>
+              <div style="padding:20px;display:flex;align-items:baseline;gap:8px" id="regime-page-accuracy">
+                <span style="color:var(--text-3)">—</span>
+              </div>
+            </div>
+            <div class="card">
+              <div class="card-header"><span class="card-title">Actual Regime Distribution</span></div>
+              <div style="display:flex;align-items:center;justify-content:space-around;padding:10px 0" id="regime-page-dist">
+                <span style="color:var(--text-3);font-size:12px;padding:16px">No graded data yet</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Full log table -->
+          <div class="card" style="margin-top:0">
+            <div class="card-header" style="display:flex;align-items:center;justify-content:space-between">
+              <span class="card-title">Prediction Log</span>
+              <button class="btn" style="font-size:12px;padding:4px 12px" onclick="loadRegimeLog().then(renderRegimePage)">Refresh</button>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead><tr>
+                  <th>Date</th><th>Predicted</th><th>Conviction</th><th>Actual</th><th>Result</th><th>Computed At</th>
+                </tr></thead>
+                <tbody id="regime-page-body">
+                  <tr class="empty-row"><td colspan="6">Loading…</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+        </div>
+      </div><!-- /page-regime -->
+
       <!-- ── Liquidity Heatmap ──────────────────────────────────────────── -->
       <div id="page-liquidity" class="page">
         <div class="page-body">
@@ -1097,7 +1198,74 @@
             </div>
           </div>
         </div>
-      </div>
+      </div><!-- /page-liquidity -->
+
+      <div id="page-oi" class="page">
+        <div class="page-body">
+
+          <div class="card">
+            <div class="card-header" style="display:flex;align-items:center;justify-content:space-between">
+              <span class="card-title">Live OI Status</span>
+              <button class="btn" style="font-size:12px;padding:4px 10px" onclick="loadOIStatus()">Refresh</button>
+            </div>
+            <div id="oi-status-msg" style="font-size:11px;color:var(--text3);padding:4px 16px 0"></div>
+            <div id="oi-status-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px;padding:12px 16px 16px">
+              <div style="text-align:center;color:var(--text3);grid-column:1/-1">Loading…</div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header">
+              <span class="card-title">OI Filter Settings</span>
+            </div>
+            <div style="padding:12px 16px 16px;display:flex;flex-direction:column;gap:14px">
+              <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+                <label style="display:inline-flex;align-items:center;gap:8px;font-size:13px;cursor:pointer">
+                  <input type="checkbox" id="cfg-oi-filter-enabled">
+                  <span>Enable OI confirmation filter</span>
+                  <span style="font-size:11px;color:var(--text3)">(drops signals with no large OI spike; tightens SL on divergence)</span>
+                </label>
+                <label style="font-size:12px;color:var(--text2);display:flex;align-items:center;gap:6px">
+                  OI timeframe
+                  <select id="cfg-oi-tf" style="padding:4px 8px;border-radius:6px;border:1px solid var(--border);background:var(--surface2);color:var(--text1);font-size:13px">
+                    <option value="5">5m</option>
+                    <option value="15">15m</option>
+                    <option value="30">30m</option>
+                    <option value="60">1h</option>
+                  </select>
+                </label>
+              </div>
+              <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+                <label style="font-size:12px;color:var(--text2);display:flex;align-items:center;gap:6px">
+                  Threshold ×
+                  <input type="number" id="cfg-oi-threshold-mult" min="0.5" max="20" step="0.5"
+                    style="width:64px;padding:4px 8px;border-radius:6px;border:1px solid var(--border);background:var(--surface2);color:var(--text1);font-size:13px">
+                  <span style="font-size:11px;color:var(--text3)">avg OI spike (Pine default 4.0)</span>
+                </label>
+              </div>
+              <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+                <label style="font-size:12px;color:var(--text2);display:flex;align-items:center;gap:6px">
+                  Lookback bars
+                  <input type="number" id="cfg-oi-lookback-bars" min="10" max="500" step="10"
+                    style="width:70px;padding:4px 8px;border-radius:6px;border:1px solid var(--border);background:var(--surface2);color:var(--text1);font-size:13px">
+                  <span style="font-size:11px;color:var(--text3)">for threshold avg (Pine default 300)</span>
+                </label>
+                <label style="font-size:12px;color:var(--text2);display:flex;align-items:center;gap:6px">
+                  Divergence lookback
+                  <input type="number" id="cfg-oi-div-lookback" min="2" max="20" step="1"
+                    style="width:55px;padding:4px 8px;border-radius:6px;border:1px solid var(--border);background:var(--surface2);color:var(--text1);font-size:13px">
+                  <span style="font-size:11px;color:var(--text3)">bars (Pine default 5)</span>
+                </label>
+              </div>
+              <div>
+                <button class="btn btn-primary" onclick="saveOISettings()" style="padding:6px 18px;font-size:13px">Save Settings</button>
+                <span id="oi-save-msg" style="font-size:12px;color:var(--green);margin-left:10px;display:none">Saved</span>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div><!-- /page-oi -->
 
     </div><!-- /main-content -->
 
@@ -1138,6 +1306,6 @@
     appId:             "{{ fb_app_id }}",
   });
 </script>
-<script src="/static/main.js?v=15"></script>
+<script src="/static/main.js?v=16"></script>
 </body>
 </html>
