@@ -37,6 +37,8 @@ dependencies = [
 ]
 
 [project.scripts]
+liquidity-debug   = "btc_agent.liquidity.collector:debug_main"
+liquidity-collect = "btc_agent.liquidity.collector:collect_main"
 
 [dependency-groups]
 dev = [
