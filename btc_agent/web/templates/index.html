@@ -48,6 +48,10 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
         Users
       </button>
+      <button class="nav-item" id="nav-regime" onclick="navTo('regime')" style="display:none">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+        Regime
+      </button>
     </nav>
 
     <div class="sidebar-footer">
@@ -1118,6 +1122,55 @@
           </div>
         </div>
       </div><!-- /page-users -->
+
+      <!-- ── Regime Analytics (admin only) ─────────────────────────────── -->
+      <div id="page-regime" class="page">
+        <div class="page-body">
+
+          <!-- Live regime -->
+          <div class="card">
+            <div class="card-header"><span class="card-title">Current Regime</span></div>
+            <div style="padding:16px 20px;display:flex;align-items:center;flex-wrap:wrap;gap:8px" id="regime-page-live">
+              <span style="color:var(--text-3)">Loading…</span>
+            </div>
+          </div>
+
+          <!-- Accuracy + distribution -->
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:0">
+            <div class="card">
+              <div class="card-header"><span class="card-title">30-Day Accuracy</span></div>
+              <div style="padding:20px;display:flex;align-items:baseline;gap:8px" id="regime-page-accuracy">
+                <span style="color:var(--text-3)">—</span>
+              </div>
+            </div>
+            <div class="card">
+              <div class="card-header"><span class="card-title">Actual Regime Distribution</span></div>
+              <div style="display:flex;align-items:center;justify-content:space-around;padding:10px 0" id="regime-page-dist">
+                <span style="color:var(--text-3);font-size:12px;padding:16px">No graded data yet</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Full log table -->
+          <div class="card" style="margin-top:0">
+            <div class="card-header" style="display:flex;align-items:center;justify-content:space-between">
+              <span class="card-title">Prediction Log</span>
+              <button class="btn" style="font-size:12px;padding:4px 12px" onclick="loadRegimeLog().then(renderRegimePage)">Refresh</button>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead><tr>
+                  <th>Date</th><th>Predicted</th><th>Conviction</th><th>Actual</th><th>Result</th><th>Computed At</th>
+                </tr></thead>
+                <tbody id="regime-page-body">
+                  <tr class="empty-row"><td colspan="6">Loading…</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+        </div>
+      </div><!-- /page-regime -->
 
       <!-- ── Liquidity Heatmap ──────────────────────────────────────────── -->
       <div id="page-liquidity" class="page">

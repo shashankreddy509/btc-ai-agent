@@ -76,12 +76,14 @@ function _updateAuthUI() {
   if (trailRow) trailRow.style.display = 'flex';
 
   // Admin-only nav items
-  const navUsers = document.getElementById('nav-users');
-  if (navUsers) navUsers.style.display = admin ? '' : 'none';
+  const navUsers  = document.getElementById('nav-users');
+  const navRegime = document.getElementById('nav-regime');
+  if (navUsers)  navUsers.style.display  = admin ? '' : 'none';
+  if (navRegime) navRegime.style.display = admin ? '' : 'none';
 }
 
-const ADMIN_EMAIL = 'shashankreddy509@gmail.com';
-function _isAdmin() { return _currentUser?.email === ADMIN_EMAIL; }
+const ADMIN_EMAILS = ['shashankreddy509@gmail.com', 'gsreddy509@gmail.com'];
+function _isAdmin() { return ADMIN_EMAILS.includes(_currentUser?.email); }
 
 function _renderAccountCard() {
   const signedIn = !!_currentUser;
@@ -447,7 +449,7 @@ function _setText(id, text) {
 let _currentSection = 'home';
 let _currentSubTab  = 'briefing';
 
-const SECTION_TITLES = { briefing: 'Morning Briefing', scanner: 'Pattern Scanner', trading: 'Live Trading', settings: 'Settings', users: 'Users' };
+const SECTION_TITLES = { briefing: 'Morning Briefing', scanner: 'Pattern Scanner', trading: 'Live Trading', settings: 'Settings', users: 'Users', regime: 'Regime Analytics' };
 
 function navTo(section) {
   _currentSection = section;
@@ -472,6 +474,12 @@ function navTo(section) {
     _setTopbarTitle('Users');
     _setSidebarActive('nav-users');
     _showUsersPage();
+  } else if (section === 'regime') {
+    _showPage('regime');
+    subTabsEl.style.display = 'none';
+    _setTopbarTitle('Regime Analytics');
+    _setSidebarActive('nav-regime');
+    loadRegimeLog().then(renderRegimePage);
   } else if (section === 'settings') {
     _showPage('settings');
     subTabsEl.style.display = 'none';
@@ -1115,6 +1123,82 @@ function renderRegimeLog() {
       <td style="color:var(--text-3);font-size:12px">${conv}</td>
       <td>${r.actual_regime ? `<span class="badge ${actCls}">${r.actual_regime}</span>` : '<span style="color:var(--text-3)">pending</span>'}</td>
       <td>${correctCell}</td>
+    </tr>`;
+  }).join('');
+}
+
+function renderRegimePage() {
+  if (!_regimeData) return;
+  const { rows = [], accuracy, graded_count, live_regime } = _regimeData;
+
+  // Live regime card
+  const liveEl = document.getElementById('regime-page-live');
+  if (liveEl && live_regime) {
+    if (live_regime.error) {
+      liveEl.innerHTML = `<span style="color:var(--red)">Regime unavailable: ${live_regime.error}</span>`;
+    } else {
+      const cls = live_regime.regime === 'Bull' ? 'badge-bull' : live_regime.regime === 'Bear' ? 'badge-bear' : 'badge-neutral';
+      const pct = live_regime.conviction != null ? `${(live_regime.conviction * 100) >= 0 ? '+' : ''}${(live_regime.conviction * 100).toFixed(1)}%` : '—';
+      const ts  = live_regime.computed_at ? new Date(live_regime.computed_at).toLocaleString() : '—';
+      liveEl.innerHTML = `
+        <span class="badge ${cls}" style="font-size:15px;padding:4px 14px">${live_regime.regime}</span>
+        <span style="font-size:13px;color:var(--text-2);margin-left:10px">Conviction: <strong>${pct}</strong></span>
+        <span style="font-size:11px;color:var(--text-3);margin-left:12px">computed ${ts}</span>`;
+    }
+  }
+
+  // Accuracy summary
+  const accEl = document.getElementById('regime-page-accuracy');
+  if (accEl) {
+    if (accuracy !== null && accuracy !== undefined) {
+      const pct   = (accuracy * 100).toFixed(1);
+      const color = accuracy >= 0.6 ? 'var(--green)' : accuracy >= 0.45 ? 'var(--accent)' : 'var(--red)';
+      accEl.innerHTML = `<span style="font-size:28px;font-weight:700;color:${color}">${pct}%</span>
+        <span style="font-size:12px;color:var(--text-3);margin-left:8px">${graded_count} graded days</span>`;
+    } else {
+      accEl.innerHTML = '<span style="color:var(--text-3)">No graded data yet</span>';
+    }
+  }
+
+  // Regime distribution from graded rows
+  const graded = rows.filter(r => r.actual_regime != null);
+  const distEl = document.getElementById('regime-page-dist');
+  if (distEl && graded.length) {
+    const counts = { Bull: 0, Bear: 0, Sideways: 0 };
+    graded.forEach(r => { if (counts[r.actual_regime] != null) counts[r.actual_regime]++; });
+    const total = graded.length;
+    distEl.innerHTML = ['Bull','Sideways','Bear'].map(s => {
+      const cls = s === 'Bull' ? 'badge-bull' : s === 'Bear' ? 'badge-bear' : 'badge-neutral';
+      const pct = total ? ((counts[s] / total) * 100).toFixed(0) : 0;
+      return `<div style="text-align:center;padding:10px 20px">
+        <div style="font-size:22px;font-weight:700">${pct}%</div>
+        <div style="margin-top:4px"><span class="badge ${cls}">${s}</span></div>
+        <div style="font-size:11px;color:var(--text-3);margin-top:4px">${counts[s]} days</div>
+      </div>`;
+    }).join('<div style="width:1px;background:var(--border)"></div>');
+  }
+
+  // Full log table
+  const tbody = document.getElementById('regime-page-body');
+  if (!tbody) return;
+  if (!rows.length) { tbody.innerHTML = '<tr class="empty-row"><td colspan="6">No data yet</td></tr>'; return; }
+  tbody.innerHTML = rows.map(r => {
+    const predCls = r.predicted_regime === 'Bull' ? 'badge-bull' : r.predicted_regime === 'Bear' ? 'badge-bear' : 'badge-neutral';
+    const actCls  = r.actual_regime === 'Bull' ? 'badge-bull' : r.actual_regime === 'Bear' ? 'badge-bear' : 'badge-neutral';
+    const correctCell = r.correct === null || r.correct === undefined
+      ? '<span style="color:var(--text-3)">pending</span>'
+      : r.correct
+        ? '<span style="color:var(--green);font-weight:600">✓ Correct</span>'
+        : '<span style="color:var(--red)">✗ Wrong</span>';
+    const conv = r.conviction != null ? `${(r.conviction * 100) >= 0 ? '+' : ''}${(r.conviction * 100).toFixed(1)}%` : '—';
+    const row_bg = r.correct === true ? 'background:rgba(34,197,94,0.04)' : r.correct === false ? 'background:rgba(239,68,68,0.04)' : '';
+    return `<tr style="${row_bg}">
+      <td style="font-variant-numeric:tabular-nums;color:var(--text-3)">${r.date}</td>
+      <td>${r.predicted_regime ? `<span class="badge ${predCls}">${r.predicted_regime}</span>` : '—'}</td>
+      <td style="color:var(--text-2)">${conv}</td>
+      <td>${r.actual_regime ? `<span class="badge ${actCls}">${r.actual_regime}</span>` : '<span style="color:var(--text-3)">—</span>'}</td>
+      <td>${correctCell}</td>
+      <td style="font-size:11px;color:var(--text-3)">${r.computed_at ? new Date(r.computed_at).toLocaleString() : '—'}</td>
     </tr>`;
   }).join('');
 }
