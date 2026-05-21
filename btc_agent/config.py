@@ -61,6 +61,11 @@ TRADING_OPPOSITE_SIGNAL_ACTION = os.getenv("TRADING_OPPOSITE_SIGNAL_ACTION", "sk
 TRADING_DAILY_SL_LIMIT        = int(os.getenv("TRADING_DAILY_SL_LIMIT", "0"))         # 0 = off
 TRADING_DAILY_SL_PTS          = float(os.getenv("TRADING_DAILY_SL_PTS", "0.0"))       # 0 = off
 WEEKLY_ADJ                = float(os.getenv("WEEKLY_ADJ", "0.0324"))
+OI_FILTER_ENABLED         = os.getenv("OI_FILTER_ENABLED", "false").lower() == "true"
+OI_THRESHOLD_MULT         = float(os.getenv("OI_THRESHOLD_MULT", "4.0"))
+OI_LOOKBACK_BARS          = int(os.getenv("OI_LOOKBACK_BARS", "300"))
+OI_DIV_LOOKBACK           = int(os.getenv("OI_DIV_LOOKBACK", "5"))
+OI_TF                     = int(os.getenv("OI_TF", "5"))
 
 # Firebase owner UID — Coinbase keys stored in Firestore are tied to this UID
 FIREBASE_OWNER_UID        = os.getenv("FIREBASE_OWNER_UID", "")
@@ -170,6 +175,9 @@ def apply_settings(d: dict) -> None:
         "trading_scan_interval_min": "TRADING_SCAN_INTERVAL_MIN",
         "trading_max_concurrent": "TRADING_MAX_CONCURRENT", "trading_qty": "TRADING_QTY",
         "trading_daily_sl_limit": "TRADING_DAILY_SL_LIMIT",
+        "oi_lookback_bars": "OI_LOOKBACK_BARS",
+        "oi_div_lookback":  "OI_DIV_LOOKBACK",
+        "oi_tf":            "OI_TF",
     }
     _bool = {
         "vishal_enabled": "VISHAL_ENABLED",
@@ -177,12 +185,14 @@ def apply_settings(d: dict) -> None:
         "trading_cme_close_skip": "TRADING_CME_CLOSE_SKIP",
         "bsg_enabled": "BSG_ENABLED",
         "bsg_trade_enabled": "BSG_TRADE_ENABLED",
+        "oi_filter_enabled": "OI_FILTER_ENABLED",
     }
     _float = {
         "trading_max_sl": "TRADING_MAX_SL", "trading_min_tp": "TRADING_MIN_TP",
         "trading_daily_pts_target": "TRADING_DAILY_PTS_TARGET",
         "trading_daily_sl_pts": "TRADING_DAILY_SL_PTS",
-        "weekly_adj": "WEEKLY_ADJ", "coinbase_contract_size": "COINBASE_CONTRACT_SIZE",
+        "weekly_adj": "WEEKLY_ADJ",
+        "oi_threshold_mult": "OI_THRESHOLD_MULT", "coinbase_contract_size": "COINBASE_CONTRACT_SIZE",
         "binance_contract_size": "BINANCE_CONTRACT_SIZE", "bybit_contract_size": "BYBIT_CONTRACT_SIZE",
         "delta_contract_size": "DELTA_CONTRACT_SIZE", "coindcx_contract_size": "COINDCX_CONTRACT_SIZE",
     }
