@@ -41,7 +41,7 @@ def start() -> None:
         )
         schedule.every().day.at(config.SCANNER_TIME, "UTC").do(_safe_scan)
 
-    schedule.every().day.at("13:00", "UTC").do(_safe_markov)
+    schedule.every().day.at("01:20", "UTC").do(_safe_markov)
     console.print("[green]Scheduler running. Press Ctrl+C to stop.[/green]")
     while not _shutdown:
         schedule.run_pending()

@@ -842,3 +842,33 @@ app.include_router(priv_cfg)
 app.include_router(admin_router)
 
 
+@app.on_event("startup")
+async def _start_markov_refresh():
+    """Daily Markov regime refresh at 01:20 UTC (7:20 PM CST) — runs once regardless of scanner state."""
+    import time as _time
+    from datetime import timedelta
+
+    def _run():
+        while True:
+            now = datetime.now(timezone.utc)
+            target = now.replace(hour=1, minute=20, second=0, microsecond=0)
+            if target <= now:
+                target += timedelta(days=1)
+            _time.sleep((target - now).total_seconds())
+            try:
+                from btc_agent.scanner.markov_tickers import refresh_all_tickers
+                refresh_all_tickers()
+                from btc_agent.scanner.markov_regime import refresh_regime_blocking, get_regime
+                refresh_regime_blocking()
+                # push fresh BTC regime to all running scanners
+                from btc_agent.trading.scanner import _scanners
+                _r = get_regime()
+                if _r:
+                    for sc in _scanners.values():
+                        sc.current_regime = _r
+            except Exception as exc:
+                print(f"[markov-refresh] failed: {exc}")
+
+    threading.Thread(target=_run, daemon=True, name="markov-refresh").start()
+
+
