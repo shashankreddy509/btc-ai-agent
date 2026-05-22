@@ -445,6 +445,72 @@ async def regime_log():
     })
 
 
+@pub.get("/markov/tickers")
+async def markov_tickers_all():
+    from btc_agent.scanner.markov_tickers import get_all_regimes
+    from btc_agent.trading.firestore_store import load_ticker_regime_log
+    regimes = get_all_regimes()
+    rows = load_ticker_regime_log(limit=500)
+    # compute per-ticker accuracy from Firestore rows
+    acc_map: dict[str, dict] = {}
+    for r in rows:
+        t = r.get("ticker", "")
+        if t not in acc_map:
+            acc_map[t] = {"correct": 0, "total": 0}
+        if r.get("actual_regime") is not None:
+            acc_map[t]["total"] += 1
+            if r.get("correct"):
+                acc_map[t]["correct"] += 1
+    tickers_out = []
+    for ticker, reg in regimes.items():
+        a = acc_map.get(ticker, {})
+        total = a.get("total", 0)
+        tickers_out.append({
+            **reg,
+            "accuracy": round(a["correct"] / total, 4) if total else None,
+            "graded_count": total,
+        })
+    return JSONResponse({"tickers": tickers_out, "last_refresh": next(
+        (r.get("date") for r in tickers_out if r.get("date")), None)})
+
+
+@pub.get("/markov/tickers/{ticker}/history")
+async def markov_ticker_history(ticker: str):
+    from btc_agent.trading.firestore_store import load_ticker_regime_log
+    rows = load_ticker_regime_log(ticker=ticker, limit=30)
+    graded = [r for r in rows if r.get("actual_regime") is not None]
+    accuracy = round(sum(1 for r in graded if r.get("correct")) / len(graded), 4) if graded else None
+    return JSONResponse({"rows": rows, "accuracy": accuracy, "graded_count": len(graded)})
+
+
+@priv_cfg.post("/markov/custom-ticker")
+async def add_custom_ticker(body: dict = Body(...), _: dict = Depends(verify_token)):
+    ticker = (body.get("ticker") or "").strip().upper()
+    if not ticker:
+        raise HTTPException(status_code=400, detail="ticker required")
+    from btc_agent.trading.firestore_store import load_app_settings, save_app_settings
+    settings = load_app_settings() or {}
+    custom = settings.get("markov_custom_tickers", [])
+    if isinstance(custom, str):
+        custom = [t.strip() for t in custom.split(",") if t.strip()]
+    if ticker not in custom:
+        custom.append(ticker)
+        save_app_settings({"markov_custom_tickers": custom})
+    return JSONResponse({"ok": True, "custom_tickers": custom})
+
+
+@priv_cfg.delete("/markov/custom-ticker/{ticker}")
+async def remove_custom_ticker(ticker: str, _: dict = Depends(verify_token)):
+    from btc_agent.trading.firestore_store import load_app_settings, save_app_settings
+    settings = load_app_settings() or {}
+    custom = settings.get("markov_custom_tickers", [])
+    if isinstance(custom, str):
+        custom = [t.strip() for t in custom.split(",") if t.strip()]
+    custom = [t for t in custom if t.upper() != ticker.upper()]
+    save_app_settings({"markov_custom_tickers": custom})
+    return JSONResponse({"ok": True, "custom_tickers": custom})
+
+
 @pub.get("/status")
 async def status():
     from btc_agent.trading.scanner import is_any_running

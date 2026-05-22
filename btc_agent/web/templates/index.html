@@ -52,6 +52,10 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
         Regime
       </button>
+      <button class="nav-item" id="nav-markov" onclick="navTo('markov')" style="display:none">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="18" y="3" width="4" height="18"/><rect x="10" y="8" width="4" height="13"/><rect x="2" y="13" width="4" height="8"/></svg>
+        Markov
+      </button>
     </nav>
 
     <div class="sidebar-footer">
@@ -1171,6 +1175,53 @@
 
         </div>
       </div><!-- /page-regime -->
+
+      <!-- ── Markov Analytics (admin only) ─────────────────────────────── -->
+      <div id="page-markov" class="page">
+        <div class="page-body">
+
+          <!-- Summary strip -->
+          <div id="markov-summary" style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px"></div>
+
+          <!-- Filter pills + Add ticker -->
+          <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:12px">
+            <div style="display:flex;gap:6px;flex-wrap:wrap">
+              <button class="pill active" id="markov-pill-all"    onclick="setMarkovFilter('all')">All</button>
+              <button class="pill"        id="markov-pill-US"     onclick="setMarkovFilter('US')">🇺🇸 US</button>
+              <button class="pill"        id="markov-pill-IN"     onclick="setMarkovFilter('IN')">🇮🇳 India</button>
+              <button class="pill"        id="markov-pill-custom" onclick="setMarkovFilter('custom')">Custom</button>
+            </div>
+            <div style="display:flex;gap:6px;align-items:center">
+              <input id="markov-custom-input" placeholder="Ticker (e.g. GOOGL)"
+                     style="font-size:12px;padding:5px 10px;border-radius:6px;border:1px solid var(--border);background:var(--surface-2);color:var(--text-1);width:150px"
+                     onkeydown="if(event.key==='Enter')addMarkovCustomTicker()"/>
+              <button class="btn" style="font-size:12px;padding:5px 12px" onclick="addMarkovCustomTicker()">Add</button>
+              <button class="btn" style="font-size:12px;padding:5px 12px" onclick="loadMarkovTickers()">Refresh</button>
+            </div>
+          </div>
+
+          <!-- Ticker table -->
+          <div class="card">
+            <div class="table-wrap">
+              <table>
+                <thead><tr>
+                  <th>Market</th>
+                  <th>Ticker</th>
+                  <th>Regime</th>
+                  <th>Conviction</th>
+                  <th>30d Accuracy</th>
+                  <th>Updated</th>
+                  <th></th>
+                </tr></thead>
+                <tbody id="markov-tickers-body">
+                  <tr class="empty-row"><td colspan="7">Loading…</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+        </div>
+      </div><!-- /page-markov -->
 
       <!-- ── Liquidity Heatmap ──────────────────────────────────────────── -->
       <div id="page-liquidity" class="page">
