@@ -1473,14 +1473,6 @@ def run_trading_scanner(uid: str, user_settings: dict | None = None, email: str 
                     _below = _dl[_dl < current_price]
                     sc.current_levels["depo_upper"] = float(_above.min()) if len(_above) else None
                     sc.current_levels["depo_lower"] = float(_below.max()) if len(_below) else None
-                    try:
-                        from btc_agent.scanner.markov_regime import refresh_regime_if_stale, get_regime as _get_regime
-                        refresh_regime_if_stale()
-                        _r = _get_regime()
-                        if _r:
-                            sc.current_regime = _r
-                    except Exception:
-                        pass
                     bias = _trend_bias(current_price, sc.current_levels)
                     sc.current_bias = bias
                     mrp_str  = f"{sc.current_levels['mrp']:.1f}"       if sc.current_levels.get("mrp")       else "—"

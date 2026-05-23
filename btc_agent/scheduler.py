@@ -41,6 +41,7 @@ def start() -> None:
         )
         schedule.every().day.at(config.SCANNER_TIME, "UTC").do(_safe_scan)
 
+    schedule.every().day.at("01:20", "UTC").do(_safe_markov)
     console.print("[green]Scheduler running. Press Ctrl+C to stop.[/green]")
     while not _shutdown:
         schedule.run_pending()
@@ -49,6 +50,14 @@ def start() -> None:
 
 
 _RETRY_DELAYS = [60, 300, 900]  # seconds: 1m, 5m, 15m between retries
+
+
+def _safe_markov() -> None:
+    try:
+        from btc_agent.scanner.markov_tickers import refresh_all_tickers
+        refresh_all_tickers()
+    except Exception as e:
+        console.print(f"[yellow]Markov refresh failed: {e}[/yellow]")
 
 
 def _safe_brief() -> None:

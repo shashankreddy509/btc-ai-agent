@@ -78,8 +78,10 @@ function _updateAuthUI() {
   // Admin-only nav items
   const navUsers  = document.getElementById('nav-users');
   const navRegime = document.getElementById('nav-regime');
+  const navMarkov = document.getElementById('nav-markov');
   if (navUsers)  navUsers.style.display  = admin ? '' : 'none';
   if (navRegime) navRegime.style.display = admin ? '' : 'none';
+  if (navMarkov) navMarkov.style.display = admin ? '' : 'none';
 }
 
 const ADMIN_EMAILS = ['shashankreddy509@gmail.com', 'gsreddy509@gmail.com'];
@@ -449,7 +451,7 @@ function _setText(id, text) {
 let _currentSection = 'home';
 let _currentSubTab  = 'briefing';
 
-const SECTION_TITLES = { briefing: 'Morning Briefing', scanner: 'Pattern Scanner', trading: 'Live Trading', settings: 'Settings', users: 'Users', regime: 'Regime Analytics' };
+const SECTION_TITLES = { briefing: 'Morning Briefing', scanner: 'Pattern Scanner', trading: 'Live Trading', settings: 'Settings', users: 'Users', regime: 'Regime Analytics', markov: 'Markov Analytics' };
 
 function navTo(section) {
   _currentSection = section;
@@ -480,6 +482,12 @@ function navTo(section) {
     _setTopbarTitle('Regime Analytics');
     _setSidebarActive('nav-regime');
     loadRegimeLog().then(renderRegimePage);
+  } else if (section === 'markov') {
+    _showPage('markov');
+    subTabsEl.style.display = 'none';
+    _setTopbarTitle('Markov Analytics');
+    _setSidebarActive('nav-markov');
+    loadMarkovTickers();
   } else if (section === 'settings') {
     _showPage('settings');
     subTabsEl.style.display = 'none';
@@ -1127,6 +1135,169 @@ function renderRegimeLog() {
   }).join('');
 }
 
+// ── Markov Analytics ──────────────────────────────────────────────────────────
+
+let _markovData   = null;
+let _markovFilter = 'all';
+let _markovExpanded = null;
+
+async function loadMarkovTickers() {
+  try {
+    _markovData = await fetchJSON('/api/markov/tickers');
+    renderMarkovPage();
+  } catch (e) { /* observational — swallow */ }
+}
+
+function setMarkovFilter(f) {
+  _markovFilter = f;
+  ['all','US','IN','custom'].forEach(k => {
+    const el = document.getElementById(`markov-pill-${k}`);
+    if (el) el.className = 'pill' + (k === f ? ' active' : '');
+  });
+  renderMarkovPage();
+}
+
+function renderMarkovPage() {
+  if (!_markovData) return;
+  const { tickers = [] } = _markovData;
+
+  // Summary strip
+  const sumEl = document.getElementById('markov-summary');
+  if (sumEl) {
+    const bulls = tickers.filter(t => t.regime === 'Bull').length;
+    const bears = tickers.filter(t => t.regime === 'Bear').length;
+    const sides = tickers.filter(t => t.regime === 'Sideways').length;
+    const errs  = tickers.filter(t => t.error).length;
+    sumEl.innerHTML = [
+      `<span class="badge badge-neutral">${tickers.length} tickers</span>`,
+      `<span class="badge badge-bull">Bull: ${bulls}</span>`,
+      `<span class="badge badge-bear">Bear: ${bears}</span>`,
+      `<span class="badge badge-neutral">Sideways: ${sides}</span>`,
+      errs ? `<span class="badge badge-neutral" style="color:var(--red)">${errs} errors</span>` : '',
+    ].join('');
+  }
+
+  // Filter
+  const filtered = tickers.filter(t => {
+    if (_markovFilter === 'all') return true;
+    return (t.market || 'US') === _markovFilter;
+  });
+
+  const tbody = document.getElementById('markov-tickers-body');
+  if (!tbody) return;
+  if (!filtered.length) {
+    tbody.innerHTML = '<tr class="empty-row"><td colspan="7">No tickers in this filter</td></tr>';
+    return;
+  }
+
+  const rows = [];
+  for (const t of filtered) {
+    const tid = t.ticker || '';
+    const isExp = _markovExpanded === tid;
+    if (t.error) {
+      rows.push(`<tr>
+        <td><span style="font-size:11px">${t.market === 'IN' ? '🇮🇳' : t.market === 'custom' ? '⭐' : '🇺🇸'}</span></td>
+        <td style="font-weight:600">${tid}</td>
+        <td colspan="4" style="color:var(--red);font-size:12px">${t.error}</td>
+        <td>${t.market === 'custom' ? `<button class="btn btn-danger" style="font-size:11px;padding:2px 8px" onclick="removeMarkovCustomTicker('${tid}')">✕</button>` : ''}</td>
+      </tr>`);
+      continue;
+    }
+    const regCls = t.regime === 'Bull' ? 'badge-bull' : t.regime === 'Bear' ? 'badge-bear' : 'badge-neutral';
+    const conv = t.conviction != null ? `${(t.conviction * 100) >= 0 ? '+' : ''}${(t.conviction * 100).toFixed(1)}%` : '—';
+    const acc = t.accuracy != null ? `${(t.accuracy * 100).toFixed(0)}% (${t.graded_count}d)` : '—';
+    const updAt = t.computed_at ? new Date(t.computed_at).toLocaleString() : '—';
+    const flag = t.market === 'IN' ? '🇮🇳' : t.market === 'custom' ? '⭐' : '🇺🇸';
+    rows.push(`<tr style="cursor:pointer" onclick="toggleMarkovExpand('${tid}')">
+      <td><span style="font-size:13px">${flag}</span></td>
+      <td style="font-weight:600;font-variant-numeric:tabular-nums">${tid}</td>
+      <td><span class="badge ${regCls}">${t.regime || '—'}</span></td>
+      <td style="color:var(--text-2)">${conv}</td>
+      <td style="color:var(--text-2)">${acc}</td>
+      <td style="font-size:11px;color:var(--text-3)">${updAt}</td>
+      <td style="display:flex;gap:4px;align-items:center">
+        <span style="font-size:10px;color:var(--text-3)">${isExp ? '▲' : '▼'}</span>
+        ${t.market === 'custom' ? `<button class="btn btn-danger" style="font-size:11px;padding:2px 8px" onclick="event.stopPropagation();removeMarkovCustomTicker('${tid}')">✕</button>` : ''}
+      </td>
+    </tr>`);
+    if (isExp) {
+      rows.push(`<tr id="markov-exp-${tid.replace(/[^a-z0-9]/gi,'_')}">
+        <td colspan="7" style="padding:12px 16px;background:var(--surface-2)">
+          <div style="font-size:11px;color:var(--text-3);margin-bottom:8px">30-day prediction log for ${tid}</div>
+          <div id="markov-hist-${tid.replace(/[^a-z0-9]/gi,'_')}"><span style="color:var(--text-3)">Loading…</span></div>
+        </td>
+      </tr>`);
+    }
+  }
+  tbody.innerHTML = rows.join('');
+
+  // Load history for expanded ticker
+  if (_markovExpanded) {
+    _loadMarkovHistory(_markovExpanded);
+  }
+}
+
+async function toggleMarkovExpand(ticker) {
+  _markovExpanded = _markovExpanded === ticker ? null : ticker;
+  renderMarkovPage();
+}
+
+async function _loadMarkovHistory(ticker) {
+  const safeId = ticker.replace(/[^a-z0-9]/gi, '_');
+  const el = document.getElementById(`markov-hist-${safeId}`);
+  if (!el) return;
+  try {
+    const data = await fetchJSON(`/api/markov/tickers/${encodeURIComponent(ticker)}/history`);
+    const { rows = [], accuracy, graded_count } = data;
+    if (!rows.length) { el.innerHTML = '<span style="color:var(--text-3)">No history yet</span>'; return; }
+    const accLine = accuracy != null
+      ? `<div style="font-size:11px;color:var(--text-3);margin-bottom:6px">Accuracy: <strong style="color:${accuracy>=0.6?'var(--green)':accuracy>=0.45?'var(--accent)':'var(--red)'}">${(accuracy*100).toFixed(1)}%</strong> (${graded_count} graded)</div>`
+      : '';
+    el.innerHTML = accLine + `<table style="font-size:12px;width:100%;border-collapse:collapse">
+      <thead><tr style="color:var(--text-3)"><th style="text-align:left;padding:4px 8px">Date</th><th>Predicted</th><th>Conviction</th><th>Actual</th><th>Result</th></tr></thead>
+      <tbody>${rows.map(r => {
+        const predCls = r.predicted_regime === 'Bull' ? 'badge-bull' : r.predicted_regime === 'Bear' ? 'badge-bear' : 'badge-neutral';
+        const actCls  = r.actual_regime === 'Bull' ? 'badge-bull' : r.actual_regime === 'Bear' ? 'badge-bear' : 'badge-neutral';
+        const ok = r.correct === null || r.correct === undefined ? '<span style="color:var(--text-3)">—</span>' : r.correct ? '<span style="color:var(--green)">✓</span>' : '<span style="color:var(--red)">✗</span>';
+        const conv = r.conviction != null ? `${(r.conviction*100)>=0?'+':''}${(r.conviction*100).toFixed(1)}%` : '—';
+        const bg = r.correct === true ? 'background:rgba(34,197,94,0.05)' : r.correct === false ? 'background:rgba(239,68,68,0.05)' : '';
+        return `<tr style="${bg}">
+          <td style="padding:4px 8px;color:var(--text-3)">${r.date}</td>
+          <td style="text-align:center">${r.predicted_regime ? `<span class="badge ${predCls}">${r.predicted_regime}</span>` : '—'}</td>
+          <td style="text-align:center;color:var(--text-2)">${conv}</td>
+          <td style="text-align:center">${r.actual_regime ? `<span class="badge ${actCls}">${r.actual_regime}</span>` : '<span style="color:var(--text-3)">pending</span>'}</td>
+          <td style="text-align:center">${ok}</td>
+        </tr>`;
+      }).join('')}</tbody>
+    </table>`;
+  } catch (e) {
+    if (el) el.innerHTML = '<span style="color:var(--red)">Failed to load history</span>';
+  }
+}
+
+async function addMarkovCustomTicker() {
+  const input = document.getElementById('markov-custom-input');
+  const ticker = (input?.value || '').trim().toUpperCase();
+  if (!ticker) return;
+  try {
+    await fetchJSON('/api/settings/markov/custom-ticker', { method: 'POST', body: JSON.stringify({ ticker }) });
+    if (input) input.value = '';
+    await loadMarkovTickers();
+  } catch (e) {
+    alert(`Failed to add ticker: ${e.message || e}`);
+  }
+}
+
+async function removeMarkovCustomTicker(ticker) {
+  if (!confirm(`Remove ${ticker} from custom tickers?`)) return;
+  try {
+    await fetchJSON(`/api/settings/markov/custom-ticker/${encodeURIComponent(ticker)}`, { method: 'DELETE' });
+    await loadMarkovTickers();
+  } catch (e) {
+    alert(`Failed to remove ticker: ${e.message || e}`);
+  }
+}
+
 function renderRegimePage() {
   if (!_regimeData) return;
   const { rows = [], accuracy, graded_count, live_regime } = _regimeData;
@@ -1618,6 +1789,8 @@ _updateAuthUI();
   // Regime log — load once, then once per minute (changes at most daily)
   if (_currentUser) loadRegimeLog();
   setInterval(() => { if (!document.hidden && _currentUser) loadRegimeLog(); }, 60_000);
+  // Markov analytics — refresh every 5 min when page is active
+  setInterval(() => { if (!document.hidden && _currentUser && _currentSection === 'markov') loadMarkovTickers(); }, 5 * 60_000);
   // Users page auto-refresh when visible
   setInterval(() => {
     if (!document.hidden && document.getElementById('page-users')?.classList.contains('active')) _showUsersPage();

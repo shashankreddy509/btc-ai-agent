@@ -163,6 +163,57 @@ def load_regime_log(limit: int = 30) -> list[dict]:
         return []
 
 
+# ── Ticker regime log (multi-ticker, app-level) ────────────────────────────────
+
+def _safe_ticker_id(ticker: str) -> str:
+    return ticker.replace("^", "X").replace(".", "_").replace("/", "-")
+
+
+def save_ticker_regime_prediction(ticker: str, market: str, date_str: str, d: dict) -> None:
+    doc_id = f"{_safe_ticker_id(ticker)}_{date_str}"
+    def _write():
+        try:
+            _get_db().collection("ticker_regime_log").document(doc_id).set(d)
+        except Exception as e:
+            console.print(f"[dim yellow]FS ticker_regime write failed ({ticker}): {e}[/dim yellow]")
+    _bg(_write)
+
+
+def update_ticker_regime_actual(ticker: str, date_str: str, actual_regime: str, correct: bool) -> None:
+    doc_id = f"{_safe_ticker_id(ticker)}_{date_str}"
+    def _write():
+        try:
+            _get_db().collection("ticker_regime_log").document(doc_id).update({
+                "actual_regime": actual_regime,
+                "correct": correct,
+            })
+        except Exception as e:
+            console.print(f"[dim yellow]FS ticker_regime update failed ({ticker}): {e}[/dim yellow]")
+    _bg(_write)
+
+
+def get_ticker_regime_prediction(ticker: str, date_str: str) -> dict | None:
+    doc_id = f"{_safe_ticker_id(ticker)}_{date_str}"
+    try:
+        doc = _get_db().collection("ticker_regime_log").document(doc_id).get()
+        return doc.to_dict() if doc.exists else None
+    except Exception as e:
+        console.print(f"[yellow]Firestore get_ticker_regime_prediction failed: {e}[/yellow]")
+        return None
+
+
+def load_ticker_regime_log(ticker: str | None = None, limit: int = 30) -> list[dict]:
+    try:
+        q = _get_db().collection("ticker_regime_log")
+        if ticker:
+            q = q.where(filter=FieldFilter("ticker", "==", ticker))
+        docs = q.order_by("date", direction="DESCENDING").limit(limit).stream()
+        return [doc.to_dict() for doc in docs]
+    except Exception as e:
+        console.print(f"[yellow]Firestore load_ticker_regime_log failed: {e}[/yellow]")
+        return []
+
+
 # ── Read ───────────────────────────────────────────────────────────────────────
 
 def load_state(uid: str) -> dict | None:
