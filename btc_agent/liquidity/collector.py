@@ -360,7 +360,7 @@ def append_csv(rows: list[dict]) -> None:
     log.info(f"Appended {len(rows)} rows → {OUTPUT_CSV}")
 
 
-SWEEP_STEP_PX = 25  # vertical step between hover positions
+SWEEP_STEP_PX = 10  # vertical step between hover positions
 
 async def collect_all_lines(page: Page, timestamp: str) -> list[dict]:
     SCREENSHOT_DIR.mkdir(exist_ok=True)
