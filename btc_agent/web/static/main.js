@@ -1637,6 +1637,10 @@ function _syncSettingsInputs(settings) {
   document.getElementById('cfg-pattern-engulfing').checked    = activePatterns.includes('Engulfing');
   document.getElementById('cfg-pattern-retracement').checked  = activePatterns.includes('Retracement');
   document.getElementById('cfg-bias-filter').checked = !!settings.bias_filter;
+  const depoFiltEl = document.getElementById('cfg-depo-entry-filter');
+  if (depoFiltEl) depoFiltEl.checked = !!settings.depo_entry_filter;
+  const pocFiltEl = document.getElementById('cfg-poc-entry-filter');
+  if (pocFiltEl) pocFiltEl.checked = !!settings.poc_entry_filter;
   const cmeEl = document.getElementById('cfg-cme-close-skip');
   if (cmeEl) cmeEl.checked = !!settings.cme_close_skip;
   const bsgEl = document.getElementById('cfg-bsg-enabled');
@@ -1705,8 +1709,10 @@ async function saveTradingSettings() {
       ...(document.getElementById('cfg-pattern-engulfing').checked    ? ['Engulfing']   : []),
       ...(document.getElementById('cfg-pattern-retracement').checked  ? ['Retracement'] : []),
     ],
-    bias_filter:      document.getElementById('cfg-bias-filter').checked,
-    cme_close_skip:   !!document.getElementById('cfg-cme-close-skip')?.checked,
+    bias_filter:        document.getElementById('cfg-bias-filter').checked,
+    depo_entry_filter:  !!document.getElementById('cfg-depo-entry-filter')?.checked,
+    poc_entry_filter:   !!document.getElementById('cfg-poc-entry-filter')?.checked,
+    cme_close_skip:     !!document.getElementById('cfg-cme-close-skip')?.checked,
     bsg_enabled:       !!document.getElementById('cfg-bsg-enabled')?.checked,
     bsg_trade_enabled: !!document.getElementById('cfg-bsg-trade-enabled')?.checked,
     lookback_candles: parseInt(document.getElementById('cfg-lookback-candles')?.value) || 3,

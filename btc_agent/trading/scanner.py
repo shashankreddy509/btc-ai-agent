@@ -193,6 +193,12 @@ def _calc_tp(sc: _Scanner, direction: str, entry: float) -> tuple[float, str]:
 def _bias_filter_enabled(sc: _Scanner) -> bool:
     return bool(sc.settings.get("bias_filter", config.TRADING_BIAS_FILTER))
 
+def _depo_entry_filter_enabled(sc: _Scanner) -> bool:
+    return bool(sc.settings.get("depo_entry_filter", config.DEPO_ENTRY_FILTER))
+
+def _poc_entry_filter_enabled(sc: _Scanner) -> bool:
+    return bool(sc.settings.get("poc_entry_filter", config.POC_ENTRY_FILTER))
+
 
 _HISTORY_CAP = 200
 
@@ -389,6 +395,8 @@ def _scan_patterns(sc: _Scanner, arr, ts_arr, minutes_of_day, unix_days) -> list
                 for direction in ("long", "short"):
                     if not _is_duplicate(sc, tf, "4-Flag", direction, w_open_time):
                         sig = _bars_to_signal("4-Flag", direction, tf, window, w_open_time, lookback)
+                        sig.meta["bar_high"] = float(window[:, 1].max())
+                        sig.meta["bar_low"]  = float(window[:, 2].min())
                         from btc_agent.scanner.depo import check_depo
                         depo_hit = check_depo(window, _get_depo_lines())
                         if depo_hit:
@@ -406,6 +414,8 @@ def _scan_patterns(sc: _Scanner, arr, ts_arr, minutes_of_day, unix_days) -> list
                 direction = "long" if eng_dir == "bullish" else "short"
                 if not _is_duplicate(sc, tf, "Engulfing", direction, bar_open_time):
                     sig = _bars_to_signal("Engulfing", direction, tf, bars, bar_open_time, lookback)
+                    sig.meta["bar_high"] = float(bars[-2:, 1].max())
+                    sig.meta["bar_low"]  = float(bars[-2:, 2].min())
                     from btc_agent.scanner.depo import check_depo
                     depo_hit = check_depo(bars[-2:], _get_depo_lines())
                     if depo_hit:
@@ -1493,6 +1503,25 @@ def run_trading_scanner(uid: str, user_settings: dict | None = None, email: str 
                         for s in filtered:
                             console.print(f"[dim]Bias filter dropped {s.direction} {s.pattern} ({bias})[/dim]")
                         new_sigs = [s for s in new_sigs if s.direction == allowed]
+                    if new_sigs and _depo_entry_filter_enabled(sc):
+                        pre = len(new_sigs)
+                        new_sigs = [s for s in new_sigs if s.meta.get("depo_line") is not None]
+                        dropped = pre - len(new_sigs)
+                        if dropped:
+                            console.print(f"[dim]DEPO entry filter dropped {dropped} signal(s) (no DEPO touch)[/dim]")
+                    if new_sigs and _poc_entry_filter_enabled(sc):
+                        d_poc = sc.current_levels.get("daily_poc")
+                        w_poc = sc.current_levels.get("weekly_poc")
+                        if d_poc and w_poc:
+                            pre = len(new_sigs)
+                            new_sigs = [
+                                s for s in new_sigs
+                                if s.meta.get("bar_low", 0) <= d_poc <= s.meta.get("bar_high", float("inf"))
+                                and s.meta.get("bar_low", 0) <= w_poc <= s.meta.get("bar_high", float("inf"))
+                            ]
+                            dropped = pre - len(new_sigs)
+                            if dropped:
+                                console.print(f"[dim]POC filter dropped {dropped} signal(s) (no D-POC+W-POC touch)[/dim]")
                     if _oi_filter_enabled(sc):
                         try:
                             from btc_agent.scanner.oi_data import fetch_oi_snapshot, compute_oi_signals

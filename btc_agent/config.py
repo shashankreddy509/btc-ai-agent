@@ -53,6 +53,8 @@ TRADING_QTY               = max(2, int(float(os.getenv("TRADING_QTY", "2"))))  #
 TRADING_MAX_SL            = float(os.getenv("TRADING_MAX_SL", "500"))
 TRADING_MIN_TP            = float(os.getenv("TRADING_MIN_TP", "500"))
 TRADING_BIAS_FILTER       = os.getenv("TRADING_BIAS_FILTER", "false").lower() == "true"
+DEPO_ENTRY_FILTER         = os.getenv("DEPO_ENTRY_FILTER",  "false").lower() == "true"
+POC_ENTRY_FILTER          = os.getenv("POC_ENTRY_FILTER",   "false").lower() == "true"
 BSG_ENABLED               = os.getenv("BSG_ENABLED", "false").lower() == "true"
 BSG_TRADE_ENABLED         = os.getenv("BSG_TRADE_ENABLED", "false").lower() == "true"
 TRADING_DAILY_PTS_TARGET  = float(os.getenv("TRADING_DAILY_PTS_TARGET", "0.0"))  # 0 = unlimited
@@ -182,6 +184,8 @@ def apply_settings(d: dict) -> None:
     _bool = {
         "vishal_enabled": "VISHAL_ENABLED",
         "trading_bias_filter": "TRADING_BIAS_FILTER",
+        "depo_entry_filter":  "DEPO_ENTRY_FILTER",
+        "poc_entry_filter":   "POC_ENTRY_FILTER",
         "trading_cme_close_skip": "TRADING_CME_CLOSE_SKIP",
         "bsg_enabled": "BSG_ENABLED",
         "bsg_trade_enabled": "BSG_TRADE_ENABLED",
