@@ -117,12 +117,14 @@ def compute_regime(ticker: str, market: str = "US") -> dict:
 
 def _validate_yesterday(ticker: str, labels: pd.Series, today_str: str) -> None:
     from btc_agent.trading import firestore_store as _fs
+    from datetime import timedelta
 
-    if len(labels) < 2:
+    if len(labels) < 1:
         return
-    yesterday_ts = labels.index[-2]
-    yesterday_str = pd.Timestamp(yesterday_ts).strftime("%Y-%m-%d")
-    actual_state = int(labels.iloc[-2])
+    # yesterday = calendar day before today_str (that's the prediction doc to validate)
+    yesterday_str = (datetime.strptime(today_str, "%Y-%m-%d") - timedelta(days=1)).strftime("%Y-%m-%d")
+    # actual = last label in series (most recent market close = yesterday's data)
+    actual_state = int(labels.iloc[-1])
     actual_regime = _STATES[actual_state]
 
     try:
