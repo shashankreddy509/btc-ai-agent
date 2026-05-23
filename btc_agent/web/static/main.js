@@ -770,29 +770,38 @@ async function loadLiquidity() {
   try {
     const d = await fetchJSON('/api/liquidity');
     if (d.status === 'no_data') {
-      tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--text-3)">No data yet — run <code>uv run liquidity-collect</code> to start collecting.</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="2" style="text-align:center;color:var(--text-3)">No data yet — run <code>uv run liquidity-collect</code> to start collecting.</td></tr>';
       if (status) status.textContent = '';
       return;
     }
     const latest = d.rows.at(-1)?.timestamp;
-    const rows = d.rows.filter(r => r.timestamp === latest).reverse();
+    // Filter to latest scan, deduplicate by price, sort by price descending
+    const seen = new Set();
+    const rows = d.rows
+      .filter(r => r.timestamp === latest && r.price && r.price !== 'N/A')
+      .filter(r => { const k = r.price; if (seen.has(k)) return false; seen.add(k); return true; })
+      .sort((a, b) => Number(b.price) - Number(a.price));
+
+    // Find max leverage value for relative highlighting
+    const levNums = rows.map(r => parseFloat(r.leverage?.replace(/[^0-9.]/g, '') || '0')).filter(v => v > 0);
+    const maxLev = levNums.length ? Math.max(...levNums) : 1;
+
     tbody.innerHTML = rows.map(r => {
-      const dot = LIQ_COLORS[r.color] || 'var(--text-3)';
-      const price = r.price && r.price !== 'N/A'
-        ? '$' + Number(r.price).toLocaleString('en-US', {minimumFractionDigits: 1, maximumFractionDigits: 1})
-        : '—';
-      const ts = formatTs(r.timestamp.replace(' UTC', 'Z').replace(' ', 'T'));
+      const price = '$' + Number(r.price).toLocaleString('en-US', {minimumFractionDigits: 1, maximumFractionDigits: 1});
+      const levNum = parseFloat(r.leverage?.replace(/[^0-9.]/g, '') || '0');
+      const ratio  = maxLev > 0 ? levNum / maxLev : 0;
+      // Highlight top-tier leverage: bright orange for top 30%, muted for rest
+      const levColor = ratio >= 0.7 ? '#f97316' : ratio >= 0.4 ? '#e2a86b' : 'var(--text-2)';
+      const levWeight = ratio >= 0.7 ? '700' : '400';
       return `<tr>
-        <td style="font-size:11px;color:var(--text-3)">${ts}</td>
-        <td><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:${dot};margin-right:5px;vertical-align:middle"></span>${r.color}</td>
-        <td style="font-variant-numeric:tabular-nums">${price}</td>
-        <td style="font-variant-numeric:tabular-nums">${r.leverage}</td>
+        <td style="font-size:14px;font-variant-numeric:tabular-nums;font-weight:600">${price}</td>
+        <td style="font-size:14px;font-variant-numeric:tabular-nums;color:${levColor};font-weight:${levWeight}">${r.leverage}</td>
       </tr>`;
     }).join('');
     const lastTs = rows[0]?.timestamp ? formatTs(rows[0].timestamp.replace(' UTC','Z').replace(' ','T')) : '—';
-    if (status) status.textContent = `${rows.length} rows · last: ${lastTs}`;
+    if (status) status.textContent = `${rows.length} levels · last: ${lastTs}`;
   } catch (e) {
-    tbody.innerHTML = `<tr><td colspan="4" style="color:var(--red)">${e}</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="2" style="color:var(--red)">${e}</td></tr>`;
   }
 }
 
