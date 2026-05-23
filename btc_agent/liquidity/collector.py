@@ -406,6 +406,8 @@ async def collect_all_lines(page: Page, timestamp: str) -> list[dict]:
 
 async def run_collect() -> None:
     """Full collection loop — kill-and-restart playwright every 15 min."""
+    if not log.handlers:
+        _configure_logging()
     ensure_csv_header()
     log.info("CoinGlass Leverage Collector starting (Playwright kill-restart mode)...")
     run_count = 0
