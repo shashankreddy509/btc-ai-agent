@@ -360,54 +360,61 @@ def append_csv(rows: list[dict]) -> None:
     log.info(f"Appended {len(rows)} rows → {OUTPUT_CSV}")
 
 
+SWEEP_STEP_PX = 50  # vertical step between hover positions
+
 async def collect_all_lines(page: Page, timestamp: str) -> list[dict]:
-    img = await take_screenshot(page)
     SCREENSHOT_DIR.mkdir(exist_ok=True)
     snap = SCREENSHOT_DIR / f"scan_{datetime.now(timezone.utc):%Y%m%d_%H%M%S}.png"
-    img.save(str(snap))
-    _prune_screenshots(keep=4)
-
-    lines = detect_lines(img)
-    img.close()
-    if not lines:
-        log.warning("No colored lines detected")
-        return []
 
     y_map = await capture_y_axis_map(page)
     log.info(f"Y-axis map: {len(y_map)} ticks captured")
 
-    # Fixed x = last candle (just left of Y-axis). Only move vertically per line.
-    _fixed_x = CHART_X_END - 5
-    await page.mouse.move(_fixed_x, 400)
+    _fixed_x = CHART_X_END - 5  # fixed x = last candle, only y changes
+    await page.mouse.move(_fixed_x, CHART_Y_START)
     await page.wait_for_timeout(200)
 
     rows = []
-    for i, line in enumerate(lines):
+    step_num = 0
+    for y in range(CHART_Y_START, CHART_Y_END + 1, SWEEP_STEP_PX):
+        step_num += 1
         try:
-            await page.mouse.move(_fixed_x, line["y"])
+            await page.mouse.move(_fixed_x, y)
             await page.wait_for_timeout(HOVER_SETTLE_MS)
             leverage = await extract_leverage(page)
             if leverage in ("N/A", "ERROR", ""):
-                log.info(f"  [{i+1:02d}] {line['label']:<8} y={line['y']:>4} | skipped (no tooltip)")
                 continue
-            price = price_from_y(line["y"], y_map)
+
+            # get color from screenshot pixel at this y
+            img = await take_screenshot(page)
+            pixels = img.load()
+            r, g, b = pixels[min(_fixed_x, img.width - 1), min(y, img.height - 1)]
+            color = classify_pixel(r, g, b) or "UNKNOWN"
+            img.close()
+
+            price = price_from_y(y, y_map)
             row = {
                 "timestamp": timestamp,
-                "color":     line["label"],
-                "y_pixel":   line["y"],
-                "y_range":   f"{line['y_start']}-{line['y_end']}",
+                "color":     color,
+                "y_pixel":   y,
+                "y_range":   f"{y}-{y}",
                 "leverage":  leverage,
                 "price":     price,
             }
             rows.append(row)
-            log.info(f"  [{i+1:02d}] {line['label']:<8} y={line['y']:>4} | Leverage: {leverage:<12} | Price: {price}")
+            log.info(f"  [{step_num:02d}] {color:<8} y={y:>4} | Leverage: {leverage:<12} | Price: {price}")
         except Exception as e:
-            log.error(f"Error on line {line['label']} y={line['y']}: {e}")
-            rows.append({
-                "timestamp": timestamp, "color": line["label"],
-                "y_pixel": line["y"], "y_range": f"{line['y_start']}-{line['y_end']}",
-                "leverage": "ERROR", "price": str(e)[:80],
-            })
+            log.error(f"Error at y={y}: {e}")
+
+    # save screenshot of final state
+    try:
+        img = await take_screenshot(page)
+        img.save(str(snap))
+        _prune_screenshots(keep=4)
+        img.close()
+    except Exception:
+        pass
+
+    log.info(f"Sweep complete — {len(rows)} lines with data out of {step_num} positions checked")
     return rows
 
 
