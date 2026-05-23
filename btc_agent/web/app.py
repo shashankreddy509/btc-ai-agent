@@ -787,7 +787,7 @@ async def _start_liquidity_collector():
         while True:
             try:
                 from btc_agent.liquidity.collector import run_collect
-                run_collect()
+                asyncio.run(run_collect())
                 delay = 60  # reset backoff on clean exit
             except Exception as exc:
                 print(f"[liquidity-collector] crashed: {exc} — restarting in {delay}s")

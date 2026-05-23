@@ -1,37 +1,29 @@
 """One-shot probe: find chart API + correct selectors for leverage and price."""
+import asyncio
 import io
-import time
 from dotenv import load_dotenv
 from PIL import Image
-from selenium.webdriver.common.by import By
-
-from btc_agent.liquidity.collector import (
-    _make_driver,
-    login,
-    load_chart,
-    CHART_URL,
-    CHART_Y_START,
-    CHART_Y_END,
-    classify_pixel,
-)
+from playwright.async_api import async_playwright
+from btc_agent.liquidity.collector import make_browser, login, load_chart, CHART_URL
 
 load_dotenv()
 
 
-def main():
-    driver = _make_driver(headless=False)
-    try:
+async def main():
+    async with async_playwright() as pw:
+        browser, context, page = await make_browser(pw, headless=False)
+
         print("Logging in...")
-        if not login(driver):
+        if not await login(page):
             print("Login failed.")
             return
         print("Loading chart...")
-        load_chart(driver)
+        await load_chart(page)
 
         import pathlib
         pathlib.Path("screenshots").mkdir(exist_ok=True)
-        png_bytes = driver.get_screenshot_as_png()
-        img = Image.open(io.BytesIO(png_bytes)).convert("RGB")
+        png = await page.screenshot(full_page=False)
+        img = Image.open(io.BytesIO(png)).convert("RGB")
         img.save("screenshots/probe_shot.png")
 
         pixels = img.load()
@@ -59,16 +51,12 @@ def main():
                 break
         print(f"Hovering at x={best_x}, y={best_y}")
 
-        driver.execute_cdp_cmd("Input.dispatchMouseEvent", {
-            "type": "mouseMoved", "x": best_x, "y": 400, "button": "none",
-        })
-        time.sleep(0.3)
-        driver.execute_cdp_cmd("Input.dispatchMouseEvent", {
-            "type": "mouseMoved", "x": best_x, "y": best_y, "button": "none",
-        })
-        time.sleep(1.2)
+        await page.mouse.move(best_x, 400)
+        await page.wait_for_timeout(300)
+        await page.mouse.move(best_x, best_y)
+        await page.wait_for_timeout(1200)
 
-        result = driver.execute_script("""
+        result = await page.evaluate("""() => {
             const found = [];
             const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_ELEMENT);
             let node;
@@ -91,17 +79,17 @@ def main():
             const allText = document.body.innerText;
             const priceMatches = allText.match(/\\b8[0-9],[0-9]{3}(?:\\.[0-9]+)?\\b/g) || [];
             return { found, priceMatches: [...new Set(priceMatches)] };
-        """)
+        }""")
 
         print("Leverage elements found:")
         for f in result["found"]:
             print(" ", f)
         print("Price matches:", result["priceMatches"])
 
+        await context.close()
+        await browser.close()
         print("Done.")
-    finally:
-        driver.quit()
 
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(main())

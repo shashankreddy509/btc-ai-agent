@@ -1,7 +1,7 @@
 """
-CoinGlass Liquidation Heatmap — Dynamic Leverage Collector (Selenium)
+CoinGlass Liquidation Heatmap — Dynamic Leverage Collector (Playwright)
 
-Kill-and-restart pattern: browser opens, scrapes, quits every 15 min.
+Kill-and-restart pattern: browser opens, scrapes, closes every 15 min.
 Memory: ~400 MB for ~30s per cycle, then 0 during sleep.
 
 Usage:
@@ -9,22 +9,18 @@ Usage:
     uv run liquidity-collect   # full 15-min loop, headless
 """
 
+import asyncio
 import csv
 import io
-import json
 import logging
 import os
-import time
 from datetime import datetime, timezone
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
 
 from dotenv import load_dotenv
 from PIL import Image
-from selenium import webdriver
-from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.common.by import By
-from selenium.webdriver.common.keys import Keys
+from playwright.async_api import async_playwright, Page
 
 load_dotenv()
 
@@ -32,7 +28,7 @@ log = logging.getLogger(__name__)
 
 # ── Configuration ──────────────────────────────────────────────────────────────
 CHART_URL        = "https://legend.coinglass.com/chart/93ab9a7dbf63446c9c2b9944f10e6ef2"
-SESSION_FILE     = Path(".coinglass_cookies.json")
+SESSION_FILE     = Path(".coinglass_session.json")
 INTERVAL_SECONDS = 15 * 60
 OUTPUT_CSV       = "leverage_data.csv"
 SCREENSHOT_DIR   = Path("screenshots")
@@ -108,175 +104,108 @@ CANVAS_INTERCEPT_JS = """
 
 # ── Browser factory ────────────────────────────────────────────────────────────
 
-def _make_driver(headless: bool = True) -> webdriver.Chrome:
-    opts = Options()
-    if headless:
-        opts.add_argument("--headless=new")
-    opts.add_argument("--no-sandbox")
-    opts.add_argument("--disable-setuid-sandbox")
-    opts.add_argument("--disable-dev-shm-usage")
-    opts.add_argument("--disable-gpu")
-    opts.add_argument("--disable-extensions")
-    opts.add_argument("--hide-scrollbars")
-    opts.add_argument("--mute-audio")
-    opts.add_argument(f"--window-size={VIEWPORT_WIDTH},{VIEWPORT_HEIGHT}")
-    opts.add_argument(
-        "--user-agent=Mozilla/5.0 (X11; Linux x86_64) "
-        "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
+async def make_browser(pw, headless: bool):
+    args = [
+        "--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage",
+        "--disable-gpu", "--disable-extensions", "--hide-scrollbars", "--mute-audio",
+        f"--window-size={VIEWPORT_WIDTH},{VIEWPORT_HEIGHT}",
+    ]
+    browser = await pw.chromium.launch(headless=headless, args=args)
+    ctx_kwargs = dict(
+        viewport={"width": VIEWPORT_WIDTH, "height": VIEWPORT_HEIGHT},
+        user_agent=(
+            "Mozilla/5.0 (X11; Linux x86_64) "
+            "AppleWebKit/537.36 (KHTML, like Gecko) "
+            "Chrome/124.0.0.0 Safari/537.36"
+        ),
+        locale="en-US",
+        timezone_id="UTC",
     )
-    # Mask ChromeDriver automation signals — prevents CoinGlass bot detection
-    opts.add_argument("--disable-blink-features=AutomationControlled")
-    opts.add_experimental_option("excludeSwitches", ["enable-automation"])
-    opts.add_experimental_option("useAutomationExtension", False)
-
-    driver = webdriver.Chrome(options=opts)
-    driver.set_window_size(VIEWPORT_WIDTH, VIEWPORT_HEIGHT)
-
-    # Remove navigator.webdriver flag (detectable by JS on the page)
-    driver.execute_cdp_cmd("Page.addScriptToEvaluateOnNewDocument", {"source": """
-        Object.defineProperty(navigator, 'webdriver', {get: () => undefined});
-        window.chrome = { runtime: {} };
-        Object.defineProperty(navigator, 'plugins', {get: () => [1, 2, 3]});
-        Object.defineProperty(navigator, 'languages', {get: () => ['en-US', 'en']});
-    """})
-
-    # Inject canvas intercept — fires before every subsequent driver.get()
-    driver.execute_cdp_cmd(
-        "Page.addScriptToEvaluateOnNewDocument", {"source": CANVAS_INTERCEPT_JS}
-    )
-    return driver
-
-
-# ── Session persistence ────────────────────────────────────────────────────────
-
-def _save_session(driver: webdriver.Chrome) -> None:
-    cookies = driver.get_cookies()
-    SESSION_FILE.write_text(json.dumps(cookies))
-    log.info(f"Session saved → {SESSION_FILE} ({len(cookies)} cookies)")
-
-
-def _load_session(driver: webdriver.Chrome) -> bool:
-    if not SESSION_FILE.exists():
-        return False
-    try:
-        # Must navigate to the domain before adding cookies
-        driver.get("https://www.coinglass.com")
-        time.sleep(1)
-        for cookie in json.loads(SESSION_FILE.read_text()):
-            try:
-                driver.add_cookie(cookie)
-            except Exception:
-                pass
-        log.info(f"Session loaded from {SESSION_FILE}")
-        return True
-    except Exception as e:
-        log.warning(f"Session load failed: {e}")
-        return False
-
-
-# ── Mouse helpers (CDP — absolute viewport coordinates) ───────────────────────
-
-def _mouse_move(driver: webdriver.Chrome, x: int, y: int) -> None:
-    driver.execute_cdp_cmd("Input.dispatchMouseEvent", {
-        "type": "mouseMoved", "x": x, "y": y, "button": "none",
-    })
-
-
-def _mouse_drag(driver: webdriver.Chrome, x: int, y_start: int, y_end: int, steps: int = 30) -> None:
-    _mouse_move(driver, x, y_start)
-    time.sleep(0.3)
-    driver.execute_cdp_cmd("Input.dispatchMouseEvent", {
-        "type": "mousePressed", "x": x, "y": y_start, "button": "left", "clickCount": 1,
-    })
-    for step in range(steps):
-        y = y_start + int((y_end - y_start) * (step + 1) / steps)
-        _mouse_move(driver, x, y)
-        time.sleep(0.01)
-    driver.execute_cdp_cmd("Input.dispatchMouseEvent", {
-        "type": "mouseReleased", "x": x, "y": y_end, "button": "left", "clickCount": 1,
-    })
-    time.sleep(0.8)
+    if SESSION_FILE.exists():
+        ctx_kwargs["storage_state"] = str(SESSION_FILE)
+        log.info(f"Loaded saved session from {SESSION_FILE}")
+    context = await browser.new_context(**ctx_kwargs)
+    await context.add_init_script(CANVAS_INTERCEPT_JS)
+    page = await context.new_page()
+    return browser, context, page
 
 
 # ── Login ──────────────────────────────────────────────────────────────────────
 
-def login(driver: webdriver.Chrome) -> bool:
+async def login(page: Page) -> bool:
     if not CG_EMAIL or not CG_PASSWORD:
         log.error("COINGLASS_EMAIL / COINGLASS_PASSWORD not set in .env")
         return False
 
     log.info(f"Logging in as {CG_EMAIL}...")
     try:
-        # Try existing session first
         if SESSION_FILE.exists():
-            _load_session(driver)
-            driver.get(CHART_URL)
-            time.sleep(2)
-            if "login" not in driver.current_url:
+            await page.goto(CHART_URL, wait_until="networkidle", timeout=60_000)
+            await page.wait_for_timeout(2000)
+            if "login" not in page.url:
                 log.info("Session still valid — skipping login.")
                 return True
             log.info("Saved session expired — logging in fresh.")
             SESSION_FILE.unlink(missing_ok=True)
 
-        driver.get("https://www.coinglass.com/user/login")
-        time.sleep(2)
+        await page.goto("https://www.coinglass.com/user/login", wait_until="domcontentloaded", timeout=60_000)
+        await page.wait_for_timeout(2000)
 
-        has_form = driver.execute_script(
-            "return !!document.querySelector('input[type=\"email\"], input[name=\"email\"]')"
-        )
+        has_form = await page.evaluate("() => !!document.querySelector('input[type=\"email\"], input[name=\"email\"]')")
         if not has_form:
-            driver.get("https://www.coinglass.com/")
-            time.sleep(1.5)
-            try:
-                btn = driver.find_element(By.XPATH, '//a[contains(text(),"Login")] | //button[contains(text(),"Login")]')
-                btn.click()
-                time.sleep(2)
-            except Exception:
-                pass
+            await page.goto("https://www.coinglass.com/", wait_until="networkidle", timeout=60_000)
+            await page.wait_for_timeout(1500)
+            await page.click('a:has-text("Login"), button:has-text("Login")', timeout=10_000)
+            await page.wait_for_timeout(2000)
 
-        email_input = driver.find_element(By.CSS_SELECTOR, 'input[type="email"], input[name="email"]')
-        email_input.send_keys(CG_EMAIL)
+        await page.locator('input[type="email"], input[name="email"]').first.fill(CG_EMAIL)
+        pwd_loc = page.locator('input[type="password"], input[name="password"]').first
+        await pwd_loc.fill(CG_PASSWORD)
+        await pwd_loc.press("Enter")
 
-        pwd_input = driver.find_element(By.CSS_SELECTOR, 'input[type="password"], input[name="password"]')
-        pwd_input.send_keys(CG_PASSWORD)
-        pwd_input.send_keys(Keys.RETURN)
-
-        # Wait up to 40s for redirect away from login
         for _ in range(40):
-            time.sleep(1)
-            if "login" not in driver.current_url:
+            await page.wait_for_timeout(1000)
+            if "login" not in page.url:
                 break
         else:
             raise RuntimeError("Did not redirect away from login page in 40s")
 
-        log.info(f"Login successful ({driver.current_url[:60]})")
-        _save_session(driver)
+        log.info(f"Login successful ({page.url[:60]})")
+        await page.context.storage_state(path=str(SESSION_FILE))
+        log.info(f"Session saved → {SESSION_FILE}")
         return True
 
     except Exception as e:
         log.error(f"Login failed: {e}")
         SCREENSHOT_DIR.mkdir(exist_ok=True)
-        driver.save_screenshot(str(SCREENSHOT_DIR / "login_failure.png"))
+        await page.screenshot(path=str(SCREENSHOT_DIR / "login_failure.png"))
         return False
 
 
 # ── Chart loading ──────────────────────────────────────────────────────────────
 
-def _zoom_y_axis_out(driver: webdriver.Chrome) -> None:
+async def _zoom_y_axis_out(page: Page) -> None:
     center_y = (CHART_Y_START + CHART_Y_END) // 2
-    _mouse_drag(driver, Y_AXIS_X, center_y, center_y + YAXIS_DRAG_PX)
+    drag_to_y = center_y + YAXIS_DRAG_PX
+    await page.mouse.move(Y_AXIS_X, center_y)
+    await page.wait_for_timeout(300)
+    await page.mouse.down()
+    await page.mouse.move(Y_AXIS_X, drag_to_y, steps=30)
+    await page.wait_for_timeout(200)
+    await page.mouse.up()
+    await page.wait_for_timeout(800)
     log.info(f"Y-axis dragged {YAXIS_DRAG_PX}px down (zoom out)")
 
 
-def load_chart(driver: webdriver.Chrome) -> None:
+async def load_chart(page: Page) -> None:
     log.info(f"Loading chart: {CHART_URL}")
-    driver.get(CHART_URL)
+    await page.goto(CHART_URL, wait_until="networkidle", timeout=60_000)
     log.info(f"Waiting {CHART_LOAD_MS}ms for chart render...")
-    time.sleep(CHART_LOAD_MS / 1000)
-    if "login" in driver.current_url:
+    await page.wait_for_timeout(CHART_LOAD_MS)
+    if "login" in page.url:
         raise RuntimeError("Session expired — re-login required")
     log.info("Chart ready.")
-    _zoom_y_axis_out(driver)
+    await _zoom_y_axis_out(page)
 
 
 # ── Screenshot ─────────────────────────────────────────────────────────────────
@@ -287,12 +216,12 @@ def _prune_screenshots(keep: int = 4) -> None:
         old.unlink(missing_ok=True)
 
 
-def take_screenshot(driver: webdriver.Chrome) -> Image.Image:
-    png_bytes = driver.get_screenshot_as_png()
+async def take_screenshot(page: Page) -> Image.Image:
+    png_bytes = await page.screenshot(full_page=False)
     return Image.open(io.BytesIO(png_bytes)).convert("RGB")
 
 
-# ── Line detection (pure Python — unchanged from playwright version) ───────────
+# ── Line detection (pure Python — unchanged) ───────────────────────────────────
 
 def _rightmost_colored_x(pixels, y_mid: int, label: str, width: int) -> int:
     for x in range(min(CHART_X_END, width - 1), 39, -1):
@@ -351,9 +280,9 @@ def detect_lines(img: Image.Image) -> list[dict]:
 
 # ── Extraction ─────────────────────────────────────────────────────────────────
 
-def extract_leverage(driver: webdriver.Chrome) -> str:
+async def extract_leverage(page: Page) -> str:
     try:
-        result = driver.execute_script("""
+        result = await page.evaluate("""() => {
             const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_ELEMENT);
             let node;
             while ((node = walker.nextNode())) {
@@ -364,7 +293,7 @@ def extract_leverage(driver: webdriver.Chrome) -> str:
                 }
             }
             return '';
-        """)
+        }""")
         return result or "N/A"
     except Exception as e:
         log.warning(f"leverage extract error: {e}")
@@ -376,29 +305,23 @@ def price_from_y(y: int, y_map: list[tuple[int, float]]) -> str:
         return "N/A"
     y_map_sorted = sorted(y_map, key=lambda t: t[0])
     if y <= y_map_sorted[0][0]:
-        y1, p1 = y_map_sorted[0]
-        y2, p2 = y_map_sorted[1]
+        y1, p1 = y_map_sorted[0]; y2, p2 = y_map_sorted[1]
     elif y >= y_map_sorted[-1][0]:
-        y1, p1 = y_map_sorted[-2]
-        y2, p2 = y_map_sorted[-1]
+        y1, p1 = y_map_sorted[-2]; y2, p2 = y_map_sorted[-1]
     else:
         for i in range(len(y_map_sorted) - 1):
             if y_map_sorted[i][0] <= y <= y_map_sorted[i + 1][0]:
-                y1, p1 = y_map_sorted[i]
-                y2, p2 = y_map_sorted[i + 1]
-                break
+                y1, p1 = y_map_sorted[i]; y2, p2 = y_map_sorted[i + 1]; break
         else:
-            y1, p1 = y_map_sorted[0]
-            y2, p2 = y_map_sorted[-1]
+            y1, p1 = y_map_sorted[0]; y2, p2 = y_map_sorted[-1]
     if y2 == y1:
         return f"{p1:.1f}"
-    price = p1 + (p2 - p1) * (y - y1) / (y2 - y1)
-    return f"{price:.1f}"
+    return f"{p1 + (p2 - p1) * (y - y1) / (y2 - y1):.1f}"
 
 
-def capture_y_axis_map(driver: webdriver.Chrome) -> list[tuple[int, float]]:
+async def capture_y_axis_map(page: Page) -> list[tuple[int, float]]:
     try:
-        ticks = driver.execute_script("return window._yAxisTicks || []")
+        ticks = await page.evaluate("() => window._yAxisTicks || []")
         raw: dict[int, list[float]] = {}
         for t in ticks:
             price = float(str(t["text"]).replace(",", ""))
@@ -430,8 +353,8 @@ def append_csv(rows: list[dict]) -> None:
     log.info(f"Appended {len(rows)} rows → {OUTPUT_CSV}")
 
 
-def collect_all_lines(driver: webdriver.Chrome, timestamp: str) -> list[dict]:
-    img = take_screenshot(driver)
+async def collect_all_lines(page: Page, timestamp: str) -> list[dict]:
+    img = await take_screenshot(page)
     SCREENSHOT_DIR.mkdir(exist_ok=True)
     snap = SCREENSHOT_DIR / f"scan_{datetime.now(timezone.utc):%Y%m%d_%H%M%S}.png"
     img.save(str(snap))
@@ -443,18 +366,18 @@ def collect_all_lines(driver: webdriver.Chrome, timestamp: str) -> list[dict]:
         log.warning("No colored lines detected")
         return []
 
-    y_map = capture_y_axis_map(driver)
+    y_map = await capture_y_axis_map(page)
     log.info(f"Y-axis map: {len(y_map)} ticks captured")
 
-    _mouse_move(driver, lines[0]["hover_x"], 400)
-    time.sleep(0.2)
+    await page.mouse.move(lines[0]["hover_x"], 400)
+    await page.wait_for_timeout(200)
 
     rows = []
     for i, line in enumerate(lines):
         try:
-            _mouse_move(driver, line["hover_x"], line["y"])
-            time.sleep(HOVER_SETTLE_MS / 1000)
-            leverage = extract_leverage(driver)
+            await page.mouse.move(line["hover_x"], line["y"])
+            await page.wait_for_timeout(HOVER_SETTLE_MS)
+            leverage = await extract_leverage(page)
             if leverage in ("N/A", "ERROR", ""):
                 log.info(f"  [{i+1:02d}] {line['label']:<8} y={line['y']:>4} | skipped (no tooltip)")
                 continue
@@ -472,88 +395,86 @@ def collect_all_lines(driver: webdriver.Chrome, timestamp: str) -> list[dict]:
         except Exception as e:
             log.error(f"Error on line {line['label']} y={line['y']}: {e}")
             rows.append({
-                "timestamp": timestamp,
-                "color":     line["label"],
-                "y_pixel":   line["y"],
-                "y_range":   f"{line['y_start']}-{line['y_end']}",
-                "leverage":  "ERROR",
-                "price":     str(e)[:80],
+                "timestamp": timestamp, "color": line["label"],
+                "y_pixel": line["y"], "y_range": f"{line['y_start']}-{line['y_end']}",
+                "leverage": "ERROR", "price": str(e)[:80],
             })
     return rows
 
 
 # ── Main loops ─────────────────────────────────────────────────────────────────
 
-def run_collect() -> None:
-    """Full collection loop — kill-and-restart every 15 min."""
+async def run_collect() -> None:
+    """Full collection loop — kill-and-restart playwright every 15 min."""
     ensure_csv_header()
-    log.info("CoinGlass Leverage Collector starting (Selenium kill-restart mode)...")
+    log.info("CoinGlass Leverage Collector starting (Playwright kill-restart mode)...")
     run_count = 0
     while True:
         run_count += 1
-        driver = None
+        timestamp = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
+        log.info(f"\n{'='*60}\nRun #{run_count} — {timestamp}\n{'='*60}")
         try:
-            timestamp = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
-            log.info(f"\n{'='*60}\nRun #{run_count} — {timestamp}\n{'='*60}")
-            driver = _make_driver(headless=True)
-            if not login(driver):
-                log.error("Login failed — skipping run.")
-            else:
-                load_chart(driver)
-                rows = collect_all_lines(driver, timestamp)
-                if rows:
-                    append_csv(rows)
-        except Exception as e:
-            log.exception(f"Run #{run_count} failed: {e}")
-        finally:
-            if driver:
+            async with async_playwright() as pw:
+                browser, context, page = await make_browser(pw, headless=True)
                 try:
-                    driver.quit()
-                except Exception:
-                    pass
+                    if not await login(page):
+                        log.error("Login failed — skipping run.")
+                    else:
+                        await load_chart(page)
+                        rows = await collect_all_lines(page, timestamp)
+                        if rows:
+                            append_csv(rows)
+                except Exception as e:
+                    log.exception(f"Run #{run_count} inner error: {e}")
+                finally:
+                    await context.close()
+                    await browser.close()
+        except Exception as e:
+            log.exception(f"Run #{run_count} playwright error: {e}")
         log.info(f"Sleeping {INTERVAL_SECONDS // 60}m...")
-        time.sleep(INTERVAL_SECONDS)
+        await asyncio.sleep(INTERVAL_SECONDS)
 
 
-def run_debug() -> None:
+async def run_debug() -> None:
     """One-shot headed browser — inspect chart manually."""
     log.info("DEBUG MODE — headed browser, one-shot DOM dump")
     SCREENSHOT_DIR.mkdir(exist_ok=True)
-    driver = _make_driver(headless=False)
-    try:
-        if not login(driver):
-            log.error("Cannot proceed without login.")
-            return
+    async with async_playwright() as pw:
+        browser, context, page = await make_browser(pw, headless=False)
+        try:
+            if not await login(page):
+                log.error("Cannot proceed without login.")
+                return
+            await load_chart(page)
 
-        load_chart(driver)
+            img = await take_screenshot(page)
+            debug_shot = SCREENSHOT_DIR / "debug_before_hover.png"
+            img.save(str(debug_shot))
+            log.info(f"Screenshot saved → {debug_shot}")
 
-        img = take_screenshot(driver)
-        debug_shot = SCREENSHOT_DIR / "debug_before_hover.png"
-        img.save(str(debug_shot))
-        log.info(f"Screenshot saved → {debug_shot}")
+            y_map = await capture_y_axis_map(page)
+            log.info(f"Y-axis ticks captured: {len(y_map)}")
+            for sy, pr in sorted(y_map)[:10]:
+                log.info(f"  screen_y={sy:>4}  price={pr:,.1f}")
 
-        y_map = capture_y_axis_map(driver)
-        log.info(f"Y-axis ticks captured: {len(y_map)}")
-        for sy, pr in sorted(y_map)[:10]:
-            log.info(f"  screen_y={sy:>4}  price={pr:,.1f}")
+            lines = detect_lines(img)
+            if not lines:
+                log.warning("No colored lines — check color profiles or HOVER_X")
+            else:
+                await page.mouse.move(lines[0]["hover_x"], 400)
+                await page.wait_for_timeout(200)
+                for line in lines:
+                    await page.mouse.move(line["hover_x"], line["y"])
+                    await page.wait_for_timeout(HOVER_SETTLE_MS)
+                    lev   = await extract_leverage(page)
+                    price = price_from_y(line["y"], y_map)
+                    log.info(f"  {line['label']:<8} y={line['y']:>4} | Leverage: {lev:<12} | Price: {price}")
 
-        lines = detect_lines(img)
-        if not lines:
-            log.warning("No colored lines — check color profiles or HOVER_X")
-        else:
-            _mouse_move(driver, lines[0]["hover_x"], 400)
-            time.sleep(0.2)
-            for line in lines:
-                _mouse_move(driver, line["hover_x"], line["y"])
-                time.sleep(HOVER_SETTLE_MS / 1000)
-                lev   = extract_leverage(driver)
-                price = price_from_y(line["y"], y_map)
-                log.info(f"  {line['label']:<8} y={line['y']:>4} | Leverage: {lev:<12} | Price: {price}")
-
-        log.info("Keeping browser open for 30s — inspect manually if needed.")
-        time.sleep(30)
-    finally:
-        driver.quit()
+            log.info("Keeping browser open for 30s — inspect manually if needed.")
+            await asyncio.sleep(30)
+        finally:
+            await context.close()
+            await browser.close()
 
 
 # ── Entry points ───────────────────────────────────────────────────────────────
@@ -571,12 +492,12 @@ def _configure_logging() -> None:
 
 def debug_main() -> None:
     _configure_logging()
-    run_debug()
+    asyncio.run(run_debug())
 
 
 def collect_main() -> None:
     _configure_logging()
-    run_collect()
+    asyncio.run(run_collect())
 
 
 if __name__ == "__main__":
