@@ -868,7 +868,7 @@ async def _start_liquidity_collector():
 async def _start_markov_refresh():
     """Daily Markov regime refresh at 01:20 UTC (7:20 PM CST) — runs once regardless of scanner state."""
     import time as _time
-    from datetime import timedelta
+    from datetime import datetime, timezone, timedelta
 
     def _run():
         while True:
