@@ -468,6 +468,7 @@ async def run_debug() -> None:
             img = await take_screenshot(page)
             debug_shot = SCREENSHOT_DIR / "debug_before_hover.png"
             img.save(str(debug_shot))
+            img.close()
             log.info(f"Screenshot saved → {debug_shot}")
 
             y_map = await capture_y_axis_map(page)
@@ -475,19 +476,18 @@ async def run_debug() -> None:
             for sy, pr in sorted(y_map)[:10]:
                 log.info(f"  screen_y={sy:>4}  price={pr:,.1f}")
 
-            lines = detect_lines(img)
-            if not lines:
-                log.warning("No colored lines — check color profiles or HOVER_X")
-            else:
-                _fixed_x = CHART_X_END - 5
-                await page.mouse.move(_fixed_x, 400)
-                await page.wait_for_timeout(200)
-                for line in lines:
-                    await page.mouse.move(_fixed_x, line["y"])
-                    await page.wait_for_timeout(HOVER_SETTLE_MS)
-                    lev   = await extract_leverage(page)
-                    price = price_from_y(line["y"], y_map)
-                    log.info(f"  {line['label']:<8} y={line['y']:>4} | Leverage: {lev:<12} | Price: {price}")
+            log.info(f"Sweeping y={CHART_Y_START}→{CHART_Y_END} step={SWEEP_STEP_PX}px at x={CHART_X_END - 5}...")
+            _fixed_x = CHART_X_END - 5
+            await page.mouse.move(_fixed_x, CHART_Y_START)
+            await page.wait_for_timeout(200)
+            for y in range(CHART_Y_START, CHART_Y_END + 1, SWEEP_STEP_PX):
+                await page.mouse.move(_fixed_x, y)
+                await page.wait_for_timeout(HOVER_SETTLE_MS)
+                lev = await extract_leverage(page)
+                if lev in ("N/A", "ERROR", ""):
+                    continue
+                price = price_from_y(y, y_map)
+                log.info(f"  y={y:>4} | Leverage: {lev:<12} | Price: {price}")
 
             log.info("Keeping browser open for 30s — inspect manually if needed.")
             await asyncio.sleep(30)
