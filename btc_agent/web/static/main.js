@@ -786,20 +786,48 @@ async function loadLiquidity() {
     const levNums = rows.map(r => parseFloat(r.leverage?.replace(/[^0-9.]/g, '') || '0')).filter(v => v > 0);
     const maxLev = levNums.length ? Math.max(...levNums) : 1;
 
-    tbody.innerHTML = rows.map(r => {
-      const price = '$' + Number(r.price).toLocaleString('en-US', {minimumFractionDigits: 1, maximumFractionDigits: 1});
-      const levNum = parseFloat(r.leverage?.replace(/[^0-9.]/g, '') || '0');
-      const ratio  = maxLev > 0 ? levNum / maxLev : 0;
-      // Highlight top-tier leverage: bright orange for top 30%, muted for rest
-      const levColor = ratio >= 0.7 ? '#f97316' : ratio >= 0.4 ? '#e2a86b' : 'var(--text-2)';
+    const currentPrice = _wsPrice || 0;
+
+    // Find closest row to current price for scroll anchor
+    let closestIdx = 0;
+    let closestDiff = Infinity;
+    rows.forEach((r, i) => {
+      const diff = Math.abs(Number(r.price) - currentPrice);
+      if (diff < closestDiff) { closestDiff = diff; closestIdx = i; }
+    });
+
+    tbody.innerHTML = rows.map((r, i) => {
+      const priceNum = Number(r.price);
+      const priceFmt = '$' + priceNum.toLocaleString('en-US', {minimumFractionDigits: 1, maximumFractionDigits: 1});
+      const levNum   = parseFloat(r.leverage?.replace(/[^0-9.]/g, '') || '0');
+      const ratio    = maxLev > 0 ? levNum / maxLev : 0;
+      const levColor  = ratio >= 0.7 ? '#f97316' : ratio >= 0.4 ? '#e2a86b' : 'var(--text-2)';
       const levWeight = ratio >= 0.7 ? '700' : '400';
-      return `<tr>
-        <td style="font-size:14px;font-variant-numeric:tabular-nums;font-weight:600">${price}</td>
+
+      // Current price marker — insert above the row closest to live price
+      const isClosest = currentPrice > 0 && i === closestIdx;
+      const priceMarker = isClosest ? `<tr id="liq-price-marker" style="background:rgba(247,147,26,0.12)">
+        <td colspan="2" style="font-size:12px;color:#f97316;font-weight:600;padding:4px 12px;text-align:center">
+          ▶ Current Price: $${currentPrice.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})}
+        </td></tr>` : '';
+
+      return `${priceMarker}<tr>
+        <td style="font-size:14px;font-variant-numeric:tabular-nums;font-weight:600">${priceFmt}</td>
         <td style="font-size:14px;font-variant-numeric:tabular-nums;color:${levColor};font-weight:${levWeight}">${r.leverage}</td>
       </tr>`;
     }).join('');
+
+    // Scroll to current price marker
+    if (currentPrice > 0) {
+      requestAnimationFrame(() => {
+        const marker = document.getElementById('liq-price-marker');
+        if (marker) marker.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      });
+    }
+
     const lastTs = rows[0]?.timestamp ? formatTs(rows[0].timestamp.replace(' UTC','Z').replace(' ','T')) : '—';
-    if (status) status.textContent = `${rows.length} levels · last: ${lastTs}`;
+    const curFmt = currentPrice ? ` · BTC $${currentPrice.toLocaleString('en-US',{minimumFractionDigits:0,maximumFractionDigits:0})}` : '';
+    if (status) status.textContent = `${rows.length} levels · last: ${lastTs}${curFmt}`;
   } catch (e) {
     tbody.innerHTML = `<tr><td colspan="2" style="color:var(--red)">${e}</td></tr>`;
   }
