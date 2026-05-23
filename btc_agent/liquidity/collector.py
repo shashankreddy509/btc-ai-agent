@@ -376,13 +376,15 @@ async def collect_all_lines(page: Page, timestamp: str) -> list[dict]:
     y_map = await capture_y_axis_map(page)
     log.info(f"Y-axis map: {len(y_map)} ticks captured")
 
-    await page.mouse.move(lines[0]["hover_x"], 400)
+    # Fixed x = last candle (just left of Y-axis). Only move vertically per line.
+    _fixed_x = CHART_X_END - 5
+    await page.mouse.move(_fixed_x, 400)
     await page.wait_for_timeout(200)
 
     rows = []
     for i, line in enumerate(lines):
         try:
-            await page.mouse.move(line["hover_x"], line["y"])
+            await page.mouse.move(_fixed_x, line["y"])
             await page.wait_for_timeout(HOVER_SETTLE_MS)
             leverage = await extract_leverage(page)
             if leverage in ("N/A", "ERROR", ""):
@@ -470,10 +472,11 @@ async def run_debug() -> None:
             if not lines:
                 log.warning("No colored lines — check color profiles or HOVER_X")
             else:
-                await page.mouse.move(lines[0]["hover_x"], 400)
+                _fixed_x = CHART_X_END - 5
+                await page.mouse.move(_fixed_x, 400)
                 await page.wait_for_timeout(200)
                 for line in lines:
-                    await page.mouse.move(line["hover_x"], line["y"])
+                    await page.mouse.move(_fixed_x, line["y"])
                     await page.wait_for_timeout(HOVER_SETTLE_MS)
                     lev   = await extract_leverage(page)
                     price = price_from_y(line["y"], y_map)
