@@ -234,14 +234,21 @@ def _rightmost_colored_x(pixels, y_mid: int, label: str, width: int) -> int:
 def detect_lines(img: Image.Image) -> list[dict]:
     pixels = img.load()
     width, height = img.size
-    x = min(HOVER_X, width - 1)
 
-    raw: list[tuple[int, str]] = []
-    for y in range(CHART_Y_START, min(CHART_Y_END, height)):
-        r, g, b = pixels[x, y]
-        label = classify_pixel(r, g, b)
-        if label:
-            raw.append((y, label))
+    # Scan multiple x columns (right → left) so lines that don't reach
+    # HOVER_X are still detected. Take the rightmost hit per row.
+    _scan_cols = [min(sx, width - 1) for sx in range(HOVER_X, HOVER_X - 151, -5)]
+    y_labels: dict[int, str] = {}
+    for sx in _scan_cols:
+        for y in range(CHART_Y_START, min(CHART_Y_END, height)):
+            if y in y_labels:
+                continue
+            r, g, b = pixels[sx, y]
+            label = classify_pixel(r, g, b)
+            if label:
+                y_labels[y] = label
+
+    raw: list[tuple[int, str]] = sorted(y_labels.items())
 
     if not raw:
         return []
