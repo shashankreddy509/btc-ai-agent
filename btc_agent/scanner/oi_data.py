@@ -5,8 +5,12 @@ import urllib.error
 import urllib.request
 from dataclasses import dataclass, field
 
-_BASE = "https://fapi.binance.com"
-_SYMBOL = "BTCUSDT"
+_BASE_USDT = "https://fapi.binance.com"   # USDT-margined perpetuals (OI in BTC)
+_BASE_COIN = "https://dapi.binance.com"   # COIN-margined perpetuals (OI in contracts, 1 contract = $100)
+_SYMBOL_USDT = "BTCUSDT"
+_SYMBOL_COIN = "BTCUSD_PERP"
+_BASE = _BASE_USDT  # kept for backward compat
+_SYMBOL = _SYMBOL_USDT
 
 _TF_TO_PERIOD: dict[int, str] = {
     5:  "5m",
@@ -38,6 +42,40 @@ class OISignals:
     ok: bool = True
 
 
+def _fetch_btc_price() -> float:
+    """Fetch current BTC/USDT price from Binance spot — needed to convert USDT-M OI (BTC) to USD."""
+    try:
+        url = "https://api.binance.com/api/v3/ticker/price?symbol=BTCUSDT"
+        req = urllib.request.Request(url, headers={"Accept": "application/json"})
+        with urllib.request.urlopen(req, timeout=5) as resp:
+            return float(json.loads(resp.read())["price"])
+    except Exception:
+        return 0.0
+
+
+def _fetch_raw_oi(base: str, symbol: str, period: str, limit: int, field: str = "sumOpenInterest") -> list[float]:
+    """Fetch raw OI series from Binance (USDT-M or COIN-M)."""
+    url = f"{base}/futures/data/openInterestHist?symbol={symbol}&period={period}&limit={limit}"
+    try:
+        req = urllib.request.Request(url, headers={"Accept": "application/json"})
+        with urllib.request.urlopen(req, timeout=8) as resp:
+            raw: list[dict] = json.loads(resp.read())
+        if not raw or not isinstance(raw, list):
+            return []
+        return [float(bar[field]) for bar in raw]
+    except Exception as exc:
+        from rich.console import Console
+        Console().print(f"[yellow][oi_data] fetch error ({base}): {exc}[/yellow]")
+        return []
+
+
+def _aggregate(series: list[float], agg: int) -> list[float]:
+    if agg <= 1:
+        return series
+    trim = len(series) - (len(series) % agg)
+    return [sum(series[i:i + agg]) for i in range(0, trim, agg)]
+
+
 def fetch_oi_snapshot(tf: int, lookback: int = 300) -> OISnapshot:
     period = _TF_TO_PERIOD.get(tf)
     if period is None:
@@ -49,39 +87,32 @@ def fetch_oi_snapshot(tf: int, lookback: int = 300) -> OISnapshot:
     agg = _TF_AGGREGATE.get(tf, 1)
     fetch_limit = min(lookback * agg, 500)
 
-    url = (
-        f"{_BASE}/futures/data/openInterestHist"
-        f"?symbol={_SYMBOL}&period={period}&limit={fetch_limit}"
-    )
-    try:
-        req = urllib.request.Request(url, headers={"Accept": "application/json"})
-        with urllib.request.urlopen(req, timeout=8) as resp:
-            raw: list[dict] = json.loads(resp.read())
-    except (urllib.error.URLError, urllib.error.HTTPError, OSError, ValueError) as exc:
-        from rich.console import Console
-        Console().print(f"[yellow][oi_data] fetch error (tf={tf}): {exc}[/yellow]")
+    # Fetch current BTC price for USDT-M conversion
+    btc_price = _fetch_btc_price()
+
+    # USDT-M: OI in BTC → convert to USD millions
+    raw_usdt = _fetch_raw_oi(_BASE_USDT, _SYMBOL_USDT, period, fetch_limit)
+    usdt_m = _aggregate(raw_usdt, agg)
+    # Each unit = 1 BTC. Convert: BTC × price / 1_000_000
+    usdt_usd = [v * btc_price / 1_000_000 for v in usdt_m] if btc_price else usdt_m
+
+    # COIN-M: OI in contracts (1 contract = $100) → USD millions
+    raw_coin = _fetch_raw_oi(_BASE_COIN, _SYMBOL_COIN, period, fetch_limit)
+    coin_m = _aggregate(raw_coin, agg)
+    # Each unit = 1 contract = $100. Convert: contracts × 100 / 1_000_000
+    coin_usd = [v * 100 / 1_000_000 for v in coin_m]
+
+    if not usdt_usd and not coin_usd:
         return OISnapshot(tf=tf, oi=[], ok=False)
 
-    if not raw or not isinstance(raw, list):
-        return OISnapshot(tf=tf, oi=[], ok=False)
-
-    try:
-        native_oi = [float(bar["sumOpenInterest"]) for bar in raw]
-    except (KeyError, TypeError, ValueError) as exc:
-        from rich.console import Console
-        Console().print(f"[yellow][oi_data] parse error: {exc}[/yellow]")
-        return OISnapshot(tf=tf, oi=[], ok=False)
-
-    if agg > 1:
-        trim = len(native_oi) - (len(native_oi) % agg)
-        aggregated: list[float] = []
-        for i in range(0, trim, agg):
-            aggregated.append(sum(native_oi[i:i + agg]))
-        oi_series = aggregated
+    # Align lengths and sum
+    if usdt_usd and coin_usd:
+        n = min(len(usdt_usd), len(coin_usd))
+        combined = [usdt_usd[-(n - i)] + coin_usd[-(n - i)] for i in range(n - 1, -1, -1)]
     else:
-        oi_series = native_oi
+        combined = usdt_usd or coin_usd
 
-    return OISnapshot(tf=tf, oi=oi_series, ok=True)
+    return OISnapshot(tf=tf, oi=combined, ok=True)
 
 
 def compute_oi_signals(

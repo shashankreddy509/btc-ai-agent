@@ -848,7 +848,7 @@ async function loadOIStatus() {
     const col = (v, t, f) => v ? t : f;
     grid.innerHTML = `
       <div class="oi-stat-box">
-        <div class="oi-stat-label">OI Δ (BTC)</div>
+        <div class="oi-stat-label">OI Δ (M USD)</div>
         <div class="oi-stat-val" style="color:${d.latest_delta >= 0 ? 'var(--green)' : 'var(--red)'}">${d.latest_delta >= 0 ? '+' : ''}${d.latest_delta.toFixed(2)}</div>
       </div>
       <div class="oi-stat-box">
