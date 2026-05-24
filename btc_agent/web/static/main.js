@@ -846,7 +846,14 @@ async function loadOIStatus() {
       return;
     }
     const col = (v, t, f) => v ? t : f;
-    grid.innerHTML = `
+    const fmtDelta = v => `<span style="color:${v >= 0 ? 'var(--green)' : 'var(--red)'}">${v >= 0 ? '+' : ''}${v.toFixed(2)}</span>`;
+    const last3 = d.last3_deltas || [];
+    const candleBoxes = last3.map((v, i) => `
+      <div class="oi-stat-box">
+        <div class="oi-stat-label">Candle −${last3.length - i - 1 === 0 ? '0 (now)' : (last3.length - i - 1)}</div>
+        <div class="oi-stat-val">${fmtDelta(v)}</div>
+      </div>`).join('');
+    grid.innerHTML = candleBoxes + `
       <div class="oi-stat-box">
         <div class="oi-stat-label">OI Δ (M USD)</div>
         <div class="oi-stat-val" style="color:${d.latest_delta >= 0 ? 'var(--green)' : 'var(--red)'}">${d.latest_delta >= 0 ? '+' : ''}${d.latest_delta.toFixed(2)}</div>

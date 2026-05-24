@@ -671,10 +671,14 @@ async def oi_status(token: dict = Depends(verify_token)):
     div  = int(sc.settings.get("oi_div_lookback", cfg.OI_DIV_LOOKBACK)) if sc else cfg.OI_DIV_LOOKBACK
     snap = fetch_oi_snapshot(tf, lookback=lb)
     sigs = compute_oi_signals(snap, snap.oi, mult=mult, div_lookback=div)
+    # Compute last 3 candle deltas for display (most recent last)
+    oi = snap.oi
+    last3 = [round(oi[i] - oi[i - 1], 4) for i in range(max(1, len(oi) - 3), len(oi))] if len(oi) >= 2 else []
     return JSONResponse({
         "ok":           sigs.ok,
         "tf":           tf,
         "latest_delta": round(sigs.latest_delta, 4),
+        "last3_deltas": last3,
         "p_thresh":     round(sigs.p_thresh, 4),
         "n_thresh":     round(sigs.n_thresh, 4),
         "large_oi_up":  sigs.large_oi_up,
