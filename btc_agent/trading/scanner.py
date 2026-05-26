@@ -1243,6 +1243,8 @@ def get_state(uid: str | None = None) -> dict:
                 "min_tp":            config.TRADING_MIN_TP,
                 "max_concurrent":    config.TRADING_MAX_CONCURRENT,
                 "patterns":          config.TRADING_PATTERNS,
+                "depo_entry_filter": config.DEPO_ENTRY_FILTER,
+                "poc_entry_filter":  config.POC_ENTRY_FILTER,
             },
         }
 
@@ -1290,6 +1292,8 @@ def get_state(uid: str | None = None) -> dict:
             "oi_lookback_bars":         _oi_lookback_bars(sc),
             "oi_div_lookback":          _oi_div_lookback(sc),
             "oi_tf":                    _oi_tf(sc),
+            "depo_entry_filter":        _depo_entry_filter_enabled(sc),
+            "poc_entry_filter":         _poc_entry_filter_enabled(sc),
         },
     }
 

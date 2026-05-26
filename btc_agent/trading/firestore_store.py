@@ -117,6 +117,16 @@ def load_user_prefs(uid: str) -> dict | None:
         return None
 
 
+def list_all_user_prefs() -> list[tuple[str, dict]]:
+    """Return [(uid, prefs_dict), ...] for all docs in user_settings."""
+    try:
+        docs = _get_db().collection("user_settings").stream()
+        return [(d.id, d.to_dict()) for d in docs if d.exists]
+    except Exception as e:
+        console.print(f"[yellow]Firestore list_all_user_prefs failed: {e}[/yellow]")
+        return []
+
+
 # ── Regime log (app-level, no uid) ────────────────────────────────────────────
 
 def save_regime_prediction(date_str: str, d: dict) -> None:

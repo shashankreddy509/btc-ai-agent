@@ -191,16 +191,20 @@ async def ws_price(ws: WebSocket):
 async def _load_firestore_settings():
     try:
         from btc_agent import config
-        from btc_agent.trading.firestore_store import load_app_settings, load_user_prefs
+        from btc_agent.trading.firestore_store import load_app_settings, list_all_user_prefs
         app_data = load_app_settings()
         if app_data:
             config.apply_settings(app_data)
+        # Apply owner-level credentials to config first
         if config.FIREBASE_OWNER_UID:
-            user_data = load_user_prefs(config.FIREBASE_OWNER_UID)
-            if user_data:
-                config.apply_settings(user_data)
-                if user_data.get("scanner_running"):
-                    _auto_restart_scanner(config.FIREBASE_OWNER_UID, user_data)
+            from btc_agent.trading.firestore_store import load_user_prefs
+            owner_data = load_user_prefs(config.FIREBASE_OWNER_UID)
+            if owner_data:
+                config.apply_settings(owner_data)
+        # Restart scanner for every user who had it running before deploy
+        for uid, user_data in list_all_user_prefs():
+            if user_data.get("scanner_running"):
+                _auto_restart_scanner(uid, user_data)
     except Exception as e:
         print(f"[startup] Firestore settings load skipped: {e}")
 
