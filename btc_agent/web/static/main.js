@@ -169,7 +169,10 @@ async function loadUserSettings() {
     const sv2 = (id, v) => { const el = document.getElementById(id); if (el && v) el.value = v; };
     sv2('s-pepperstone-client-id',  d.pepperstone_client_id);
     sv2('s-pepperstone-account-id', d.pepperstone_account_id);
-    if (d.pepperstone_is_live !== undefined) sv2('s-pepperstone-is-live', d.pepperstone_is_live);
+    if (d.pepperstone_is_live !== undefined) {
+      sv2('s-pepperstone-is-live', d.pepperstone_is_live);
+      _updatePepperstoneMode(d.pepperstone_is_live);
+    }
     const statusEl = document.getElementById('s-pepperstone-status');
     if (statusEl) {
       const connected = d.pepperstone_refresh_token && d.pepperstone_refresh_token.includes('*');
@@ -239,6 +242,16 @@ async function saveBrokerCreds(broker) {
   if (contractEl) contractEl.value = '';
 }
 
+function _updatePepperstoneMode(isLive) {
+  const live = isLive === true || isLive === 'true';
+  const liveEl = document.getElementById('s-pp-instructions-live');
+  const demoEl = document.getElementById('s-pp-instructions-demo');
+  const btnEl  = document.getElementById('s-pepperstone-connect-btn');
+  if (liveEl) liveEl.style.display = live ? '' : 'none';
+  if (demoEl) demoEl.style.display = live ? 'none' : '';
+  if (btnEl)  btnEl.style.display  = live ? '' : 'none';
+}
+
 async function savePepperstoneCreds() {
   if (!_currentUser) return;
   const clientId    = document.getElementById('s-pepperstone-client-id')?.value.trim()    || '';
@@ -259,9 +272,13 @@ async function savePepperstoneCreds() {
   };
   if (clientSec) payload.pepperstone_client_secret = clientSec;
   if (contract)  payload.pepperstone_contract_size  = contract;
+  const sandboxToken = document.getElementById('s-pepperstone-sandbox-token')?.value.trim();
+  if (sandboxToken) payload.pepperstone_refresh_token = sandboxToken;
   await _saveSettings('/api/settings/user', payload, 'broker-pepperstone');
   const secEl = document.getElementById('s-pepperstone-client-secret');
   if (secEl) secEl.value = '';
+  const stEl = document.getElementById('s-pepperstone-sandbox-token');
+  if (stEl) stEl.value = '';
 }
 
 async function connectPepperstone() {

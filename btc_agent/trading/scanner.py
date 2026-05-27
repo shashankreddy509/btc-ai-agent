@@ -379,7 +379,7 @@ def _scan_patterns(sc: _Scanner, arr, ts_arr, minutes_of_day, unix_days) -> list
     patterns = _active_patterns(sc)
     lookback = _lookback_candles(sc)
     for tf in range(_tf_min(sc), _tf_max(sc) + 1):
-        bars, bar_open_times = aggregate_tf(arr, ts_arr, minutes_of_day, unix_days, tf, last_n=6)
+        bars, bar_open_times = aggregate_tf(arr, ts_arr, minutes_of_day, unix_days, tf, last_n=max(lookback + 1, 4))
         if bars is None or len(bars) < 2:
             continue
         bar_open_ts = int(bar_open_times[-1])
