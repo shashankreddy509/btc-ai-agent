@@ -161,15 +161,17 @@ def _calc_tp(sc: _Scanner, direction: str, entry: float) -> tuple[float, str]:
     mrp        = levels.get("mrp")
     daily_poc  = levels.get("daily_poc")
     weekly_poc = levels.get("weekly_poc")
+    poc_4h     = levels.get("4h_poc")
 
+    level_pool = [(mrp, "MRP"), (daily_poc, "Daily POC"), (weekly_poc, "Weekly POC"), (poc_4h, "4H POC")]
     candidates: list[tuple[float, str]] = []
     if direction == "long":
-        for price, label in [(mrp, "MRP"), (daily_poc, "Daily POC"), (weekly_poc, "Weekly POC")]:
+        for price, label in level_pool:
             if price and price > entry:
                 candidates.append((price, label))
         tp_price, tp_reason = min(candidates, key=lambda x: x[0]) if candidates else (None, "")
     else:
-        for price, label in [(mrp, "MRP"), (daily_poc, "Daily POC"), (weekly_poc, "Weekly POC")]:
+        for price, label in level_pool:
             if price and price < entry:
                 candidates.append((price, label))
         tp_price, tp_reason = max(candidates, key=lambda x: x[0]) if candidates else (None, "")

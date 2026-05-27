@@ -75,9 +75,38 @@ def compute_levels(df: pd.DataFrame, weekly_adj: float = 0.0324) -> dict:
         weekly_open = None
         weekly_poc  = None
 
+    # ── 4H POC — daily-VWAP at close of previous 4H bar ─────────────────────
+    # At each 4H boundary, the accumulated daily VWAP through the previous bar's
+    # close becomes the static POC level for the new 4H window.
+    current_4h_hour  = (now_ts.hour // 4) * 4
+    current_4h_start = today_ts + pd.Timedelta(hours=current_4h_hour)
+    vwap_4h = None
+    if current_4h_start > today_ts:
+        if pd.api.types.is_integer_dtype(ts):
+            bar_start_ms = int(current_4h_start.timestamp() * 1000)
+            h4_mask = (ts >= today_start) & (ts < bar_start_ms)
+        else:
+            h4_mask = (ts >= today_ts) & (ts < current_4h_start)
+        sub = df[h4_mask].copy()
+        if len(sub) and sub["volume"].sum() > 0:
+            # Aggregate 1m candles → 4H bars to match TradingView's VWAP formula:
+            # each bar's typical price = (MAX_H + MIN_L + LAST_C) / 3 of the 4H period
+            if pd.api.types.is_integer_dtype(sub["timestamp"]):
+                bar_ms = 4 * 60 * 60 * 1000
+                sub["_bar"] = (sub["timestamp"] // bar_ms) * bar_ms
+            else:
+                sub["_bar"] = sub["timestamp"].dt.floor("4h")
+            g = sub.groupby("_bar").agg(
+                high=("high", "max"), low=("low", "min"),
+                close=("close", "last"), volume=("volume", "sum"),
+            )
+            tp_4h   = (g["high"] + g["low"] + g["close"]) / 3
+            vwap_4h = round(float((tp_4h * g["volume"]).sum() / g["volume"].sum()), 2)
+
     return {
         "mrp":         mrp,
         "daily_poc":   daily_poc,
         "weekly_poc":  weekly_poc,
         "weekly_open": weekly_open,
+        "4h_poc":      vwap_4h,
     }
