@@ -1774,7 +1774,7 @@ async function saveTradingSettings() {
     ],
     bias_filter:        document.getElementById('cfg-bias-filter').checked,
     depo_entry_filter:  !!document.getElementById('cfg-depo-entry-filter')?.checked,
-    poc_entry_filter:   !!document.getElementById('cfg-poc-entry-filter')?.checked,
+    poc_entry_filter:    !!document.getElementById('cfg-poc-entry-filter')?.checked,
     cme_close_skip:     !!document.getElementById('cfg-cme-close-skip')?.checked,
     bsg_enabled:       !!document.getElementById('cfg-bsg-enabled')?.checked,
     bsg_trade_enabled: !!document.getElementById('cfg-bsg-trade-enabled')?.checked,

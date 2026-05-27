@@ -201,7 +201,6 @@ def _depo_entry_filter_enabled(sc: _Scanner) -> bool:
 def _poc_entry_filter_enabled(sc: _Scanner) -> bool:
     return bool(sc.settings.get("poc_entry_filter", config.POC_ENTRY_FILTER))
 
-
 _HISTORY_CAP = 200
 
 def _append_history(sc: "_Scanner", result) -> None:
@@ -1245,8 +1244,8 @@ def get_state(uid: str | None = None) -> dict:
                 "min_tp":            config.TRADING_MIN_TP,
                 "max_concurrent":    config.TRADING_MAX_CONCURRENT,
                 "patterns":          config.TRADING_PATTERNS,
-                "depo_entry_filter": config.DEPO_ENTRY_FILTER,
-                "poc_entry_filter":  config.POC_ENTRY_FILTER,
+                "depo_entry_filter":   config.DEPO_ENTRY_FILTER,
+                "poc_entry_filter":    config.POC_ENTRY_FILTER,
             },
         }
 
@@ -1512,23 +1511,25 @@ def run_trading_scanner(uid: str, user_settings: dict | None = None, email: str 
                     depo_on = _depo_entry_filter_enabled(sc)
                     poc_on  = _poc_entry_filter_enabled(sc)
                     if new_sigs and (depo_on or poc_on):
-                        d_poc = sc.current_levels.get("daily_poc")
-                        w_poc = sc.current_levels.get("weekly_poc")
+                        d_poc  = sc.current_levels.get("daily_poc")
+                        w_poc  = sc.current_levels.get("weekly_poc")
+                        h4_poc = sc.current_levels.get("4h_poc")
                         def _passes(s) -> bool:
-                            has_depo = s.meta.get("depo_line") is not None
                             lo, hi = s.meta.get("bar_low", 0), s.meta.get("bar_high", float("inf"))
-                            has_poc = bool(d_poc and w_poc and lo <= d_poc <= hi and lo <= w_poc <= hi)
-                            if depo_on and poc_on:
-                                return has_depo or has_poc   # OR: either condition is enough
-                            if depo_on:
-                                return has_depo
-                            return has_poc
+                            has_depo = depo_on and s.meta.get("depo_line") is not None
+                            has_poc  = poc_on and bool(
+                                d_poc and w_poc and h4_poc
+                                and lo <= d_poc  <= hi
+                                and lo <= w_poc  <= hi
+                                and lo <= h4_poc <= hi
+                            )
+                            return has_depo or has_poc
                         pre = len(new_sigs)
                         new_sigs = [s for s in new_sigs if _passes(s)]
                         dropped = pre - len(new_sigs)
                         if dropped:
-                            mode = "DEPO or POC" if (depo_on and poc_on) else ("DEPO" if depo_on else "POC")
-                            console.print(f"[dim]{mode} entry filter dropped {dropped} signal(s)[/dim]")
+                            active = [n for n, f in [("DEPO", depo_on), ("POC", poc_on)] if f]
+                            console.print(f"[dim]{' or '.join(active)} entry filter dropped {dropped} signal(s)[/dim]")
                     if _oi_filter_enabled(sc):
                         try:
                             from btc_agent.scanner.oi_data import fetch_oi_snapshot, compute_oi_signals
