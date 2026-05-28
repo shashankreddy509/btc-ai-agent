@@ -1704,6 +1704,8 @@ function _syncSettingsInputs(settings) {
   if (depoFiltEl) depoFiltEl.checked = !!settings.depo_entry_filter;
   const pocFiltEl = document.getElementById('cfg-poc-entry-filter');
   if (pocFiltEl) pocFiltEl.checked = !!settings.poc_entry_filter;
+  const compressionEl = document.getElementById('cfg-compression-enabled');
+  if (compressionEl) compressionEl.checked = !!settings.compression_enabled;
   const cmeEl = document.getElementById('cfg-cme-close-skip');
   if (cmeEl) cmeEl.checked = !!settings.cme_close_skip;
   const bsgEl = document.getElementById('cfg-bsg-enabled');
@@ -1773,8 +1775,9 @@ async function saveTradingSettings() {
       ...(document.getElementById('cfg-pattern-retracement').checked  ? ['Retracement'] : []),
     ],
     bias_filter:        document.getElementById('cfg-bias-filter').checked,
-    depo_entry_filter:  !!document.getElementById('cfg-depo-entry-filter')?.checked,
+    depo_entry_filter:   !!document.getElementById('cfg-depo-entry-filter')?.checked,
     poc_entry_filter:    !!document.getElementById('cfg-poc-entry-filter')?.checked,
+    compression_enabled: !!document.getElementById('cfg-compression-enabled')?.checked,
     cme_close_skip:     !!document.getElementById('cfg-cme-close-skip')?.checked,
     bsg_enabled:       !!document.getElementById('cfg-bsg-enabled')?.checked,
     bsg_trade_enabled: !!document.getElementById('cfg-bsg-trade-enabled')?.checked,

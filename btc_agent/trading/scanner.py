@@ -201,6 +201,9 @@ def _depo_entry_filter_enabled(sc: _Scanner) -> bool:
 def _poc_entry_filter_enabled(sc: _Scanner) -> bool:
     return bool(sc.settings.get("poc_entry_filter", config.POC_ENTRY_FILTER))
 
+def _compression_enabled(sc: _Scanner) -> bool:
+    return bool(sc.settings.get("compression_enabled", config.COMPRESSION_ENABLED))
+
 _HISTORY_CAP = 200
 
 def _append_history(sc: "_Scanner", result) -> None:
@@ -373,6 +376,91 @@ def _check_retracement(sc: _Scanner, bars: np.ndarray, bar_ts, tf: int, now: dat
                       "fib_50": fib_50, "fib_618": fib_618},
             )
     return None
+
+
+def _check_compression(sc: _Scanner, arr, ts_arr, minutes_of_day, unix_days, now: datetime) -> list[Signal]:
+    """30m-first, 1H-fallback compression signal: all 3 POCs inside one candle's H-L, close breaks out."""
+    d_poc  = sc.current_levels.get("daily_poc")
+    w_poc  = sc.current_levels.get("weekly_poc")
+    h4_poc = sc.current_levels.get("4h_poc")
+    if not (d_poc and w_poc and h4_poc):
+        return []
+
+    for tf in (30, 60):
+        bars, bar_ts = aggregate_tf(arr, ts_arr, minutes_of_day, unix_days, tf, last_n=3)
+        if bars is None or len(bars) < 2:
+            continue
+
+        candle       = bars[-2]          # last fully closed bar
+        bar_open_iso = bar_ts[-2] if hasattr(bar_ts[-2], "__str__") else str(bar_ts[-2])
+        hi    = float(candle[1])
+        lo    = float(candle[2])
+        close = float(candle[3])
+
+        all_in = (lo <= d_poc <= hi) and (lo <= w_poc <= hi) and (lo <= h4_poc <= hi)
+        if not all_in:
+            continue  # 30m failed → try 1H; 1H failed → no signal
+
+        poc_max = max(d_poc, w_poc, h4_poc)
+        poc_min = min(d_poc, w_poc, h4_poc)
+
+        if close > poc_max:
+            direction = "long"
+        elif close < poc_min:
+            direction = "short"
+        else:
+            break  # 30m qualified but closed inside cluster — don't check 1H
+
+        if _is_duplicate(sc, tf, "Compression", direction, bar_open_iso):
+            break  # already emitted for this bar — don't check 1H
+
+        entry = round(close - 1.0 if direction == "long" else close + 1.0, 2)
+        sl    = round(lo if direction == "long" else hi, 2)
+        tp    = round(entry + 5100 if direction == "long" else entry - 5100, 2)
+
+        sig = Signal(
+            id=uuid.uuid4().hex[:8], pattern="Compression", direction=direction,
+            tf=tf, bar_open_time=bar_open_iso,
+            entry_trigger=entry,
+            sl_wick=sl, sl_body=sl,
+            custom_tp=tp,
+            created_at=now, expires_at=now + timedelta(minutes=tf * 2),
+        )
+        sig.meta["compression_tf"]    = tf
+        sig.meta["compression_4h_poc"] = h4_poc
+        console.print(
+            f"[bold magenta]Compression[/bold magenta] detected on [green]{tf}m[/green] "
+            f"→ {direction.upper()}  entry={entry:.1f}  SL={sl:.1f}  TP={tp:.1f}"
+        )
+        return [sig]
+
+    return []
+
+
+def _check_compression_exits(sc: _Scanner, arr, ts_arr, minutes_of_day, unix_days, current_price: float) -> None:
+    """Close compression positions whose same-TF candle closed on wrong side of 4H POC."""
+    for pos in sc.open_positions:
+        if pos.status != "open" or not pos.compression_tf or not pos.compression_4h_poc:
+            continue
+        bars, bar_ts = aggregate_tf(arr, ts_arr, minutes_of_day, unix_days, pos.compression_tf, last_n=3)
+        if bars is None or len(bars) < 2:
+            continue
+        last_bar_open = str(bar_ts[-2])
+        if last_bar_open == pos.compression_last_bar_time:
+            continue  # already checked this bar
+        pos.compression_last_bar_time = last_bar_open
+        bar_close = float(bars[-2][3])
+        poc = pos.compression_4h_poc
+        exit_hit = (
+            (pos.direction == "long"  and bar_close < poc) or
+            (pos.direction == "short" and bar_close > poc)
+        )
+        if exit_hit:
+            console.print(
+                f"[magenta]Compression POC exit: {pos.direction} closed {bar_close:.1f} "
+                f"{'<' if pos.direction == 'long' else '>'} 4H POC {poc:.1f}[/magenta]"
+            )
+            _close_position(sc, pos, current_price, "compression_poc_exit")
 
 
 def _scan_patterns(sc: _Scanner, arr, ts_arr, minutes_of_day, unix_days) -> list[Signal]:
@@ -767,6 +855,11 @@ def _execute_entry(sc: _Scanner, sig: Signal, current_price: float) -> None:
     pos.depo_tp1 = depo_tp1
     pos.depo_tp2 = depo_tp2
 
+    if sig.pattern == "Compression":
+        pos.compression_tf        = (sig.meta or {}).get("compression_tf")
+        pos.compression_4h_poc    = (sig.meta or {}).get("compression_4h_poc")
+        pos.compression_last_bar_time = sig.bar_open_time
+
     mode = _trading_mode(sc)
     if _is_live(sc):
         broker = sc.broker
@@ -1112,6 +1205,9 @@ def _position_to_dict(p: Position) -> dict:
         "depo_tp1":    p.depo_tp1,
         "depo_tp2":    p.depo_tp2,
         "depo_be_done": p.depo_be_done,
+        "compression_tf":             p.compression_tf,
+        "compression_4h_poc":         p.compression_4h_poc,
+        "compression_last_bar_time":  p.compression_last_bar_time,
     }
 
 
@@ -1145,6 +1241,9 @@ def _dict_to_position(d: dict) -> Position:
         depo_tp1=d.get("depo_tp1"),
         depo_tp2=d.get("depo_tp2"),
         depo_be_done=d.get("depo_be_done", False),
+        compression_tf=d.get("compression_tf"),
+        compression_4h_poc=d.get("compression_4h_poc"),
+        compression_last_bar_time=d.get("compression_last_bar_time"),
     )
 
 
@@ -1502,6 +1601,8 @@ def run_trading_scanner(uid: str, user_settings: dict | None = None, email: str 
                         f"({', '.join(_active_patterns(sc))})…[/cyan]"
                     )
                     new_sigs = _scan_patterns(sc, arr, ts_arr, minutes_of_day, unix_days)
+                    if _compression_enabled(sc):
+                        new_sigs += _check_compression(sc, arr, ts_arr, minutes_of_day, unix_days, now)
                     if new_sigs and _bias_filter_enabled(sc):
                         allowed = "long" if "bullish" in bias else "short"
                         filtered = [s for s in new_sigs if s.direction != allowed]
@@ -1515,6 +1616,8 @@ def run_trading_scanner(uid: str, user_settings: dict | None = None, email: str 
                         w_poc  = sc.current_levels.get("weekly_poc")
                         h4_poc = sc.current_levels.get("4h_poc")
                         def _passes(s) -> bool:
+                            if s.pattern == "Compression":
+                                return True  # already requires all 3 POCs — exempt from DEPO/POC filter
                             lo, hi = s.meta.get("bar_low", 0), s.meta.get("bar_high", float("inf"))
                             has_depo = depo_on and s.meta.get("depo_line") is not None
                             has_poc  = poc_on and bool(
@@ -1554,6 +1657,7 @@ def run_trading_scanner(uid: str, user_settings: dict | None = None, email: str 
                             for sig in new_sigs:
                                 _fs.save_signal(_signal_to_dict(sig), sc.uid)
                     _tick_bsg(sc, arr, ts_arr, minutes_of_day, unix_days)
+                    _check_compression_exits(sc, arr, ts_arr, minutes_of_day, unix_days, current_price)
                     sc.last_scan_time = now
                 except Exception as e:
                     console.print(f"[red]Pattern scan error: {e}[/red]")

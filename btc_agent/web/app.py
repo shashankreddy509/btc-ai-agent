@@ -56,7 +56,7 @@ _SCANNER_SEED_KEYS = frozenset({
     "bsg_enabled", "bsg_trade_enabled", "daily_pts_target", "daily_sl_pts", "daily_sl_limit", "cme_close_skip",
     "opposite_signal_action",
     "oi_filter_enabled", "oi_threshold_mult", "oi_lookback_bars", "oi_div_lookback", "oi_tf",
-    "depo_entry_filter", "poc_entry_filter",
+    "depo_entry_filter", "poc_entry_filter", "compression_enabled",
     "coinbase_api_key", "coinbase_api_secret",
     "binance_api_key", "binance_api_secret",
     "bybit_api_key", "bybit_api_secret",
@@ -75,7 +75,7 @@ _BEHAVIOUR_SETTING_KEYS = frozenset({
     "bsg_enabled", "bsg_trade_enabled", "daily_pts_target", "daily_sl_pts", "daily_sl_limit", "cme_close_skip",
     "opposite_signal_action", "vishal",
     "oi_filter_enabled", "oi_threshold_mult", "oi_lookback_bars", "oi_div_lookback", "oi_tf",
-    "depo_entry_filter", "poc_entry_filter",
+    "depo_entry_filter", "poc_entry_filter", "compression_enabled",
 })
 
 

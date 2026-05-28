@@ -48,6 +48,9 @@ class Position:
     depo_tp1: float | None = None      # 950pt partial-close target
     depo_tp2: float | None = None      # next DEPO level (final target), also stored in pos.tp
     depo_be_done: bool = False         # True after 500pt breakeven SL triggered
+    compression_tf: int | None = None            # 30 or 60 — TF that triggered compression
+    compression_4h_poc: float | None = None      # 4H POC at entry (used for early exit check)
+    compression_last_bar_time: str | None = None # last bar open time checked for POC exit
 
 
 @dataclass
