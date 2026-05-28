@@ -6,22 +6,80 @@ import time
 import urllib.error
 import urllib.parse
 import urllib.request
+from collections import defaultdict
 from pathlib import Path
 
 from fastapi import FastAPI, Body, Depends, APIRouter, HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
+from rich.console import Console
+from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 
 from btc_agent import storage
 from btc_agent.web.auth import verify_token
 
 BASE = Path(__file__).parent
+console = Console()
 
 app = FastAPI(title="BTC AI Agent Dashboard")
 app.mount("/static", StaticFiles(directory=BASE / "static"), name="static")
 templates = Jinja2Templates(directory=BASE / "templates")
+
+
+class _SecurityHeadersMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request, call_next):
+        response = await call_next(request)
+        response.headers["X-Frame-Options"] = "DENY"
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+        response.headers["Content-Security-Policy"] = (
+            "default-src 'self'; script-src 'self' 'unsafe-inline' https://www.gstatic.com "
+            "https://cdn.jsdelivr.net https://unpkg.com; style-src 'self' 'unsafe-inline' "
+            "https://fonts.googleapis.com https://cdn.jsdelivr.net; font-src 'self' "
+            "https://fonts.gstatic.com https://cdn.jsdelivr.net; img-src 'self' data: https:; "
+            "connect-src 'self' wss: https://identitytoolkit.googleapis.com "
+            "https://securetoken.googleapis.com https://firestore.googleapis.com"
+        )
+        return response
+
+
+app.add_middleware(_SecurityHeadersMiddleware)
+
+
+class _RateLimitMiddleware(BaseHTTPMiddleware):
+    """60 req/min per IP on public /api/ endpoints. Auth-gated routes are exempt."""
+
+    _PUB_PREFIXES = ("/api/",)
+    _EXEMPT_PREFIXES = ("/api/trading/", "/api/settings/", "/api/admin/")
+
+    def __init__(self, app, max_requests: int = 60, window_s: int = 60):
+        super().__init__(app)
+        self._max = max_requests
+        self._window = window_s
+        self._counts: dict[str, list] = defaultdict(list)
+        self._lock = threading.Lock()
+
+    async def dispatch(self, request, call_next):
+        path = request.url.path
+        is_pub_api = any(path.startswith(p) for p in self._PUB_PREFIXES)
+        is_exempt = any(path.startswith(p) for p in self._EXEMPT_PREFIXES)
+        if is_pub_api and not is_exempt:
+            ip = (request.client.host if request.client else "unknown")
+            now = time.time()
+            cutoff = now - self._window
+            with self._lock:
+                ts = self._counts[ip]
+                while ts and ts[0] < cutoff:
+                    ts.pop(0)
+                if len(ts) >= self._max:
+                    return JSONResponse({"detail": "Too many requests"}, status_code=429)
+                ts.append(now)
+        return await call_next(request)
+
+
+app.add_middleware(_RateLimitMiddleware)
 
 # Public API — no auth required (briefing + scanner)
 pub = APIRouter(prefix="/api")
@@ -65,6 +123,7 @@ _SCANNER_SEED_KEYS = frozenset({
     "pepperstone_client_id", "pepperstone_client_secret",
     "pepperstone_refresh_token", "pepperstone_account_id",
     "pepperstone_is_live",
+    "telegram_chat_id",
 })
 
 # Behavioural settings persisted to Firestore via the settings page (no credentials)
@@ -76,6 +135,31 @@ _BEHAVIOUR_SETTING_KEYS = frozenset({
     "opposite_signal_action", "vishal",
     "oi_filter_enabled", "oi_threshold_mult", "oi_lookback_bars", "oi_div_lookback", "oi_tf",
     "depo_entry_filter", "poc_entry_filter", "compression_enabled",
+})
+
+_USER_SETTING_KEYS = _SCANNER_SEED_KEYS | _BEHAVIOUR_SETTING_KEYS
+
+_APP_SETTING_KEYS = frozenset({
+    "anthropic_api_key", "anthropic_model",
+    "telegram_bot_token", "telegram_chat_id",
+    "email_smtp_host", "email_smtp_port", "email_user", "email_pass", "email_to",
+    "briefing_time", "scanner_time",
+    "trading_mode", "trading_broker", "opposite_signal_action",
+    "coinbase_api_key", "coinbase_api_secret", "coinbase_product_id", "coinbase_contract_size",
+    "binance_api_key", "binance_api_secret", "binance_contract_size",
+    "bybit_api_key", "bybit_api_secret", "bybit_contract_size",
+    "delta_api_key", "delta_api_secret", "delta_contract_size",
+    "coindcx_api_key", "coindcx_api_secret", "coindcx_contract_size",
+    "pepperstone_client_id", "pepperstone_client_secret", "pepperstone_account_id", "pepperstone_is_live",
+    "scanner_tf_min", "scanner_tf_max", "scanner_interval_min", "scanner_patterns",
+    "trading_tf_min", "trading_tf_max", "trading_scan_interval_min",
+    "trading_max_concurrent", "trading_qty", "trading_max_sl", "trading_min_tp",
+    "trading_daily_pts_target", "trading_daily_sl_pts", "trading_daily_sl_limit",
+    "trading_bias_filter", "trading_cme_close_skip", "trading_patterns",
+    "vishal_enabled", "bsg_enabled", "bsg_trade_enabled",
+    "oi_filter_enabled", "oi_threshold_mult", "oi_lookback_bars", "oi_div_lookback", "oi_tf",
+    "depo_entry_filter", "poc_entry_filter", "compression_enabled",
+    "weekly_adj", "delivery_channels",
 })
 
 
@@ -91,10 +175,9 @@ def _get_feature_flags() -> dict:
             data = load_app_settings() or {}
             _flag_cache = {
                 "vishal_enabled":      bool(data.get("vishal_enabled", False)),
-                "retracement_enabled": bool(data.get("retracement_enabled", False)),
             }
         except Exception as e:
-            print(f"[feature_flags] load failed: {e}")
+            console.print(f"[yellow][feature_flags] load failed: {e}[/yellow]")
         _flag_cache_ts = time.time()
     return _flag_cache
 
@@ -113,12 +196,9 @@ def _mask_dict(d: dict, fields: list[str]) -> dict:
 
 
 def _is_valid_qty(qty) -> bool:
-    """qty must be a positive integer that is a multiple of 2."""
-    try:
-        n = int(qty)
-    except (TypeError, ValueError):
+    if not isinstance(qty, int) or isinstance(qty, bool):
         return False
-    return n == qty and n > 0 and n % 2 == 0
+    return 0 < qty <= 1000 and qty % 2 == 0
 
 
 async def _require_admin(token: dict = Depends(verify_token)) -> dict:
@@ -157,7 +237,7 @@ async def _price_broadcaster():
                     except asyncio.QueueFull:
                         pass
         except Exception as e:
-            print(f"[price-ws] fetch error: {e}")
+            console.print(f"[yellow][price-ws] fetch error: {e}[/yellow]")
         await asyncio.sleep(1)
 
 
@@ -188,6 +268,27 @@ async def ws_price(ws: WebSocket):
 # ── Startup: load Firestore settings into config ──────────────────────────────
 
 @app.on_event("startup")
+async def _startup_security_checks():
+    from btc_agent import config
+    svc_key = BASE.parent / "serviceAccountKey.json"
+    if svc_key.exists():
+        console.print("[yellow][startup] WARNING: serviceAccountKey.json found at project root. "
+                      "Set FIREBASE_SERVICE_ACCOUNT env var and remove the file in production.[/yellow]")
+    missing = [k for k, v in {
+        "FIREBASE_WEB_API_KEY": config.FIREBASE_WEB_API_KEY,
+        "FIREBASE_AUTH_DOMAIN": config.FIREBASE_AUTH_DOMAIN,
+        "FIREBASE_PROJECT_ID":  config.FIREBASE_PROJECT_ID,
+        "FIREBASE_APP_ID":      config.FIREBASE_APP_ID,
+    }.items() if not v]
+    if missing:
+        console.print(f"[yellow][startup] WARNING: Firebase web config missing: {missing}. "
+                      f"JS SDK will fail silently.[/yellow]")
+    if not config.FIREBASE_OWNER_UID and not config.FIREBASE_ADMIN_EMAIL:
+        console.print("[red][startup] CRITICAL: Neither FIREBASE_OWNER_UID nor FIREBASE_ADMIN_EMAIL "
+                      "is set. Admin endpoints will be inaccessible.[/red]")
+
+
+@app.on_event("startup")
 async def _load_firestore_settings():
     try:
         from btc_agent import config
@@ -206,7 +307,7 @@ async def _load_firestore_settings():
             if user_data.get("scanner_running"):
                 _auto_restart_scanner(uid, user_data)
     except Exception as e:
-        print(f"[startup] Firestore settings load skipped: {e}")
+        console.print(f"[yellow][startup] Firestore settings load skipped: {e}[/yellow]")
 
 
 def _auto_restart_scanner(uid: str, user_data: dict) -> None:
@@ -225,7 +326,7 @@ def _auto_restart_scanner(uid: str, user_data: dict) -> None:
         daemon=True,
         name=f"trading-{uid[:8]}-autostart",
     ).start()
-    print(f"[startup] Auto-restarting trading scanner for uid={uid[:8]}…")
+    console.print(f"[startup] Auto-restarting trading scanner for uid={uid[:8]}…")
 
 
 # ── Public pages ──────────────────────────────────────────────────────────────
@@ -397,7 +498,7 @@ async def get_brief():
 
 
 @pub.post("/scan/trigger")
-async def trigger_scan():
+async def trigger_scan(_: dict = Depends(_require_admin)):
     global _scan_running
     with _scan_lock:
         if _scan_running:
@@ -417,7 +518,7 @@ async def trigger_scan():
 
 
 @pub.post("/brief/trigger")
-async def trigger_brief():
+async def trigger_brief(_: dict = Depends(_require_admin)):
     global _brief_running
     with _brief_lock:
         if _brief_running:
@@ -524,8 +625,7 @@ async def status():
     return JSONResponse(
         {"scan_running": _scan_running, "brief_running": _brief_running,
          "trading_running": is_any_running(),
-         "vishal_enabled": flags.get("vishal_enabled", False),
-         "retracement_enabled": flags.get("retracement_enabled", False)}
+         "vishal_enabled": flags.get("vishal_enabled", False)}
     )
 
 
@@ -549,7 +649,7 @@ async def trading_state(token: dict = Depends(verify_token)):
                 if k in prefs:
                     state["settings"][k] = prefs[k]
         except Exception as e:
-            print(f"[trading_state] user prefs load failed: {e}")
+            console.print(f"[yellow][trading_state] user prefs load failed: {e}[/yellow]")
     return JSONResponse(state)
 
 
@@ -707,7 +807,7 @@ _SENSITIVE_USER = [
 
 
 @priv_cfg.get("/app")
-async def settings_get_app():
+async def settings_get_app(_: dict = Depends(_require_admin)):
     from btc_agent.trading.firestore_store import load_app_settings
     data = load_app_settings() or {}
     return JSONResponse(_mask_dict(data, _SENSITIVE_APP))
@@ -717,7 +817,7 @@ async def settings_get_app():
 async def settings_save_app(body: dict = Body(...), _: dict = Depends(_require_admin)):
     from btc_agent import config
     from btc_agent.trading.firestore_store import save_app_settings
-    clean = {k: v for k, v in body.items() if v is not None and "****" not in str(v)}
+    clean = {k: v for k, v in body.items() if k in _APP_SETTING_KEYS and v is not None and "****" not in str(v)}
     save_app_settings(clean)
     config.apply_settings(clean)
     return JSONResponse({"status": "saved"})
@@ -760,7 +860,7 @@ async def pepperstone_auth_url(request: Request, token: dict = Depends(verify_to
 async def settings_save_user(body: dict = Body(...), token: dict = Depends(verify_token)):
     from btc_agent.trading.firestore_store import save_user_prefs
     from btc_agent.trading.scanner import _scanners
-    clean = {k: v for k, v in body.items() if v is not None and "****" not in str(v)}
+    clean = {k: v for k, v in body.items() if k in _USER_SETTING_KEYS and v is not None and "****" not in str(v)}
     save_user_prefs(token["uid"], clean)
     sc = _scanners.get(token["uid"])
     if sc is not None:
@@ -866,7 +966,7 @@ async def _start_liquidity_collector():
                 asyncio.run(run_collect())
                 delay = 60  # reset backoff on clean exit
             except Exception as exc:
-                print(f"[liquidity-collector] crashed: {exc} — restarting in {delay}s")
+                console.print(f"[yellow][liquidity-collector] crashed: {exc} — restarting in {delay}s[/yellow]")
                 delay = min(delay * 2, 1800)  # cap at 30 min
             _time.sleep(delay)
 
@@ -898,6 +998,6 @@ async def _start_markov_refresh():
                     for sc in _scanners.values():
                         sc.current_regime = _r
             except Exception as exc:
-                print(f"[markov-refresh] failed: {exc}")
+                console.print(f"[yellow][markov-refresh] failed: {exc}[/yellow]")
 
     threading.Thread(target=_run, daemon=True, name="markov-refresh").start()

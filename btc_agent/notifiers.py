@@ -37,6 +37,19 @@ def send_telegram(message: str) -> None:
     _telegram_post({"chat_id": config.TELEGRAM_CHAT_ID, "text": message})
 
 
+def send_trade_alert(chat_id: str, message: str) -> None:
+    """Send a trade event alert to a user's personal Telegram chat."""
+    if not chat_id or not config.TELEGRAM_BOT_TOKEN:
+        return
+    url = f"https://api.telegram.org/bot{config.TELEGRAM_BOT_TOKEN}/sendMessage"
+    try:
+        resp = httpx.post(url, json={"chat_id": chat_id, "text": message}, timeout=10)
+        if not resp.is_success:
+            console.print(f"[yellow]Trade alert send failed {resp.status_code}: {resp.text}[/yellow]")
+    except Exception as e:
+        console.print(f"[yellow]Trade alert send error: {e}[/yellow]")
+
+
 def _send_telegram_html(messages: list[str]) -> None:
     """Send one or more HTML-formatted messages (Telegram caps each at 4096 chars)."""
     for msg in messages:

@@ -1,3 +1,7 @@
+function esc(s) {
+  return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
 const REFRESH_MS    = 60_000;
 const TZ_KEY        = 'btc_agent_tz';
 const DEFAULT_TZ    = 'Asia/Kolkata';
@@ -187,6 +191,7 @@ async function loadUserSettings() {
     onBrokerChange(broker);
     const nickEl = document.getElementById('s-broker-nickname');
     if (nickEl && d.broker_nickname) nickEl.value = d.broker_nickname;
+    sv2('s-user-tg-chat', d.telegram_chat_id);
   } catch (_) {}
 }
 
@@ -360,6 +365,8 @@ async function saveUserSection(section) {
     }
     // Clear inputs after save
     ['s-cb-key','s-cb-secret'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+  } else if (section === 'trade-alerts') {
+    data = { telegram_chat_id: _gv('s-user-tg-chat') };
   }
   await _saveSettings('/api/settings/user', data, section);
   if (section === 'coinbase-creds') await loadUserSettings();
@@ -763,7 +770,7 @@ function renderScan() {
       : '—';
     return `<tr>
       <td><span class="badge badge-neutral">${h.tf}m</span></td>
-      <td style="color:var(--text)">${h.pattern}</td>
+      <td style="color:var(--text)">${esc(h.pattern)}</td>
       <td>${directionBadge(dir)}</td>
       <td style="text-align:right">${agoHtml}</td>
       <td style="color:var(--text-3);font-size:12px">${formatTs(h.bar_open_time)}</td>
@@ -830,7 +837,7 @@ async function loadLiquidity() {
 
       return `${priceMarker}<tr>
         <td style="font-size:14px;font-variant-numeric:tabular-nums;font-weight:600">${priceFmt}</td>
-        <td style="font-size:14px;font-variant-numeric:tabular-nums;color:${levColor};font-weight:${levWeight}">${r.leverage}</td>
+        <td style="font-size:14px;font-variant-numeric:tabular-nums;color:${levColor};font-weight:${levWeight}">${esc(r.leverage)}</td>
       </tr>`;
     }).join('');
 
@@ -965,8 +972,6 @@ async function pollStatus() {
     const pageVishal = document.getElementById('page-vishal');
     if (navVishal)  navVishal.style.display  = s.vishal_enabled ? '' : 'none';
     if (pageVishal) pageVishal.style.display = s.vishal_enabled ? '' : 'none';
-    const labelRetracement = document.getElementById('label-pattern-retracement');
-    if (labelRetracement) labelRetracement.style.display = s.retracement_enabled ? '' : 'none';
   } catch (_) {}
 }
 
@@ -1189,10 +1194,10 @@ function renderRegimeLog() {
       : r.correct ? '<span style="color:var(--green)">✓</span>' : '<span style="color:var(--red)">✗</span>';
     const conv = r.conviction != null ? `${(r.conviction * 100) >= 0 ? '+' : ''}${(r.conviction * 100).toFixed(0)}%` : '—';
     return `<tr>
-      <td style="font-variant-numeric:tabular-nums;color:var(--text-3)">${r.date}</td>
-      <td>${r.predicted_regime ? `<span class="badge ${predCls}">${r.predicted_regime}</span>` : '—'}</td>
+      <td style="font-variant-numeric:tabular-nums;color:var(--text-3)">${esc(r.date)}</td>
+      <td>${r.predicted_regime ? `<span class="badge ${predCls}">${esc(r.predicted_regime)}</span>` : '—'}</td>
       <td style="color:var(--text-3);font-size:12px">${conv}</td>
-      <td>${r.actual_regime ? `<span class="badge ${actCls}">${r.actual_regime}</span>` : '<span style="color:var(--text-3)">pending</span>'}</td>
+      <td>${r.actual_regime ? `<span class="badge ${actCls}">${esc(r.actual_regime)}</span>` : '<span style="color:var(--text-3)">pending</span>'}</td>
       <td>${correctCell}</td>
     </tr>`;
   }).join('');

@@ -72,7 +72,7 @@ OI_TF                     = int(os.getenv("OI_TF", "5"))
 
 # Firebase owner UID — Coinbase keys stored in Firestore are tied to this UID
 FIREBASE_OWNER_UID        = os.getenv("FIREBASE_OWNER_UID", "")
-FIREBASE_ADMIN_EMAIL      = os.getenv("FIREBASE_ADMIN_EMAIL", "shashankreddy509@gmail.com")
+FIREBASE_ADMIN_EMAIL      = os.getenv("FIREBASE_ADMIN_EMAIL", "")
 
 # Firebase Web SDK config (client-side, not secret but kept out of source)
 FIREBASE_WEB_API_KEY         = os.getenv("FIREBASE_WEB_API_KEY", "")
