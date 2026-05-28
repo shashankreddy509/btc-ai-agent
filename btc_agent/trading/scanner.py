@@ -1345,6 +1345,7 @@ def get_state(uid: str | None = None) -> dict:
                 "patterns":          config.TRADING_PATTERNS,
                 "depo_entry_filter":   config.DEPO_ENTRY_FILTER,
                 "poc_entry_filter":    config.POC_ENTRY_FILTER,
+                "compression_enabled": config.COMPRESSION_ENABLED,
             },
         }
 
@@ -1394,6 +1395,7 @@ def get_state(uid: str | None = None) -> dict:
             "oi_tf":                    _oi_tf(sc),
             "depo_entry_filter":        _depo_entry_filter_enabled(sc),
             "poc_entry_filter":         _poc_entry_filter_enabled(sc),
+            "compression_enabled":      _compression_enabled(sc),
         },
     }
 
