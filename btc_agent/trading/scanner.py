@@ -59,6 +59,7 @@ class _Scanner:
     last_price: float = 0.0
     settings: dict = field(default_factory=dict)
     broker: object = field(default=None, repr=False)
+    thread: object = field(default=None, repr=False)
     vishal_state: dict = field(default_factory=dict)
     current_bias: str = ""
     broker_account_name: str = ""
@@ -321,6 +322,28 @@ def _last_swing_low(lows: np.ndarray, n: int = 3):
     return None, None
 
 
+def _all_swing_highs(highs: np.ndarray, n: int = 3) -> list:
+    result = []
+    if len(highs) < 2 * n + 1:
+        return result
+    for i in range(len(highs) - n - 1, n - 1, -1):
+        if all(highs[i] >= highs[i - j] for j in range(1, n + 1)) and \
+           all(highs[i] >= highs[i + j] for j in range(1, n + 1)):
+            result.append((i, float(highs[i])))
+    return result
+
+
+def _all_swing_lows(lows: np.ndarray, n: int = 3) -> list:
+    result = []
+    if len(lows) < 2 * n + 1:
+        return result
+    for i in range(len(lows) - n - 1, n - 1, -1):
+        if all(lows[i] <= lows[i - j] for j in range(1, n + 1)) and \
+           all(lows[i] <= lows[i + j] for j in range(1, n + 1)):
+            result.append((i, float(lows[i])))
+    return result
+
+
 def _check_retracement(sc: _Scanner, bars: np.ndarray, bar_ts, tf: int, now: datetime) -> "Signal | None":
     if len(bars) < 5:
         return None
@@ -328,18 +351,40 @@ def _check_retracement(sc: _Scanner, bars: np.ndarray, bar_ts, tf: int, now: dat
         return None
 
     SL_PTS    = 300
-    MIN_SWING = 500
+    MIN_SWING = 1700
 
-    closed    = bars[:-1]
-    sw_hi_idx, sw_hi = _last_swing_high(closed[:, 1], n=3)
-    sw_lo_idx, sw_lo = _last_swing_low(closed[:, 2], n=3)
-    if sw_hi_idx is None or sw_lo_idx is None:
+    closed     = bars[:-1]
+    highs_arr  = closed[:, 1]
+    lows_arr   = closed[:, 2]
+
+    sw_hi_idx = sw_hi = sw_lo_idx = sw_lo = None
+    direction  = None
+
+    # SHORT setup: anchor on most recent swing low, walk back through highs
+    recent_lo_idx, recent_lo = _last_swing_low(lows_arr, n=3)
+    if recent_lo_idx is not None:
+        for hi_idx, hi_price in _all_swing_highs(highs_arr, n=3):
+            if hi_idx < recent_lo_idx and hi_price - recent_lo >= MIN_SWING:
+                sw_hi_idx, sw_hi = hi_idx, hi_price
+                sw_lo_idx, sw_lo = recent_lo_idx, recent_lo
+                direction = "short"
+                break
+
+    # LONG setup: anchor on most recent swing high, walk back through lows
+    recent_hi_idx, recent_hi = _last_swing_high(highs_arr, n=3)
+    if recent_hi_idx is not None:
+        for lo_idx, lo_price in _all_swing_lows(lows_arr, n=3):
+            if lo_idx < recent_hi_idx and recent_hi - lo_price >= MIN_SWING:
+                if direction is None or recent_hi_idx > recent_lo_idx:
+                    sw_hi_idx, sw_hi = recent_hi_idx, recent_hi
+                    sw_lo_idx, sw_lo = lo_idx, lo_price
+                    direction = "long"
+                break
+
+    if direction is None:
         return None
+
     fib_range = sw_hi - sw_lo
-
-    if fib_range < MIN_SWING:
-        return None
-
     last  = bars[-1]
     bar_h = float(last[1])
     bar_l = float(last[2])
@@ -347,29 +392,33 @@ def _check_retracement(sc: _Scanner, bars: np.ndarray, bar_ts, tf: int, now: dat
     ts    = int(bar_ts[-1]) if len(bar_ts) else int(now.timestamp())
     bar_open_iso = datetime.fromtimestamp(ts, tz=timezone.utc).isoformat()
 
-    if sw_hi_idx > sw_lo_idx:
-        fib_50  = round(sw_hi - 0.500 * fib_range, 1)
-        fib_618 = round(sw_hi - 0.618 * fib_range, 1)
-        if bar_l <= fib_50 and bar_c > fib_50:
+    fib_50 = round(sw_hi - 0.500 * fib_range, 1)  # midpoint, same both directions
+
+    if direction == "long":
+        # Price pulled back DOWN from swing high — enter LONG at fib levels
+        # 0.618 from low upward = shallower pullback (above midpoint)
+        fib_618 = round(sw_lo + 0.618 * fib_range, 1)
+        if (bar_l <= fib_618 and bar_c > fib_618) or (bar_l <= fib_50 and bar_c > fib_50):
             return Signal(
                 id=uuid.uuid4().hex[:8], pattern="Retracement", direction="long",
                 tf=tf, bar_open_time=bar_open_iso,
                 entry_trigger=round(bar_c - 1.0, 2),
-                sl_wick=round(bar_c - SL_PTS, 2), sl_body=round(bar_c - SL_PTS, 2),
+                sl_wick=round(fib_50 - SL_PTS, 2), sl_body=round(fib_50 - SL_PTS, 2),
                 created_at=now, expires_at=now + timedelta(minutes=tf),
                 custom_tp=round(sw_hi, 2),
                 meta={"sw_hi": round(sw_hi, 1), "sw_lo": round(sw_lo, 1),
                       "fib_50": fib_50, "fib_618": fib_618},
             )
     else:
-        fib_50  = round(sw_hi - 0.500 * fib_range, 1)
+        # Price bouncing UP from swing low — enter SHORT at fib levels
+        # 0.618 from high downward = deeper retracement (below midpoint)
         fib_618 = round(sw_hi - 0.618 * fib_range, 1)
-        if bar_h >= fib_618 and bar_c < fib_618:
+        if (bar_h >= fib_50 and bar_c < fib_50) or (bar_h >= fib_618 and bar_c < fib_618):
             return Signal(
                 id=uuid.uuid4().hex[:8], pattern="Retracement", direction="short",
                 tf=tf, bar_open_time=bar_open_iso,
                 entry_trigger=round(bar_c + 1.0, 2),
-                sl_wick=round(bar_c + SL_PTS, 2), sl_body=round(bar_c + SL_PTS, 2),
+                sl_wick=round(fib_50 + SL_PTS, 2), sl_body=round(fib_50 + SL_PTS, 2),
                 created_at=now, expires_at=now + timedelta(minutes=tf),
                 custom_tp=round(sw_lo, 2),
                 meta={"sw_hi": round(sw_hi, 1), "sw_lo": round(sw_lo, 1),
@@ -518,16 +567,14 @@ def _scan_patterns(sc: _Scanner, arr, ts_arr, minutes_of_day, unix_days) -> list
 
     if "Retracement" in patterns:
         ret_now = datetime.now(timezone.utc)
-        for tf in (15, 30):
-            bars, bar_ts = aggregate_tf(arr, ts_arr, minutes_of_day, unix_days, tf, last_n=61)
-            if bars is None:
-                continue
-            sig = _check_retracement(sc, bars, bar_ts, tf, ret_now)
+        bars, bar_ts = aggregate_tf(arr, ts_arr, minutes_of_day, unix_days, 30, last_n=101)
+        if bars is not None:
+            sig = _check_retracement(sc, bars, bar_ts, 30, ret_now)
             if sig:
                 new_signals.append(sig)
                 console.print(
                     f"[bold magenta]Retracement ({sig.direction})[/bold magenta] on "
-                    f"[green]{tf}m[/green]  trigger={sig.entry_trigger:.1f}  "
+                    f"[green]30m[/green]  trigger={sig.entry_trigger:.1f}  "
                     f"SH={sig.meta['sw_hi']:.0f}  SL={sig.meta['sw_lo']:.0f}"
                 )
 
@@ -906,6 +953,11 @@ def _execute_entry(sc: _Scanner, sig: Signal, current_price: float) -> None:
         _fs.update_signal_status(sig.id, "triggered")
         _fs.save_position(_position_to_dict(pos), sc.uid)
     _save_state(sc)
+    _notify_trade(sc,
+        f"{'✅ LIVE' if _is_live(sc) else '📋 PAPER'} {sig.direction.upper()} opened\n"
+        f"Pattern: {sig.pattern} {sig.tf}m\n"
+        f"Entry: {entry:.1f}  SL: {sl:.1f}  TP: {tp:.1f}"
+    )
 
 
 # ── position monitoring ───────────────────────────────────────────────────────
@@ -1010,6 +1062,14 @@ def _partial_close(sc: _Scanner, pos: Position, price: float) -> None:
             console.print(f"[red]Partial close order error: {e}[/red]")
 
 
+def _notify_trade(sc: _Scanner, message: str) -> None:
+    chat_id = sc.settings.get("telegram_chat_id", "")
+    if chat_id:
+        from btc_agent.notifiers import send_trade_alert
+        import threading as _t
+        _t.Thread(target=send_trade_alert, args=(chat_id, message), daemon=True).start()
+
+
 def _close_position(sc: _Scanner, pos: Position, price: float, reason: str) -> None:
     remaining = int(pos.qty) // 2 if pos.partial_closed else int(pos.qty)
     pnl_pts = price - pos.entry_price if pos.direction == "long" else pos.entry_price - price
@@ -1053,6 +1113,13 @@ def _close_position(sc: _Scanner, pos: Position, price: float, reason: str) -> N
     if _FS:
         _fs.save_position(_position_to_dict(pos), sc.uid)
         _fs.save_history(_result_to_dict(close_result), f"{pos.signal_id}_{reason}", sc.uid)
+
+    emoji = "🎯" if reason == "tp" else "🛑" if reason == "sl" else "🔄"
+    _notify_trade(sc,
+        f"{emoji} {pos.direction.upper()} closed ({reason.upper()})\n"
+        f"Entry: {pos.entry_price:.1f}  Exit: {price:.1f}\n"
+        f"PnL: {pos.pnl:+.4f}"
+    )
 
     # Reset the signal to pending so it can re-enter if price comes back within the entry window
     now_utc = datetime.now(timezone.utc)
@@ -1328,6 +1395,13 @@ def get_state(uid: str | None = None) -> dict:
     """Return current in-memory state for the web API."""
     sc = _scanners.get(uid) if uid else None
 
+    if sc is not None and sc.running and sc.thread is not None and not sc.thread.is_alive():
+        console.print(f"[yellow]Watchdog: scanner thread for {uid[:8]} is dead — resetting state[/yellow]")
+        sc.running = False
+        sc.thread = None
+        if _FS:
+            _fs.save_user_prefs(uid, {"scanner_running": False})
+
     if sc is None:
         return {
             "signals": [], "positions": [], "history": [],
@@ -1452,6 +1526,7 @@ def run_trading_scanner(uid: str, user_settings: dict | None = None, email: str 
         if sc.running:
             return
         sc.running = True
+        sc.thread = threading.current_thread()
     try:
         if email:
             sc.user_email = email
