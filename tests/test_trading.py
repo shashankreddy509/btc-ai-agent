@@ -352,3 +352,32 @@ class TestSameTfDirectionGuard:
         opens = [p for p in sc.open_positions if p.status == "open"]
         assert len(opens) == 1
         assert opens[0].direction == "long"
+
+
+class TestClosePositionNoBroker:
+    """Regression: _close_position must not crash in paper mode when sc.broker
+    is None — it should fall back to config.COINBASE_CONTRACT_SIZE."""
+
+    def test_close_with_none_broker_does_not_raise(self, monkeypatch):
+        import btc_agent.trading.scanner as scanner
+        from btc_agent.trading.scanner import _Scanner, _close_position
+        from btc_agent.trading.models import Position
+
+        monkeypatch.setattr(scanner, "_save_state", lambda *a, **k: None)
+        monkeypatch.setattr(scanner, "_notify_trade", lambda *a, **k: None)
+        monkeypatch.setattr(scanner, "_FS", False)
+
+        sc = _Scanner(uid="testuid")
+        sc.broker = None
+        sc.settings = {"mode": "paper"}
+        pos = Position(
+            signal_id="p1", entry_price=73500.0, sl=73600.0, tp=73000.0,
+            qty=2, direction="short", opened_at=datetime.now(timezone.utc),
+            pattern="4-Flag", tf=62, status="open",
+        )
+        sc.open_positions.append(pos)
+
+        _close_position(sc, pos, 73000.0, "tp")
+
+        assert pos.status == "closed_tp"
+        assert pos.pnl is not None

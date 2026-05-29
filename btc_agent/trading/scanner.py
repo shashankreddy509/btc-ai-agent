@@ -1082,7 +1082,8 @@ def _notify_trade(sc: _Scanner, message: str) -> None:
 def _close_position(sc: _Scanner, pos: Position, price: float, reason: str) -> None:
     remaining = int(pos.qty) // 2 if pos.partial_closed else int(pos.qty)
     pnl_pts = price - pos.entry_price if pos.direction == "long" else pos.entry_price - price
-    remain_pnl = round(pnl_pts * remaining * sc.broker.contract_size, 4)
+    contract_size = sc.broker.contract_size if sc.broker else config.COINBASE_CONTRACT_SIZE
+    remain_pnl = round(pnl_pts * remaining * contract_size, 4)
     pos.pnl = round(pos.partial_pnl + remain_pnl, 4)
     pos.status = f"closed_{reason}"
 
