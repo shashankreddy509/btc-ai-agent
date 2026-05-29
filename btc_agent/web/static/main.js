@@ -288,15 +288,23 @@ async function savePepperstoneCreds() {
 
 async function connectPepperstone() {
   if (!_currentUser) return;
-  const { url } = await fetchJSON('/api/settings/pepperstone/auth-url', { method: 'POST' });
+  let url;
+  try {
+    ({ url } = await fetchJSON('/api/settings/pepperstone/auth-url', { method: 'POST' }));
+  } catch (e) {
+    console.error('Pepperstone auth-url failed:', e);
+    return;
+  }
   if (!url) return;
-  const popup = window.open(url, 'pepperstone_auth', 'width=600,height=700,noopener=no');
+  // noopener,noreferrer prevents the OAuth popup from reaching window.opener
+  // (tabnabbing). The handle is null under noopener, so poll settings to pick
+  // up the connection instead of watching popup.closed.
+  window.open(url, 'pepperstone_auth', 'width=600,height=700,noopener,noreferrer');
+  let ticks = 0;
   const timer = setInterval(() => {
-    if (!popup || popup.closed) {
-      clearInterval(timer);
-      loadUserSettings();
-    }
-  }, 1000);
+    loadUserSettings();
+    if (++ticks >= 60) clearInterval(timer);  // stop after ~2 min
+  }, 2000);
 }
 
 // ── Settings save ─────────────────────────────────────────────────────────────
@@ -669,10 +677,15 @@ async function fetchJSON(url, opts = {}) {
   const token = await _getToken();
   const headers = { ...(opts.headers || {}) };
   if (token) headers['Authorization'] = `Bearer ${token}`;
+  if (opts.body && !headers['Content-Type']) headers['Content-Type'] = 'application/json';
   const r = await fetch(url, { ...opts, headers, cache: 'no-store' });
   if (r.status === 401) throw Object.assign(new Error('Unauthenticated'), { status: 401 });
   if (!r.ok) throw new Error(`${url} → ${r.status}`);
-  return r.json();
+  try {
+    return await r.json();
+  } catch {
+    throw new Error(`${url} → invalid JSON response`);
+  }
 }
 
 // ── Pattern helpers ────────────────────────────────────────────────────────────
@@ -701,7 +714,6 @@ function patternMatchesFilter(h) {
 // ── Markdown renderer ──────────────────────────────────────────────────────────
 function renderMarkdown(text) {
   if (!text) return '<p style="color:var(--text-3)">No briefing yet.</p>';
-  const esc    = s => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
   const inline = s => esc(s)
     .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
     .replace(/\*(.+?)\*/g,     '<em>$1</em>');
@@ -769,7 +781,7 @@ function renderScan() {
       ? Number(h.bar_open_price).toLocaleString('en-US', { minimumFractionDigits: 1, maximumFractionDigits: 1 })
       : '—';
     return `<tr>
-      <td><span class="badge badge-neutral">${h.tf}m</span></td>
+      <td><span class="badge badge-neutral">${esc(h.tf)}m</span></td>
       <td style="color:var(--text)">${esc(h.pattern)}</td>
       <td>${directionBadge(dir)}</td>
       <td style="text-align:right">${agoHtml}</td>
@@ -853,7 +865,7 @@ async function loadLiquidity() {
     const curFmt = currentPrice ? ` · BTC $${currentPrice.toLocaleString('en-US',{minimumFractionDigits:0,maximumFractionDigits:0})}` : '';
     if (status) status.textContent = `${rows.length} levels · last: ${lastTs}${curFmt}`;
   } catch (e) {
-    tbody.innerHTML = `<tr><td colspan="2" style="color:var(--red)">${e}</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="2" style="color:var(--red)">${esc(String(e))}</td></tr>`;
   }
 }
 
@@ -913,7 +925,7 @@ async function loadOIStatus() {
     `;
     if (msg) msg.textContent = `Last fetched: ${formatTs(d.fetched_at)}`;
   } catch(e) {
-    if (grid) grid.innerHTML = `<div style="color:var(--red);grid-column:1/-1">${e}</div>`;
+    if (grid) grid.innerHTML = `<div style="color:var(--red);grid-column:1/-1">${esc(String(e))}</div>`;
     if (msg) msg.textContent = '';
   }
 }
@@ -1001,18 +1013,23 @@ function _setRunningBtn(scanRunning, briefRunning) {
 }
 
 // ── Trigger buttons ────────────────────────────────────────────────────────────
+let _scanPollIv = null, _briefPollIv = null;
 async function triggerScan() {
   document.getElementById('scan-btn').disabled = true;
   await fetchJSON('/api/scan/trigger', { method: 'POST' });
+  if (_scanPollIv) clearInterval(_scanPollIv);
   const iv = setInterval(async () => { await pollStatus(); await loadScan(); }, 3000);
-  setTimeout(() => clearInterval(iv), 5 * 60 * 1000);
+  _scanPollIv = iv;
+  setTimeout(() => { clearInterval(iv); if (_scanPollIv === iv) _scanPollIv = null; }, 5 * 60 * 1000);
 }
 
 async function triggerBrief() {
   document.getElementById('brief-btn').disabled = true;
   await fetchJSON('/api/brief/trigger', { method: 'POST' });
+  if (_briefPollIv) clearInterval(_briefPollIv);
   const iv = setInterval(async () => { await pollStatus(); await loadBriefing(); }, 3000);
-  setTimeout(() => clearInterval(iv), 5 * 60 * 1000);
+  _briefPollIv = iv;
+  setTimeout(() => { clearInterval(iv); if (_briefPollIv === iv) _briefPollIv = null; }, 5 * 60 * 1000);
 }
 
 // ── BTC price ──────────────────────────────────────────────────────────────────
@@ -1265,9 +1282,9 @@ function renderMarkovPage() {
     if (t.error) {
       rows.push(`<tr>
         <td><span style="font-size:11px">${t.market === 'IN' ? '🇮🇳' : t.market === 'custom' ? '⭐' : '🇺🇸'}</span></td>
-        <td style="font-weight:600">${tid}</td>
-        <td colspan="4" style="color:var(--red);font-size:12px">${t.error}</td>
-        <td>${t.market === 'custom' ? `<button class="btn btn-danger" style="font-size:11px;padding:2px 8px" onclick="removeMarkovCustomTicker('${tid}')">✕</button>` : ''}</td>
+        <td style="font-weight:600">${esc(tid)}</td>
+        <td colspan="4" style="color:var(--red);font-size:12px">${esc(t.error)}</td>
+        <td>${t.market === 'custom' ? `<button class="btn btn-danger" style="font-size:11px;padding:2px 8px" data-mk-remove="${esc(tid)}">✕</button>` : ''}</td>
       </tr>`);
       continue;
     }
@@ -1276,28 +1293,35 @@ function renderMarkovPage() {
     const acc = t.accuracy != null ? `${(t.accuracy * 100).toFixed(0)}% (${t.graded_count}d)` : '—';
     const updAt = t.computed_at ? new Date(t.computed_at).toLocaleString() : '—';
     const flag = t.market === 'IN' ? '🇮🇳' : t.market === 'custom' ? '⭐' : '🇺🇸';
-    rows.push(`<tr style="cursor:pointer" onclick="toggleMarkovExpand('${tid}')">
+    rows.push(`<tr style="cursor:pointer" data-mk-toggle="${esc(tid)}">
       <td><span style="font-size:13px">${flag}</span></td>
-      <td style="font-weight:600;font-variant-numeric:tabular-nums">${tid}</td>
-      <td><span class="badge ${regCls}">${t.regime || '—'}</span></td>
+      <td style="font-weight:600;font-variant-numeric:tabular-nums">${esc(tid)}</td>
+      <td><span class="badge ${regCls}">${esc(t.regime || '—')}</span></td>
       <td style="color:var(--text-2)">${conv}</td>
       <td style="color:var(--text-2)">${acc}</td>
       <td style="font-size:11px;color:var(--text-3)">${updAt}</td>
       <td style="display:flex;gap:4px;align-items:center">
         <span style="font-size:10px;color:var(--text-3)">${isExp ? '▲' : '▼'}</span>
-        ${t.market === 'custom' ? `<button class="btn btn-danger" style="font-size:11px;padding:2px 8px" onclick="event.stopPropagation();removeMarkovCustomTicker('${tid}')">✕</button>` : ''}
+        ${t.market === 'custom' ? `<button class="btn btn-danger" style="font-size:11px;padding:2px 8px" data-mk-remove="${esc(tid)}">✕</button>` : ''}
       </td>
     </tr>`);
     if (isExp) {
       rows.push(`<tr id="markov-exp-${tid.replace(/[^a-z0-9]/gi,'_')}">
         <td colspan="7" style="padding:12px 16px;background:var(--surface-2)">
-          <div style="font-size:11px;color:var(--text-3);margin-bottom:8px">30-day prediction log for ${tid}</div>
+          <div style="font-size:11px;color:var(--text-3);margin-bottom:8px">30-day prediction log for ${esc(tid)}</div>
           <div id="markov-hist-${tid.replace(/[^a-z0-9]/gi,'_')}"><span style="color:var(--text-3)">Loading…</span></div>
         </td>
       </tr>`);
     }
   }
   tbody.innerHTML = rows.join('');
+
+  tbody.onclick = (ev) => {
+    const rm = ev.target.closest('[data-mk-remove]');
+    if (rm) { ev.stopPropagation(); removeMarkovCustomTicker(rm.dataset.mkRemove); return; }
+    const tr = ev.target.closest('[data-mk-toggle]');
+    if (tr) toggleMarkovExpand(tr.dataset.mkToggle);
+  };
 
   // Load history for expanded ticker
   if (_markovExpanded) {
@@ -1330,10 +1354,10 @@ async function _loadMarkovHistory(ticker) {
         const conv = r.conviction != null ? `${(r.conviction*100)>=0?'+':''}${(r.conviction*100).toFixed(1)}%` : '—';
         const bg = r.correct === true ? 'background:rgba(34,197,94,0.05)' : r.correct === false ? 'background:rgba(239,68,68,0.05)' : '';
         return `<tr style="${bg}">
-          <td style="padding:4px 8px;color:var(--text-3)">${r.date}</td>
-          <td style="text-align:center">${r.predicted_regime ? `<span class="badge ${predCls}">${r.predicted_regime}</span>` : '—'}</td>
+          <td style="padding:4px 8px;color:var(--text-3)">${esc(r.date)}</td>
+          <td style="text-align:center">${r.predicted_regime ? `<span class="badge ${predCls}">${esc(r.predicted_regime)}</span>` : '—'}</td>
           <td style="text-align:center;color:var(--text-2)">${conv}</td>
-          <td style="text-align:center">${r.actual_regime ? `<span class="badge ${actCls}">${r.actual_regime}</span>` : '<span style="color:var(--text-3)">pending</span>'}</td>
+          <td style="text-align:center">${r.actual_regime ? `<span class="badge ${actCls}">${esc(r.actual_regime)}</span>` : '<span style="color:var(--text-3)">pending</span>'}</td>
           <td style="text-align:center">${ok}</td>
         </tr>`;
       }).join('')}</tbody>
@@ -1374,7 +1398,7 @@ function renderRegimePage() {
   const liveEl = document.getElementById('regime-page-live');
   if (liveEl && live_regime) {
     if (live_regime.error) {
-      liveEl.innerHTML = `<span style="color:var(--red)">Regime unavailable: ${live_regime.error}</span>`;
+      liveEl.innerHTML = `<span style="color:var(--red)">Regime unavailable: ${esc(live_regime.error)}</span>`;
     } else {
       const cls = live_regime.regime === 'Bull' ? 'badge-bull' : live_regime.regime === 'Bear' ? 'badge-bear' : 'badge-neutral';
       const pct = live_regime.conviction != null ? `${(live_regime.conviction * 100) >= 0 ? '+' : ''}${(live_regime.conviction * 100).toFixed(1)}%` : '—';
@@ -1432,10 +1456,10 @@ function renderRegimePage() {
     const conv = r.conviction != null ? `${(r.conviction * 100) >= 0 ? '+' : ''}${(r.conviction * 100).toFixed(1)}%` : '—';
     const row_bg = r.correct === true ? 'background:rgba(34,197,94,0.04)' : r.correct === false ? 'background:rgba(239,68,68,0.04)' : '';
     return `<tr style="${row_bg}">
-      <td style="font-variant-numeric:tabular-nums;color:var(--text-3)">${r.date}</td>
-      <td>${r.predicted_regime ? `<span class="badge ${predCls}">${r.predicted_regime}</span>` : '—'}</td>
+      <td style="font-variant-numeric:tabular-nums;color:var(--text-3)">${esc(r.date)}</td>
+      <td>${r.predicted_regime ? `<span class="badge ${predCls}">${esc(r.predicted_regime)}</span>` : '—'}</td>
       <td style="color:var(--text-2)">${conv}</td>
-      <td>${r.actual_regime ? `<span class="badge ${actCls}">${r.actual_regime}</span>` : '<span style="color:var(--text-3)">—</span>'}</td>
+      <td>${r.actual_regime ? `<span class="badge ${actCls}">${esc(r.actual_regime)}</span>` : '<span style="color:var(--text-3)">—</span>'}</td>
       <td>${correctCell}</td>
       <td style="font-size:11px;color:var(--text-3)">${r.computed_at ? new Date(r.computed_at).toLocaleString() : '—'}</td>
     </tr>`;
@@ -1500,17 +1524,17 @@ function renderTrading() {
               <span>61.8%: ${Math.round(m.fib_618).toLocaleString('en-US')}</span>
             </div>
            </td>`
-        : `<td>${s.pattern}</td>`;
+        : `<td>${esc(s.pattern)}</td>`;
       return `<tr>
         ${patternCell}
-        <td><span class="badge badge-neutral">${s.tf}m</span></td>
+        <td><span class="badge badge-neutral">${esc(s.tf)}m</span></td>
         <td>${dirBadge}</td>
         <td style="text-align:right;font-variant-numeric:tabular-nums">${Number(s.entry_trigger).toLocaleString('en-US',{minimumFractionDigits:1,maximumFractionDigits:1})}</td>
         <td style="text-align:right;color:var(--red);font-variant-numeric:tabular-nums">${Number(s.sl_wick).toLocaleString('en-US',{minimumFractionDigits:1,maximumFractionDigits:1})}</td>
         <td style="color:var(--text-3);font-size:12px">${formatTs(s.expires_at)}</td>
         <td style="color:var(--accent)">
           ${s.status}
-          ${s.note ? `<div style="font-size:10px;color:#f5a623;margin-top:2px">${s.note}</div>` : ''}
+          ${s.note ? `<div style="font-size:10px;color:#f5a623;margin-top:2px">${esc(s.note)}</div>` : ''}
         </td>
       </tr>`;
     }).join('');
@@ -1542,12 +1566,12 @@ function renderTrading() {
         : '—';
       return `<tr>
         <td>${dirBadge}</td>
-        <td><span class="badge badge-neutral">${p.tf ? p.tf + 'm' : '—'}</span></td>
-        <td>${p.pattern || '—'}</td>
+        <td><span class="badge badge-neutral">${esc(p.tf ? p.tf + 'm' : '—')}</span></td>
+        <td>${esc(p.pattern || '—')}</td>
         <td style="text-align:right;font-variant-numeric:tabular-nums">$${fmtPrice(p.entry_price)}</td>
         <td style="text-align:right;color:${slColor};font-variant-numeric:tabular-nums">$${fmtPrice(p.sl)}</td>
         <td style="text-align:right">${tp1Str}</td>
-        <td style="text-align:right" data-pos-pts data-entry="${p.entry_price}" data-dir="${p.direction}">${ptsStr}</td>
+        <td style="text-align:right" data-pos-pts data-entry="${esc(p.entry_price)}" data-dir="${esc(p.direction)}">${ptsStr}</td>
         <td style="text-align:right;color:var(--text-3)">${remQty}</td>
         <td>${phaseHtml}</td>
         <td style="color:var(--text-3);font-size:12px">${formatTs(p.opened_at)}</td>
@@ -1585,7 +1609,7 @@ function renderTrading() {
         ? '<span class="badge badge-bull">▲ Long</span>'
         : '<span class="badge badge-bear">▼ Short</span>';
       const reasonColor = isStopped ? 'var(--text-3)' : r.close_reason === 'sl' ? 'var(--red)' : 'var(--green)';
-      const reasonLabel = isPartial ? 'TP 50%' : isStopped ? 'Stopped by user' : r.close_reason.toUpperCase();
+      const reasonLabel = isPartial ? 'TP 50%' : isStopped ? 'Stopped by user' : (r.close_reason || '').toUpperCase();
       const tradeMode  = r.mode || 'paper';
       const modeBadge  = tradeMode === 'live'
         ? '<span class="badge badge-bull" style="font-size:10px">Live</span>'
@@ -1596,14 +1620,14 @@ function renderTrading() {
       const ptsClass   = pts === null ? '' : pts >= 0 ? 'pnl-pos' : 'pnl-neg';
       return `<tr style="${isPartial || isStopped ? 'opacity:0.75' : ''}">
         <td>${dirBadge}</td>
-        <td><span class="badge badge-neutral">${p.tf ? p.tf + 'm' : '—'}</span></td>
-        <td>${p.pattern || '—'}</td>
+        <td><span class="badge badge-neutral">${esc(p.tf ? p.tf + 'm' : '—')}</span></td>
+        <td>${esc(p.pattern || '—')}</td>
         <td>${modeBadge}</td>
         <td style="text-align:right;font-variant-numeric:tabular-nums">$${fmtPrice(p.entry_price)}</td>
         <td style="text-align:right;font-variant-numeric:tabular-nums">${isStopped ? '—' : '$' + fmtPrice(r.close_price)}</td>
         <td style="text-align:right;font-variant-numeric:tabular-nums" class="${ptsClass}">${ptsStr}</td>
         <td style="text-align:right;color:var(--text-3)">${r.qty_closed ?? p.qty}</td>
-        <td style="color:${reasonColor}">${reasonLabel}</td>
+        <td style="color:${reasonColor}">${esc(reasonLabel)}</td>
         <td style="color:var(--text-3);font-size:12px">${formatTs(p.opened_at)}</td>
         <td style="color:var(--text-3);font-size:12px">${formatTs(r.closed_at)}</td>
       </tr>`;
@@ -1625,7 +1649,7 @@ function renderTrading() {
           <td>${a.direction === 'long'
             ? '<span class="badge badge-bull">▲ Long</span>'
             : '<span class="badge badge-bear">▼ Short</span>'}</td>
-          <td><span class="badge badge-neutral">${a.tf}m</span></td>
+          <td><span class="badge badge-neutral">${esc(a.tf)}m</span></td>
           <td style="text-align:right;font-variant-numeric:tabular-nums">$${fmtPrice(a.price)}</td>
           <td style="color:var(--text-3);font-size:12px">${formatTs(a.bar_time)}</td>
         </tr>`).join('');
@@ -1899,25 +1923,25 @@ async function _showUsersPage() {
         ? '<span class="badge badge-bear">Live</span>'
         : '<span class="badge" style="background:var(--surface-3);color:var(--text-2)">Paper</span>';
       const stopBtn = u.scanner_running
-        ? `<button class="btn btn-danger" style="font-size:11px;padding:3px 10px" onclick="event.stopPropagation();_adminStopUser('${uid}')">Stop</button>`
+        ? `<button class="btn btn-danger" style="font-size:11px;padding:3px 10px" data-user-stop="${esc(uid)}">Stop</button>`
         : '';
       const modeBtn = u.mode === 'live'
-        ? `<button class="btn" style="font-size:11px;padding:3px 10px" onclick="event.stopPropagation();_adminSetMode('${uid}','paper')">→ Paper</button>`
-        : `<button class="btn" style="font-size:11px;padding:3px 10px" onclick="event.stopPropagation();_adminSetMode('${uid}','live')">→ Live</button>`;
+        ? `<button class="btn" style="font-size:11px;padding:3px 10px" data-user-mode="${esc(uid)}" data-mode="paper">→ Paper</button>`
+        : `<button class="btn" style="font-size:11px;padding:3px 10px" data-user-mode="${esc(uid)}" data-mode="live">→ Live</button>`;
       const chevron = `<svg id="uch-${uid}" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="transition:transform 0.2s;transform:rotate(-90deg);flex-shrink:0"><polyline points="6 9 12 15 18 9"/></svg>`;
       return `
-        <tr style="cursor:pointer" onclick="_toggleUserTrades('${uid}')">
+        <tr style="cursor:pointer" data-user-toggle="${esc(uid)}">
           <td>
             <div style="display:flex;align-items:center;gap:8px">
               ${chevron}
               <div>
-                <div style="font-weight:500">${u.display_name}</div>
-                <div style="font-size:11px;color:var(--text-3)">${u.email}</div>
+                <div style="font-weight:500">${esc(u.display_name)}</div>
+                <div style="font-size:11px;color:var(--text-3)">${esc(u.email)}</div>
               </div>
             </div>
           </td>
           <td>${modeBadge}</td>
-          <td style="text-transform:capitalize">${u.broker}</td>
+          <td style="text-transform:capitalize">${esc(u.broker)}</td>
           <td>${runBadge}</td>
           <td style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">${stopBtn}${modeBtn}</td>
         </tr>
@@ -1929,8 +1953,17 @@ async function _showUsersPage() {
           </td>
         </tr>`;
     }).join('');
+
+    tbody.onclick = (ev) => {
+      const stop = ev.target.closest('[data-user-stop]');
+      if (stop) { ev.stopPropagation(); _adminStopUser(stop.dataset.userStop); return; }
+      const mode = ev.target.closest('[data-user-mode]');
+      if (mode) { ev.stopPropagation(); _adminSetMode(mode.dataset.userMode, mode.dataset.mode); return; }
+      const row = ev.target.closest('[data-user-toggle]');
+      if (row) _toggleUserTrades(row.dataset.userToggle);
+    };
   } catch(e) {
-    tbody.innerHTML = `<tr class="empty-row"><td colspan="5">Error: ${e.message}</td></tr>`;
+    tbody.innerHTML = `<tr class="empty-row"><td colspan="5">Error: ${esc(e.message)}</td></tr>`;
   }
 }
 
@@ -1948,7 +1981,7 @@ async function _toggleUserTrades(uid) {
       const state = await fetchJSON(`/api/admin/users/${uid}/state`);
       detail.innerHTML = _renderUserTrades(state);
     } catch(e) {
-      detail.innerHTML = `<span style="color:var(--bear);font-size:12px">Error loading trades: ${e.message}</span>`;
+      detail.innerHTML = `<span style="color:var(--bear);font-size:12px">Error loading trades: ${esc(e.message)}</span>`;
     }
   }
 }
@@ -1971,7 +2004,7 @@ function _renderUserTrades(state) {
         <thead><tr><th>Dir</th><th>Pattern</th><th>TF</th><th>Entry</th><th>SL</th><th>TP</th><th>PnL</th><th>Opened</th></tr></thead>
         <tbody>${positions.map(p => `<tr>
           <td>${dirBadge(p.direction)}</td>
-          <td>${p.pattern}</td><td>${p.tf}m</td>
+          <td>${esc(p.pattern || '—')}</td><td>${esc(String(p.tf ?? '—'))}m</td>
           <td>${fmt(p.entry_price)}</td><td>${fmt(p.sl)}</td><td>${fmt(p.tp)}</td>
           <td>${fmtPnl(p.pnl)}</td><td>${fmtDate(p.opened_at)}</td>
         </tr>`).join('')}</tbody>
@@ -1986,9 +2019,9 @@ function _renderUserTrades(state) {
           const p = h.position || {};
           return `<tr>
             <td>${dirBadge(p.direction)}</td>
-            <td>${p.pattern || '—'}</td><td>${p.tf ? p.tf + 'm' : '—'}</td>
+            <td>${esc(p.pattern || '—')}</td><td>${esc(p.tf ? p.tf + 'm' : '—')}</td>
             <td>${fmt(p.entry_price)}</td><td>${fmt(h.close_price)}</td>
-            <td style="text-transform:capitalize">${(h.close_reason || '').replace(/_/g,' ')}</td>
+            <td style="text-transform:capitalize">${esc((h.close_reason || '').replace(/_/g,' '))}</td>
             <td>${fmtPnl(h.pnl_closed)}</td><td>${fmtDate(h.closed_at)}</td>
           </tr>`;
         }).join('')}</tbody>

@@ -1,11 +1,11 @@
 # Graph Report - btc-ai-agent  (2026-05-29)
 
 ## Corpus Check
-- 51 files · ~53,262 words
+- 51 files · ~53,546 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 935 nodes · 1869 edges · 58 communities detected
+- 935 nodes · 1875 edges · 57 communities detected
 - Extraction: 83% EXTRACTED · 17% INFERRED · 0% AMBIGUOUS · INFERRED: 319 edges (avg confidence: 0.7)
 - Token cost: 0 input · 0 output
 
@@ -32,15 +32,15 @@
 - [[_COMMUNITY_Community 19|Community 19]]
 - [[_COMMUNITY_Community 20|Community 20]]
 - [[_COMMUNITY_Community 21|Community 21]]
-- [[_COMMUNITY_Community 22|Community 22]]
+- [[_COMMUNITY_Community 23|Community 23]]
 - [[_COMMUNITY_Community 24|Community 24]]
 - [[_COMMUNITY_Community 25|Community 25]]
-- [[_COMMUNITY_Community 26|Community 26]]
+- [[_COMMUNITY_Community 31|Community 31]]
 - [[_COMMUNITY_Community 32|Community 32]]
 - [[_COMMUNITY_Community 33|Community 33]]
 - [[_COMMUNITY_Community 34|Community 34]]
 - [[_COMMUNITY_Community 35|Community 35]]
-- [[_COMMUNITY_Community 36|Community 36]]
+- [[_COMMUNITY_Community 37|Community 37]]
 - [[_COMMUNITY_Community 38|Community 38]]
 - [[_COMMUNITY_Community 39|Community 39]]
 - [[_COMMUNITY_Community 40|Community 40]]
@@ -67,7 +67,6 @@
 - [[_COMMUNITY_Community 61|Community 61]]
 - [[_COMMUNITY_Community 62|Community 62]]
 - [[_COMMUNITY_Community 63|Community 63]]
-- [[_COMMUNITY_Community 64|Community 64]]
 
 ## God Nodes (most connected - your core abstractions)
 1. `run_trading_scanner()` - 48 edges
@@ -102,7 +101,7 @@
 
 ### Community 0 - "Community 0"
 Cohesion: 0.04
-Nodes (50): ABC, BrokerAdapter, BrokerAdapter, Return a human-readable account name from the broker API., Minimal interface every broker must implement., BybitAdapter, Bybit V5 Linear Perpetual Futures via REST API., CoinbaseAdapter (+42 more)
+Nodes (52): ABC, BrokerAdapter, BrokerAdapter, Return a human-readable account name from the broker API., Minimal interface every broker must implement., BinanceAdapter, Binance USDT-M Perpetual Futures via REST API., BybitAdapter (+44 more)
 
 ### Community 1 - "Community 1"
 Cohesion: 0.03
@@ -110,7 +109,7 @@ Nodes (80): BaseHTTPMiddleware, get_firebase_app(), Shared Firebase Admin App �
 
 ### Community 2 - "Community 2"
 Cohesion: 0.05
-Nodes (85): _activateSubTab(), addMarkovCustomTicker(), _adminSetMode(), _adminStopUser(), _applyHistFilters(), _applyPrice(), cancelPosition(), connectPepperstone() (+77 more)
+Nodes (87): _activateSubTab(), addMarkovCustomTicker(), _adminSetMode(), _adminStopUser(), _applyHistFilters(), _applyPrice(), cancelPosition(), connectPepperstone() (+79 more)
 
 ### Community 3 - "Community 3"
 Cohesion: 0.07
@@ -173,245 +172,239 @@ Cohesion: 0.25
 Nodes (8): _detect_bearish_engulfing(), _detect_bullish_engulfing(), detect_engulfing(), Pattern detection functions. Each accepts bars: np.ndarray of shape (N, 5) — [op, Bullish engulfing: bars[-2] is bearish, bars[-1] is bullish and fully engulfs ba, _make_bars(), candles: list of (open, high, low, close, volume), TestEngulfing
 
 ### Community 18 - "Community 18"
-Cohesion: 0.26
-Nodes (2): BinanceAdapter, Binance USDT-M Perpetual Futures via REST API.
-
-### Community 19 - "Community 19"
 Cohesion: 0.29
 Nodes (10): _aggregate(), compute_oi_signals(), _fetch_btc_price(), fetch_oi_snapshot(), _fetch_raw_oi(), OISignals, OISnapshot, Fetch current BTC/USDT price from Binance spot — needed to convert USDT-M OI (BT (+2 more)
 
-### Community 20 - "Community 20"
+### Community 19 - "Community 19"
 Cohesion: 0.25
 Nodes (10): fetch_1m_candles(), fetch_current_price(), _fetch_ohlcv(), _get_exchange(), _get_exchange_cached(), Return (exchange, symbol) for the first venue that is reachable.     Skips excha, Lightweight single-call price fetch using a cached exchange connection., Fetch OHLCV with exponential backoff on rate limit errors. (+2 more)
 
-### Community 21 - "Community 21"
+### Community 20 - "Community 20"
 Cohesion: 0.38
 Nodes (7): Shared 150x Leverage Risk (500pt Liquidation Buffer), Mean-Reversion Scalping Logic, Strategy 2: Ping Pong Strategy, Ping Pong Session Zone, Strategy 3: Escalator Strategy, Escalator Trailing Stop Grid, Escalator as High-Volatility Complement to Ping Pong
 
-### Community 22 - "Community 22"
+### Community 21 - "Community 21"
 Cohesion: 0.33
 Nodes (4): detect_4flag_pattern(), fetch_binance_perp(), Detect GTI 4-Flag candlestick pattern.      Rules:       1. 4 consecutive altern, Fetch Binance perpetual futures OHLCV data.     interval: 1m, 3m, 5m, 15m, 30m,
 
-### Community 24 - "Community 24"
+### Community 23 - "Community 23"
 Cohesion: 0.5
 Nodes (2): apply_settings(), Override module-level config vars from a Firestore settings dict.
 
-### Community 25 - "Community 25"
+### Community 24 - "Community 24"
 Cohesion: 0.67
 Nodes (3): BTC AI Agent Project, Task Backlog & Todo, Security Backlog
 
-### Community 26 - "Community 26"
+### Community 25 - "Community 25"
 Cohesion: 1.0
 Nodes (1): Debug a specific timeframe — shows bars and exactly why patterns pass/fail. Usag
 
-### Community 32 - "Community 32"
+### Community 31 - "Community 31"
 Cohesion: 1.0
 Nodes (1): Place an immediate market order.          side: "BUY" or "SELL"         qty:  qu
 
-### Community 33 - "Community 33"
+### Community 32 - "Community 32"
 Cohesion: 1.0
 Nodes (1): Place a GTC stop-limit order for stop-loss protection.
 
-### Community 34 - "Community 34"
+### Community 33 - "Community 33"
 Cohesion: 1.0
 Nodes (1): Place a GTC take-profit order that closes the position when TP is reached.
 
-### Community 35 - "Community 35"
+### Community 34 - "Community 34"
 Cohesion: 1.0
 Nodes (1): Cancel an open order by its broker-assigned order_id.
 
-### Community 36 - "Community 36"
+### Community 35 - "Community 35"
 Cohesion: 1.0
 Nodes (1): BTC equivalent per unit/contract — used for PnL calculation.
 
-### Community 38 - "Community 38"
+### Community 37 - "Community 37"
 Cohesion: 1.0
 Nodes (1): Override module-level config vars from a Firestore settings dict.
 
-### Community 39 - "Community 39"
+### Community 38 - "Community 38"
 Cohesion: 1.0
 Nodes (1): Deliver scan results with channel-specific formatting.
 
-### Community 40 - "Community 40"
+### Community 39 - "Community 39"
 Cohesion: 1.0
 Nodes (1): qty must be a positive integer that is a multiple of 2.
 
-### Community 41 - "Community 41"
+### Community 40 - "Community 40"
 Cohesion: 1.0
 Nodes (1): Called by frontend on login — restarts scanner if Firestore says it was running.
 
-### Community 42 - "Community 42"
+### Community 41 - "Community 41"
 Cohesion: 1.0
 Nodes (1): Run fn(*args) in a daemon thread — fire and forget.
 
-### Community 43 - "Community 43"
+### Community 42 - "Community 42"
 Cohesion: 1.0
 Nodes (1): Read all three collections for the given uid, or None if Firestore is unavailabl
 
-### Community 44 - "Community 44"
+### Community 43 - "Community 43"
 Cohesion: 1.0
 Nodes (1): Return the name of the user's default Coinbase portfolio.
 
-### Community 45 - "Community 45"
+### Community 44 - "Community 44"
 Cohesion: 1.0
 Nodes (1): Place an immediate market order (IOC).
 
-### Community 46 - "Community 46"
+### Community 45 - "Community 45"
 Cohesion: 1.0
 Nodes (1): Place a GTC stop-limit order for stop-loss.
 
-### Community 47 - "Community 47"
+### Community 46 - "Community 46"
 Cohesion: 1.0
 Nodes (1): Cancel a single order. Uses batch_cancel endpoint.
 
-### Community 48 - "Community 48"
+### Community 47 - "Community 47"
 Cohesion: 1.0
 Nodes (1): Place a GTC take-profit limit order.
 
-### Community 49 - "Community 49"
+### Community 48 - "Community 48"
 Cohesion: 1.0
 Nodes (1): Cancel an open order by its broker-assigned order_id.
 
-### Community 50 - "Community 50"
+### Community 49 - "Community 49"
 Cohesion: 1.0
 Nodes (1): BTC equivalent per unit/contract — used for PnL calculation.
 
-### Community 51 - "Community 51"
+### Community 50 - "Community 50"
 Cohesion: 1.0
 Nodes (1): Return a human-readable account name from the broker API.
 
-### Community 52 - "Community 52"
+### Community 51 - "Community 51"
 Cohesion: 1.0
 Nodes (1): Call compute_levels with a fixed 'now' so tests are deterministic.
 
-### Community 53 - "Community 53"
+### Community 52 - "Community 52"
 Cohesion: 1.0
 Nodes (1): Yesterday's candles must not affect MRP.
 
-### Community 54 - "Community 54"
+### Community 53 - "Community 53"
 Cohesion: 1.0
 Nodes (1): VWAP = Σ(tp × vol) / Σ(vol) across today's candles.
 
-### Community 55 - "Community 55"
+### Community 54 - "Community 54"
 Cohesion: 1.0
 Nodes (1): Daily POC = (prev_H + prev_L + prev_C) / 3 from yesterday's candles.
 
-### Community 56 - "Community 56"
+### Community 55 - "Community 55"
 Cohesion: 1.0
 Nodes (1): Weekly POC = weekly_open × (1 + weekly_adj / 100).
 
-### Community 57 - "Community 57"
+### Community 56 - "Community 56"
 Cohesion: 1.0
 Nodes (1): weekly_open = open of the very first 1m candle of the current week.
 
-### Community 58 - "Community 58"
+### Community 57 - "Community 57"
 Cohesion: 1.0
 Nodes (1): Import and call _calc_tp with a temporary min_tp of 500.
 
-### Community 59 - "Community 59"
+### Community 58 - "Community 58"
 Cohesion: 1.0
 Nodes (1): If nearest level is only 100 pts above entry, TP should be floored at entry + 50
 
-### Community 60 - "Community 60"
+### Community 59 - "Community 59"
 Cohesion: 1.0
 Nodes (1): No levels above entry → fixed_500 fallback.
 
-### Community 61 - "Community 61"
+### Community 60 - "Community 60"
 Cohesion: 1.0
 Nodes (1): None values for individual levels must be skipped (not raise TypeError).
 
-### Community 62 - "Community 62"
+### Community 61 - "Community 61"
 Cohesion: 1.0
 Nodes (1): Return a context-manager mock that yields a fake HTTP response.
 
-### Community 63 - "Community 63"
+### Community 62 - "Community 62"
 Cohesion: 1.0
 Nodes (1): Long position take-profit: sell when price rises above target.
 
-### Community 64 - "Community 64"
+### Community 63 - "Community 63"
 Cohesion: 1.0
 Nodes (1): Short position take-profit: buy when price falls below target.
 
 ## Knowledge Gaps
 - **154 isolated node(s):** `Fetch Binance perpetual futures OHLCV data.     interval: 1m, 3m, 5m, 15m, 30m,`, `Detect GTI 4-Flag candlestick pattern.      Rules:       1. 4 consecutive altern`, `BTC AI Agent — CLI entrypoint  Usage:   python main.py brief     Run morning bri`, `Filter out noisy /api/status poll lines from uvicorn access logs.`, `Debug a specific timeframe — shows bars and exactly why patterns pass/fail. Usag` (+149 more)
   These have ≤1 connection - possible missing edges or undocumented components.
-- **Thin community `Community 18`** (13 nodes): `BinanceAdapter`, `.cancel_order()`, `._delete()`, `._headers()`, `.__init__()`, `.place_market_order()`, `.place_stop_limit_order()`, `.place_take_profit_order()`, `._post()`, `._sign()`, `contract_size()`, `Binance USDT-M Perpetual Futures via REST API.`, `binance.py`
+- **Thin community `Community 23`** (4 nodes): `apply_settings()`, `config.py`, `Override module-level config vars from a Firestore settings dict.`, `_validate()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 24`** (4 nodes): `apply_settings()`, `config.py`, `Override module-level config vars from a Firestore settings dict.`, `_validate()`
+- **Thin community `Community 25`** (2 nodes): `Debug a specific timeframe — shows bars and exactly why patterns pass/fail. Usag`, `debug_tf.py`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 26`** (2 nodes): `Debug a specific timeframe — shows bars and exactly why patterns pass/fail. Usag`, `debug_tf.py`
+- **Thin community `Community 31`** (1 nodes): `Place an immediate market order.          side: "BUY" or "SELL"         qty:  qu`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 32`** (1 nodes): `Place an immediate market order.          side: "BUY" or "SELL"         qty:  qu`
+- **Thin community `Community 32`** (1 nodes): `Place a GTC stop-limit order for stop-loss protection.`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 33`** (1 nodes): `Place a GTC stop-limit order for stop-loss protection.`
+- **Thin community `Community 33`** (1 nodes): `Place a GTC take-profit order that closes the position when TP is reached.`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 34`** (1 nodes): `Place a GTC take-profit order that closes the position when TP is reached.`
+- **Thin community `Community 34`** (1 nodes): `Cancel an open order by its broker-assigned order_id.`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 35`** (1 nodes): `Cancel an open order by its broker-assigned order_id.`
+- **Thin community `Community 35`** (1 nodes): `BTC equivalent per unit/contract — used for PnL calculation.`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 36`** (1 nodes): `BTC equivalent per unit/contract — used for PnL calculation.`
+- **Thin community `Community 37`** (1 nodes): `Override module-level config vars from a Firestore settings dict.`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 38`** (1 nodes): `Override module-level config vars from a Firestore settings dict.`
+- **Thin community `Community 38`** (1 nodes): `Deliver scan results with channel-specific formatting.`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 39`** (1 nodes): `Deliver scan results with channel-specific formatting.`
+- **Thin community `Community 39`** (1 nodes): `qty must be a positive integer that is a multiple of 2.`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 40`** (1 nodes): `qty must be a positive integer that is a multiple of 2.`
+- **Thin community `Community 40`** (1 nodes): `Called by frontend on login — restarts scanner if Firestore says it was running.`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 41`** (1 nodes): `Called by frontend on login — restarts scanner if Firestore says it was running.`
+- **Thin community `Community 41`** (1 nodes): `Run fn(*args) in a daemon thread — fire and forget.`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 42`** (1 nodes): `Run fn(*args) in a daemon thread — fire and forget.`
+- **Thin community `Community 42`** (1 nodes): `Read all three collections for the given uid, or None if Firestore is unavailabl`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 43`** (1 nodes): `Read all three collections for the given uid, or None if Firestore is unavailabl`
+- **Thin community `Community 43`** (1 nodes): `Return the name of the user's default Coinbase portfolio.`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 44`** (1 nodes): `Return the name of the user's default Coinbase portfolio.`
+- **Thin community `Community 44`** (1 nodes): `Place an immediate market order (IOC).`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 45`** (1 nodes): `Place an immediate market order (IOC).`
+- **Thin community `Community 45`** (1 nodes): `Place a GTC stop-limit order for stop-loss.`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 46`** (1 nodes): `Place a GTC stop-limit order for stop-loss.`
+- **Thin community `Community 46`** (1 nodes): `Cancel a single order. Uses batch_cancel endpoint.`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 47`** (1 nodes): `Cancel a single order. Uses batch_cancel endpoint.`
+- **Thin community `Community 47`** (1 nodes): `Place a GTC take-profit limit order.`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 48`** (1 nodes): `Place a GTC take-profit limit order.`
+- **Thin community `Community 48`** (1 nodes): `Cancel an open order by its broker-assigned order_id.`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 49`** (1 nodes): `Cancel an open order by its broker-assigned order_id.`
+- **Thin community `Community 49`** (1 nodes): `BTC equivalent per unit/contract — used for PnL calculation.`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 50`** (1 nodes): `BTC equivalent per unit/contract — used for PnL calculation.`
+- **Thin community `Community 50`** (1 nodes): `Return a human-readable account name from the broker API.`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 51`** (1 nodes): `Return a human-readable account name from the broker API.`
+- **Thin community `Community 51`** (1 nodes): `Call compute_levels with a fixed 'now' so tests are deterministic.`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 52`** (1 nodes): `Call compute_levels with a fixed 'now' so tests are deterministic.`
+- **Thin community `Community 52`** (1 nodes): `Yesterday's candles must not affect MRP.`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 53`** (1 nodes): `Yesterday's candles must not affect MRP.`
+- **Thin community `Community 53`** (1 nodes): `VWAP = Σ(tp × vol) / Σ(vol) across today's candles.`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 54`** (1 nodes): `VWAP = Σ(tp × vol) / Σ(vol) across today's candles.`
+- **Thin community `Community 54`** (1 nodes): `Daily POC = (prev_H + prev_L + prev_C) / 3 from yesterday's candles.`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 55`** (1 nodes): `Daily POC = (prev_H + prev_L + prev_C) / 3 from yesterday's candles.`
+- **Thin community `Community 55`** (1 nodes): `Weekly POC = weekly_open × (1 + weekly_adj / 100).`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 56`** (1 nodes): `Weekly POC = weekly_open × (1 + weekly_adj / 100).`
+- **Thin community `Community 56`** (1 nodes): `weekly_open = open of the very first 1m candle of the current week.`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 57`** (1 nodes): `weekly_open = open of the very first 1m candle of the current week.`
+- **Thin community `Community 57`** (1 nodes): `Import and call _calc_tp with a temporary min_tp of 500.`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 58`** (1 nodes): `Import and call _calc_tp with a temporary min_tp of 500.`
+- **Thin community `Community 58`** (1 nodes): `If nearest level is only 100 pts above entry, TP should be floored at entry + 50`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 59`** (1 nodes): `If nearest level is only 100 pts above entry, TP should be floored at entry + 50`
+- **Thin community `Community 59`** (1 nodes): `No levels above entry → fixed_500 fallback.`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 60`** (1 nodes): `No levels above entry → fixed_500 fallback.`
+- **Thin community `Community 60`** (1 nodes): `None values for individual levels must be skipped (not raise TypeError).`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 61`** (1 nodes): `None values for individual levels must be skipped (not raise TypeError).`
+- **Thin community `Community 61`** (1 nodes): `Return a context-manager mock that yields a fake HTTP response.`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 62`** (1 nodes): `Return a context-manager mock that yields a fake HTTP response.`
+- **Thin community `Community 62`** (1 nodes): `Long position take-profit: sell when price rises above target.`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 63`** (1 nodes): `Long position take-profit: sell when price rises above target.`
-  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 64`** (1 nodes): `Short position take-profit: buy when price falls below target.`
+- **Thin community `Community 63`** (1 nodes): `Short position take-profit: buy when price falls below target.`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `run_trading_scanner()` connect `Community 4` to `Community 3`, `Community 5`, `Community 6`, `Community 8`, `Community 9`, `Community 10`, `Community 16`, `Community 19`, `Community 20`?**
+- **Why does `run_trading_scanner()` connect `Community 4` to `Community 3`, `Community 5`, `Community 6`, `Community 8`, `Community 9`, `Community 10`, `Community 16`, `Community 18`, `Community 19`?**
   _High betweenness centrality (0.257) - this node is a cross-community bridge._
-- **Why does `get_broker()` connect `Community 0` to `Community 18`, `Community 4`?**
+- **Why does `get_broker()` connect `Community 0` to `Community 4`?**
   _High betweenness centrality (0.173) - this node is a cross-community bridge._
 - **Why does `_build_broker()` connect `Community 4` to `Community 0`, `Community 3`?**
   _High betweenness centrality (0.172) - this node is a cross-community bridge._

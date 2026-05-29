@@ -55,7 +55,7 @@
       "source_file": "test.py",
       "source_location": "L1",
       "id": "test_py",
-      "community": 22,
+      "community": 21,
       "norm_label": "test.py"
     },
     {
@@ -64,7 +64,7 @@
       "source_file": "test.py",
       "source_location": "L8",
       "id": "btc_ai_agent_test_fetch_binance_perp",
-      "community": 22,
+      "community": 21,
       "norm_label": "fetch_binance_perp()"
     },
     {
@@ -73,7 +73,7 @@
       "source_file": "test.py",
       "source_location": "L33",
       "id": "btc_ai_agent_test_detect_4flag_pattern",
-      "community": 22,
+      "community": 21,
       "norm_label": "detect_4flag_pattern()"
     },
     {
@@ -82,7 +82,7 @@
       "source_file": "test.py",
       "source_location": "L89",
       "id": "btc_ai_agent_test_print_signals",
-      "community": 22,
+      "community": 21,
       "norm_label": "print_signals()"
     },
     {
@@ -90,7 +90,7 @@
       "file_type": "rationale",
       "source_file": "test.py",
       "source_location": "L9",
-      "community": 22,
+      "community": 21,
       "norm_label": "fetch binance perpetual futures ohlcv data.     interval: 1m, 3m, 5m, 15m, 30m,",
       "id": "btc_ai_agent_test_rationale_9"
     },
@@ -99,7 +99,7 @@
       "file_type": "rationale",
       "source_file": "test.py",
       "source_location": "L34",
-      "community": 22,
+      "community": 21,
       "norm_label": "detect gti 4-flag candlestick pattern.      rules:       1. 4 consecutive altern",
       "id": "btc_ai_agent_test_rationale_34"
     },
@@ -154,7 +154,7 @@
       "source_file": "debug_tf.py",
       "source_location": "L1",
       "id": "debug_tf_py",
-      "community": 26,
+      "community": 25,
       "norm_label": "debug_tf.py"
     },
     {
@@ -162,7 +162,7 @@
       "file_type": "rationale",
       "source_file": "debug_tf.py",
       "source_location": "L1",
-      "community": 26,
+      "community": 25,
       "norm_label": "debug a specific timeframe \u2014 shows bars and exactly why patterns pass/fail. usag",
       "id": "btc_ai_agent_debug_tf_rationale_1"
     },
@@ -172,7 +172,7 @@
       "source_file": "btc_agent/config.py",
       "source_location": "L1",
       "id": "btc_agent_config_py",
-      "community": 24,
+      "community": 23,
       "norm_label": "config.py"
     },
     {
@@ -181,7 +181,7 @@
       "source_file": "btc_agent/config.py",
       "source_location": "L131",
       "id": "btc_agent_config_validate",
-      "community": 24,
+      "community": 23,
       "norm_label": "_validate()"
     },
     {
@@ -190,7 +190,7 @@
       "source_file": "btc_agent/config.py",
       "source_location": "L150",
       "id": "btc_agent_config_apply_settings",
-      "community": 24,
+      "community": 23,
       "norm_label": "apply_settings()"
     },
     {
@@ -198,9 +198,9 @@
       "file_type": "rationale",
       "source_file": "btc_agent/config.py",
       "source_location": "L151",
-      "id": "btc_agent_config_rationale_151",
-      "community": 24,
-      "norm_label": "override module-level config vars from a firestore settings dict."
+      "community": 23,
+      "norm_label": "override module-level config vars from a firestore settings dict.",
+      "id": "btc_agent_config_rationale_151"
     },
     {
       "label": "__init__.py",
@@ -208,7 +208,7 @@
       "source_file": "btc_agent/__init__.py",
       "source_location": "L1",
       "id": "btc_agent_init_py",
-      "community": 27,
+      "community": 26,
       "norm_label": "__init__.py"
     },
     {
@@ -217,7 +217,7 @@
       "source_file": "btc_agent/storage.py",
       "source_location": "L1",
       "id": "btc_agent_storage_py",
-      "community": 23,
+      "community": 22,
       "norm_label": "storage.py"
     },
     {
@@ -226,7 +226,7 @@
       "source_file": "btc_agent/storage.py",
       "source_location": "L13",
       "id": "btc_agent_storage_save_scan",
-      "community": 23,
+      "community": 22,
       "norm_label": "save_scan()"
     },
     {
@@ -235,7 +235,7 @@
       "source_file": "btc_agent/storage.py",
       "source_location": "L21",
       "id": "btc_agent_storage_load_scan",
-      "community": 23,
+      "community": 22,
       "norm_label": "load_scan()"
     },
     {
@@ -244,7 +244,7 @@
       "source_file": "btc_agent/storage.py",
       "source_location": "L27",
       "id": "btc_agent_storage_save_briefing",
-      "community": 23,
+      "community": 22,
       "norm_label": "save_briefing()"
     },
     {
@@ -253,7 +253,7 @@
       "source_file": "btc_agent/storage.py",
       "source_location": "L35",
       "id": "btc_agent_storage_load_briefing",
-      "community": 23,
+      "community": 22,
       "norm_label": "load_briefing()"
     },
     {
@@ -450,18 +450,18 @@
       "file_type": "rationale",
       "source_file": "btc_agent/notifiers.py",
       "source_location": "L54",
-      "id": "btc_agent_notifiers_rationale_54",
       "community": 8,
-      "norm_label": "send one or more html-formatted messages (telegram caps each at 4096 chars)."
+      "norm_label": "send one or more html-formatted messages (telegram caps each at 4096 chars).",
+      "id": "btc_agent_notifiers_rationale_54"
     },
     {
       "label": "Deliver scan results with channel-specific formatting.",
       "file_type": "rationale",
       "source_file": "btc_agent/notifiers.py",
       "source_location": "L120",
-      "id": "btc_agent_notifiers_rationale_120",
       "community": 8,
-      "norm_label": "deliver scan results with channel-specific formatting."
+      "norm_label": "deliver scan results with channel-specific formatting.",
+      "id": "btc_agent_notifiers_rationale_120"
     },
     {
       "label": "auth.py",
@@ -487,7 +487,7 @@
       "source_file": "btc_agent/web/__init__.py",
       "source_location": "L1",
       "id": "btc_agent_web_init_py",
-      "community": 28,
+      "community": 27,
       "norm_label": "__init__.py"
     },
     {
@@ -712,7 +712,7 @@
       "source_file": "btc_agent/web/app.py",
       "source_location": "L464",
       "id": "web_app_get_price",
-      "community": 20,
+      "community": 19,
       "norm_label": "get_price()"
     },
     {
@@ -883,7 +883,7 @@
       "source_file": "btc_agent/web/app.py",
       "source_location": "L765",
       "id": "web_app_oi_status",
-      "community": 19,
+      "community": 18,
       "norm_label": "oi_status()"
     },
     {
@@ -990,54 +990,54 @@
       "file_type": "rationale",
       "source_file": "btc_agent/web/app.py",
       "source_location": "L52",
-      "id": "web_app_rationale_52",
       "community": 1,
-      "norm_label": "60 req/min per ip on public /api/ endpoints. auth-gated routes are exempt."
+      "norm_label": "60 req/min per ip on public /api/ endpoints. auth-gated routes are exempt.",
+      "id": "web_app_rationale_52"
     },
     {
       "label": "Step 1: validate Firebase token, generate state, redirect to cTrader authorize.",
       "file_type": "rationale",
       "source_file": "btc_agent/web/app.py",
       "source_location": "L369",
-      "id": "web_app_rationale_369",
       "community": 1,
-      "norm_label": "step 1: validate firebase token, generate state, redirect to ctrader authorize."
+      "norm_label": "step 1: validate firebase token, generate state, redirect to ctrader authorize.",
+      "id": "web_app_rationale_369"
     },
     {
       "label": "Step 2: exchange code for tokens, save refresh_token to Firestore.",
       "file_type": "rationale",
       "source_file": "btc_agent/web/app.py",
       "source_location": "L403",
-      "id": "web_app_rationale_403",
       "community": 1,
-      "norm_label": "step 2: exchange code for tokens, save refresh_token to firestore."
+      "norm_label": "step 2: exchange code for tokens, save refresh_token to firestore.",
+      "id": "web_app_rationale_403"
     },
     {
       "label": "Called by frontend on login \u2014 restarts scanner if Firestore says it was running.",
       "file_type": "rationale",
       "source_file": "btc_agent/web/app.py",
       "source_location": "L685",
-      "id": "web_app_rationale_685",
       "community": 1,
-      "norm_label": "called by frontend on login \u2014 restarts scanner if firestore says it was running."
+      "norm_label": "called by frontend on login \u2014 restarts scanner if firestore says it was running.",
+      "id": "web_app_rationale_685"
     },
     {
       "label": "Return the cTrader authorize URL without exposing the Firebase token in the brow",
       "file_type": "rationale",
       "source_file": "btc_agent/web/app.py",
       "source_location": "L835",
-      "id": "web_app_rationale_835",
       "community": 1,
-      "norm_label": "return the ctrader authorize url without exposing the firebase token in the brow"
+      "norm_label": "return the ctrader authorize url without exposing the firebase token in the brow",
+      "id": "web_app_rationale_835"
     },
     {
       "label": "Daily Markov regime refresh at 01:20 UTC (7:20 PM CST) \u2014 runs once regardless of",
       "file_type": "rationale",
       "source_file": "btc_agent/web/app.py",
       "source_location": "L979",
-      "id": "web_app_rationale_979",
       "community": 1,
-      "norm_label": "daily markov regime refresh at 01:20 utc (7:20 pm cst) \u2014 runs once regardless of"
+      "norm_label": "daily markov regime refresh at 01:20 utc (7:20 pm cst) \u2014 runs once regardless of",
+      "id": "web_app_rationale_979"
     },
     {
       "label": "main.js",
@@ -1187,7 +1187,7 @@
       "label": "_saveSettings()",
       "file_type": "code",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L304",
+      "source_location": "L312",
       "id": "static_main_savesettings",
       "community": 2,
       "norm_label": "_savesettings()"
@@ -1196,7 +1196,7 @@
       "label": "_gv()",
       "file_type": "code",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L319",
+      "source_location": "L327",
       "id": "static_main_gv",
       "community": 2,
       "norm_label": "_gv()"
@@ -1205,7 +1205,7 @@
       "label": "_gn()",
       "file_type": "code",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L320",
+      "source_location": "L328",
       "id": "static_main_gn",
       "community": 2,
       "norm_label": "_gn()"
@@ -1214,7 +1214,7 @@
       "label": "_gc()",
       "file_type": "code",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L321",
+      "source_location": "L329",
       "id": "static_main_gc",
       "community": 2,
       "norm_label": "_gc()"
@@ -1223,7 +1223,7 @@
       "label": "saveAppSection()",
       "file_type": "code",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L323",
+      "source_location": "L331",
       "id": "static_main_saveappsection",
       "community": 2,
       "norm_label": "saveappsection()"
@@ -1232,7 +1232,7 @@
       "label": "saveUserSection()",
       "file_type": "code",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L356",
+      "source_location": "L364",
       "id": "static_main_saveusersection",
       "community": 2,
       "norm_label": "saveusersection()"
@@ -1241,7 +1241,7 @@
       "label": "_showTradingContent()",
       "file_type": "code",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L375",
+      "source_location": "L383",
       "id": "static_main_showtradingcontent",
       "community": 2,
       "norm_label": "_showtradingcontent()"
@@ -1250,7 +1250,7 @@
       "label": "_showVishalContent()",
       "file_type": "code",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L388",
+      "source_location": "L396",
       "id": "static_main_showvishalcontent",
       "community": 2,
       "norm_label": "_showvishalcontent()"
@@ -1259,7 +1259,7 @@
       "label": "loadVishalSettings()",
       "file_type": "code",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L402",
+      "source_location": "L410",
       "id": "static_main_loadvishalsettings",
       "community": 2,
       "norm_label": "loadvishalsettings()"
@@ -1268,7 +1268,7 @@
       "label": "saveVishalStrategy()",
       "file_type": "code",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L436",
+      "source_location": "L444",
       "id": "static_main_savevishalstrategy",
       "community": 2,
       "norm_label": "savevishalstrategy()"
@@ -1277,7 +1277,7 @@
       "label": "_show()",
       "file_type": "code",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L464",
+      "source_location": "L472",
       "id": "static_main_show",
       "community": 2,
       "norm_label": "_show()"
@@ -1286,7 +1286,7 @@
       "label": "_setText()",
       "file_type": "code",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L469",
+      "source_location": "L477",
       "id": "static_main_settext",
       "community": 2,
       "norm_label": "_settext()"
@@ -1295,7 +1295,7 @@
       "label": "navTo()",
       "file_type": "code",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L480",
+      "source_location": "L488",
       "id": "static_main_navto",
       "community": 2,
       "norm_label": "navto()"
@@ -1304,7 +1304,7 @@
       "label": "onPingPongTfChange()",
       "file_type": "code",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L558",
+      "source_location": "L566",
       "id": "static_main_onpingpongtfchange",
       "community": 2,
       "norm_label": "onpingpongtfchange()"
@@ -1313,7 +1313,7 @@
       "label": "toggleVishal()",
       "file_type": "code",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L568",
+      "source_location": "L576",
       "id": "static_main_togglevishal",
       "community": 2,
       "norm_label": "togglevishal()"
@@ -1322,7 +1322,7 @@
       "label": "toggleCfg()",
       "file_type": "code",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L577",
+      "source_location": "L585",
       "id": "static_main_togglecfg",
       "community": 2,
       "norm_label": "togglecfg()"
@@ -1331,7 +1331,7 @@
       "label": "switchSubTab()",
       "file_type": "code",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L585",
+      "source_location": "L593",
       "id": "static_main_switchsubtab",
       "community": 2,
       "norm_label": "switchsubtab()"
@@ -1340,7 +1340,7 @@
       "label": "_showPage()",
       "file_type": "code",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L594",
+      "source_location": "L602",
       "id": "static_main_showpage",
       "community": 2,
       "norm_label": "_showpage()"
@@ -1349,7 +1349,7 @@
       "label": "_activateSubTab()",
       "file_type": "code",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L601",
+      "source_location": "L609",
       "id": "static_main_activatesubtab",
       "community": 2,
       "norm_label": "_activatesubtab()"
@@ -1358,7 +1358,7 @@
       "label": "_setSidebarActive()",
       "file_type": "code",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L607",
+      "source_location": "L615",
       "id": "static_main_setsidebaractive",
       "community": 2,
       "norm_label": "_setsidebaractive()"
@@ -1367,7 +1367,7 @@
       "label": "_setMobTabActive()",
       "file_type": "code",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L613",
+      "source_location": "L621",
       "id": "static_main_setmobtabactive",
       "community": 2,
       "norm_label": "_setmobtabactive()"
@@ -1376,7 +1376,7 @@
       "label": "_setTopbarTitle()",
       "file_type": "code",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L619",
+      "source_location": "L627",
       "id": "static_main_settopbartitle",
       "community": 2,
       "norm_label": "_settopbartitle()"
@@ -1385,7 +1385,7 @@
       "label": "getTz()",
       "file_type": "code",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L630",
+      "source_location": "L638",
       "id": "static_main_gettz",
       "community": 2,
       "norm_label": "gettz()"
@@ -1394,7 +1394,7 @@
       "label": "setTz()",
       "file_type": "code",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L631",
+      "source_location": "L639",
       "id": "static_main_settz",
       "community": 2,
       "norm_label": "settz()"
@@ -1403,7 +1403,7 @@
       "label": "formatTs()",
       "file_type": "code",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L633",
+      "source_location": "L641",
       "id": "static_main_formatts",
       "community": 2,
       "norm_label": "formatts()"
@@ -1412,7 +1412,7 @@
       "label": "tzAbbr()",
       "file_type": "code",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L644",
+      "source_location": "L652",
       "id": "static_main_tzabbr",
       "community": 2,
       "norm_label": "tzabbr()"
@@ -1421,7 +1421,7 @@
       "label": "updateThHeader()",
       "file_type": "code",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L649",
+      "source_location": "L657",
       "id": "static_main_updatethheader",
       "community": 2,
       "norm_label": "updatethheader()"
@@ -1430,7 +1430,7 @@
       "label": "getTheme()",
       "file_type": "code",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L655",
+      "source_location": "L663",
       "id": "static_main_gettheme",
       "community": 2,
       "norm_label": "gettheme()"
@@ -1439,7 +1439,7 @@
       "label": "applyTheme()",
       "file_type": "code",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L657",
+      "source_location": "L665",
       "id": "static_main_applytheme",
       "community": 2,
       "norm_label": "applytheme()"
@@ -1448,7 +1448,7 @@
       "label": "fetchJSON()",
       "file_type": "code",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L668",
+      "source_location": "L676",
       "id": "static_main_fetchjson",
       "community": 2,
       "norm_label": "fetchjson()"
@@ -1457,7 +1457,7 @@
       "label": "inferDirection()",
       "file_type": "code",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L679",
+      "source_location": "L692",
       "id": "static_main_inferdirection",
       "community": 2,
       "norm_label": "inferdirection()"
@@ -1466,7 +1466,7 @@
       "label": "directionBadge()",
       "file_type": "code",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L686",
+      "source_location": "L699",
       "id": "static_main_directionbadge",
       "community": 2,
       "norm_label": "directionbadge()"
@@ -1475,7 +1475,7 @@
       "label": "patternMatchesFilter()",
       "file_type": "code",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L692",
+      "source_location": "L705",
       "id": "static_main_patternmatchesfilter",
       "community": 2,
       "norm_label": "patternmatchesfilter()"
@@ -1484,7 +1484,7 @@
       "label": "renderMarkdown()",
       "file_type": "code",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L702",
+      "source_location": "L715",
       "id": "static_main_rendermarkdown",
       "community": 2,
       "norm_label": "rendermarkdown()"
@@ -1493,7 +1493,7 @@
       "label": "renderBriefing()",
       "file_type": "code",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L733",
+      "source_location": "L745",
       "id": "static_main_renderbriefing",
       "community": 2,
       "norm_label": "renderbriefing()"
@@ -1502,7 +1502,7 @@
       "label": "loadBriefing()",
       "file_type": "code",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L739",
+      "source_location": "L751",
       "id": "static_main_loadbriefing",
       "community": 2,
       "norm_label": "loadbriefing()"
@@ -1511,7 +1511,7 @@
       "label": "renderScan()",
       "file_type": "code",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L749",
+      "source_location": "L761",
       "id": "static_main_renderscan",
       "community": 2,
       "norm_label": "renderscan()"
@@ -1520,7 +1520,7 @@
       "label": "loadLiquidity()",
       "file_type": "code",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L789",
+      "source_location": "L801",
       "id": "static_main_loadliquidity",
       "community": 2,
       "norm_label": "loadliquidity()"
@@ -1529,7 +1529,7 @@
       "label": "loadOIStatus()",
       "file_type": "code",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L860",
+      "source_location": "L872",
       "id": "static_main_loadoistatus",
       "community": 2,
       "norm_label": "loadoistatus()"
@@ -1538,7 +1538,7 @@
       "label": "loadOISettingsInputs()",
       "file_type": "code",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L921",
+      "source_location": "L933",
       "id": "static_main_loadoisettingsinputs",
       "community": 2,
       "norm_label": "loadoisettingsinputs()"
@@ -1547,7 +1547,7 @@
       "label": "saveOISettings()",
       "file_type": "code",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L939",
+      "source_location": "L951",
       "id": "static_main_saveoisettings",
       "community": 2,
       "norm_label": "saveoisettings()"
@@ -1556,7 +1556,7 @@
       "label": "loadScan()",
       "file_type": "code",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L954",
+      "source_location": "L966",
       "id": "static_main_loadscan",
       "community": 2,
       "norm_label": "loadscan()"
@@ -1565,7 +1565,7 @@
       "label": "pollStatus()",
       "file_type": "code",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L965",
+      "source_location": "L977",
       "id": "static_main_pollstatus",
       "community": 2,
       "norm_label": "pollstatus()"
@@ -1574,7 +1574,7 @@
       "label": "_setDot()",
       "file_type": "code",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L978",
+      "source_location": "L990",
       "id": "static_main_setdot",
       "community": 2,
       "norm_label": "_setdot()"
@@ -1583,7 +1583,7 @@
       "label": "_setRunningBtn()",
       "file_type": "code",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L983",
+      "source_location": "L995",
       "id": "static_main_setrunningbtn",
       "community": 2,
       "norm_label": "_setrunningbtn()"
@@ -1592,7 +1592,7 @@
       "label": "triggerScan()",
       "file_type": "code",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L1004",
+      "source_location": "L1017",
       "id": "static_main_triggerscan",
       "community": 2,
       "norm_label": "triggerscan()"
@@ -1601,7 +1601,7 @@
       "label": "triggerBrief()",
       "file_type": "code",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L1011",
+      "source_location": "L1026",
       "id": "static_main_triggerbrief",
       "community": 2,
       "norm_label": "triggerbrief()"
@@ -1610,7 +1610,7 @@
       "label": "fetchBTCPrice()",
       "file_type": "code",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L1019",
+      "source_location": "L1036",
       "id": "static_main_fetchbtcprice",
       "community": 2,
       "norm_label": "fetchbtcprice()"
@@ -1619,7 +1619,7 @@
       "label": "_connectPriceWS()",
       "file_type": "code",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L1037",
+      "source_location": "L1054",
       "id": "static_main_connectpricews",
       "community": 2,
       "norm_label": "_connectpricews()"
@@ -1628,7 +1628,7 @@
       "label": "_applyPrice()",
       "file_type": "code",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L1051",
+      "source_location": "L1068",
       "id": "static_main_applyprice",
       "community": 2,
       "norm_label": "_applyprice()"
@@ -1637,7 +1637,7 @@
       "label": "fmtPrice()",
       "file_type": "code",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L1072",
+      "source_location": "L1089",
       "id": "static_main_fmtprice",
       "community": 2,
       "norm_label": "fmtprice()"
@@ -1646,7 +1646,7 @@
       "label": "renderLevels()",
       "file_type": "code",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L1078",
+      "source_location": "L1095",
       "id": "static_main_renderlevels",
       "community": 2,
       "norm_label": "renderlevels()"
@@ -1655,7 +1655,7 @@
       "label": "_renderPointsStats()",
       "file_type": "code",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L1119",
+      "source_location": "L1136",
       "id": "static_main_renderpointsstats",
       "community": 2,
       "norm_label": "_renderpointsstats()"
@@ -1664,7 +1664,7 @@
       "label": "loadRegimeLog()",
       "file_type": "code",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L1166",
+      "source_location": "L1183",
       "id": "static_main_loadregimelog",
       "community": 2,
       "norm_label": "loadregimelog()"
@@ -1673,7 +1673,7 @@
       "label": "renderRegimeLog()",
       "file_type": "code",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L1173",
+      "source_location": "L1190",
       "id": "static_main_renderregimelog",
       "community": 2,
       "norm_label": "renderregimelog()"
@@ -1682,7 +1682,7 @@
       "label": "loadMarkovTickers()",
       "file_type": "code",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L1212",
+      "source_location": "L1229",
       "id": "static_main_loadmarkovtickers",
       "community": 2,
       "norm_label": "loadmarkovtickers()"
@@ -1691,7 +1691,7 @@
       "label": "setMarkovFilter()",
       "file_type": "code",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L1219",
+      "source_location": "L1236",
       "id": "static_main_setmarkovfilter",
       "community": 2,
       "norm_label": "setmarkovfilter()"
@@ -1700,7 +1700,7 @@
       "label": "renderMarkovPage()",
       "file_type": "code",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L1228",
+      "source_location": "L1245",
       "id": "static_main_rendermarkovpage",
       "community": 2,
       "norm_label": "rendermarkovpage()"
@@ -1709,7 +1709,7 @@
       "label": "toggleMarkovExpand()",
       "file_type": "code",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L1308",
+      "source_location": "L1332",
       "id": "static_main_togglemarkovexpand",
       "community": 2,
       "norm_label": "togglemarkovexpand()"
@@ -1718,7 +1718,7 @@
       "label": "_loadMarkovHistory()",
       "file_type": "code",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L1313",
+      "source_location": "L1337",
       "id": "static_main_loadmarkovhistory",
       "community": 2,
       "norm_label": "_loadmarkovhistory()"
@@ -1727,7 +1727,7 @@
       "label": "addMarkovCustomTicker()",
       "file_type": "code",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L1346",
+      "source_location": "L1370",
       "id": "static_main_addmarkovcustomticker",
       "community": 2,
       "norm_label": "addmarkovcustomticker()"
@@ -1736,7 +1736,7 @@
       "label": "removeMarkovCustomTicker()",
       "file_type": "code",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L1359",
+      "source_location": "L1383",
       "id": "static_main_removemarkovcustomticker",
       "community": 2,
       "norm_label": "removemarkovcustomticker()"
@@ -1745,7 +1745,7 @@
       "label": "renderRegimePage()",
       "file_type": "code",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L1369",
+      "source_location": "L1393",
       "id": "static_main_renderregimepage",
       "community": 2,
       "norm_label": "renderregimepage()"
@@ -1754,7 +1754,7 @@
       "label": "renderTrading()",
       "file_type": "code",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L1445",
+      "source_location": "L1469",
       "id": "static_main_rendertrading",
       "community": 2,
       "norm_label": "rendertrading()"
@@ -1763,7 +1763,7 @@
       "label": "histPageNav()",
       "file_type": "code",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L1637",
+      "source_location": "L1661",
       "id": "static_main_histpagenav",
       "community": 2,
       "norm_label": "histpagenav()"
@@ -1772,7 +1772,7 @@
       "label": "histFilterChanged()",
       "file_type": "code",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L1644",
+      "source_location": "L1668",
       "id": "static_main_histfilterchanged",
       "community": 2,
       "norm_label": "histfilterchanged()"
@@ -1781,7 +1781,7 @@
       "label": "_applyHistFilters()",
       "file_type": "code",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L1649",
+      "source_location": "L1673",
       "id": "static_main_applyhistfilters",
       "community": 2,
       "norm_label": "_applyhistfilters()"
@@ -1790,7 +1790,7 @@
       "label": "loadTrading()",
       "file_type": "code",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L1659",
+      "source_location": "L1683",
       "id": "static_main_loadtrading",
       "community": 2,
       "norm_label": "loadtrading()"
@@ -1799,7 +1799,7 @@
       "label": "startTrading()",
       "file_type": "code",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L1671",
+      "source_location": "L1695",
       "id": "static_main_starttrading",
       "community": 2,
       "norm_label": "starttrading()"
@@ -1808,7 +1808,7 @@
       "label": "stopTrading()",
       "file_type": "code",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L1676",
+      "source_location": "L1700",
       "id": "static_main_stoptrading",
       "community": 2,
       "norm_label": "stoptrading()"
@@ -1817,7 +1817,7 @@
       "label": "cancelPosition()",
       "file_type": "code",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L1681",
+      "source_location": "L1705",
       "id": "static_main_cancelposition",
       "community": 2,
       "norm_label": "cancelposition()"
@@ -1826,7 +1826,7 @@
       "label": "_syncSettingsInputs()",
       "file_type": "code",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L1688",
+      "source_location": "L1712",
       "id": "static_main_syncsettingsinputs",
       "community": 2,
       "norm_label": "_syncsettingsinputs()"
@@ -1835,7 +1835,7 @@
       "label": "_updateSlStopRow()",
       "file_type": "code",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L1745",
+      "source_location": "L1769",
       "id": "static_main_updateslstoprow",
       "community": 2,
       "norm_label": "_updateslstoprow()"
@@ -1844,7 +1844,7 @@
       "label": "_renderSettingsPage()",
       "file_type": "code",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L1752",
+      "source_location": "L1776",
       "id": "static_main_rendersettingspage",
       "community": 2,
       "norm_label": "_rendersettingspage()"
@@ -1853,7 +1853,7 @@
       "label": "saveTradingSettings()",
       "file_type": "code",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L1761",
+      "source_location": "L1785",
       "id": "static_main_savetradingsettings",
       "community": 2,
       "norm_label": "savetradingsettings()"
@@ -1862,7 +1862,7 @@
       "label": "_showUsersPage()",
       "file_type": "code",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L1879",
+      "source_location": "L1903",
       "id": "static_main_showuserspage",
       "community": 2,
       "norm_label": "_showuserspage()"
@@ -1871,7 +1871,7 @@
       "label": "_toggleUserTrades()",
       "file_type": "code",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L1937",
+      "source_location": "L1970",
       "id": "static_main_toggleusertrades",
       "community": 2,
       "norm_label": "_toggleusertrades()"
@@ -1880,7 +1880,7 @@
       "label": "_renderUserTrades()",
       "file_type": "code",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L1956",
+      "source_location": "L1989",
       "id": "static_main_renderusertrades",
       "community": 2,
       "norm_label": "_renderusertrades()"
@@ -1889,7 +1889,7 @@
       "label": "_adminStopUser()",
       "file_type": "code",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L2004",
+      "source_location": "L2037",
       "id": "static_main_adminstopuser",
       "community": 2,
       "norm_label": "_adminstopuser()"
@@ -1898,7 +1898,7 @@
       "label": "_adminSetMode()",
       "file_type": "code",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L2009",
+      "source_location": "L2042",
       "id": "static_main_adminsetmode",
       "community": 2,
       "norm_label": "_adminsetmode()"
@@ -1907,7 +1907,7 @@
       "label": "_refreshUsers()",
       "file_type": "code",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L2018",
+      "source_location": "L2051",
       "id": "static_main_refreshusers",
       "community": 2,
       "norm_label": "_refreshusers()"
@@ -1918,7 +1918,7 @@
       "source_file": "btc_agent/briefing/__init__.py",
       "source_location": "L1",
       "id": "btc_agent_briefing_init_py",
-      "community": 29,
+      "community": 28,
       "norm_label": "__init__.py"
     },
     {
@@ -2079,9 +2079,9 @@
       "file_type": "rationale",
       "source_file": "btc_agent/scanner/depo.py",
       "source_location": "L45",
-      "id": "scanner_depo_rationale_45",
       "community": 8,
-      "norm_label": "return the adjacent depo level in the trade direction from the touched level."
+      "norm_label": "return the adjacent depo level in the trade direction from the touched level.",
+      "id": "scanner_depo_rationale_45"
     },
     {
       "label": "patterns.py",
@@ -2242,7 +2242,7 @@
       "source_file": "btc_agent/scanner/__init__.py",
       "source_location": "L1",
       "id": "btc_agent_scanner_init_py",
-      "community": 30,
+      "community": 29,
       "norm_label": "__init__.py"
     },
     {
@@ -2358,45 +2358,45 @@
       "file_type": "rationale",
       "source_file": "btc_agent/scanner/markov_tickers.py",
       "source_location": "L1",
-      "id": "scanner_markov_tickers_rationale_1",
       "community": 9,
-      "norm_label": "multi-ticker markov regime engine.  computes bull/bear/sideways regime + convict"
+      "norm_label": "multi-ticker markov regime engine.  computes bull/bear/sideways regime + convict",
+      "id": "scanner_markov_tickers_rationale_1"
     },
     {
       "label": "Make ticker safe for Firestore document IDs.",
       "file_type": "rationale",
       "source_file": "btc_agent/scanner/markov_tickers.py",
       "source_location": "L52",
-      "id": "scanner_markov_tickers_rationale_52",
       "community": 9,
-      "norm_label": "make ticker safe for firestore document ids."
+      "norm_label": "make ticker safe for firestore document ids.",
+      "id": "scanner_markov_tickers_rationale_52"
     },
     {
       "label": "Fetch 2y data, compute regime + conviction + stationary distribution.",
       "file_type": "rationale",
       "source_file": "btc_agent/scanner/markov_tickers.py",
       "source_location": "L93",
-      "id": "scanner_markov_tickers_rationale_93",
       "community": 9,
-      "norm_label": "fetch 2y data, compute regime + conviction + stationary distribution."
+      "norm_label": "fetch 2y data, compute regime + conviction + stationary distribution.",
+      "id": "scanner_markov_tickers_rationale_93"
     },
     {
       "label": "Run regime computation for all tickers. Called by scheduler at 13:00 UTC.",
       "file_type": "rationale",
       "source_file": "btc_agent/scanner/markov_tickers.py",
       "source_location": "L153",
-      "id": "scanner_markov_tickers_rationale_153",
       "community": 9,
-      "norm_label": "run regime computation for all tickers. called by scheduler at 13:00 utc."
+      "norm_label": "run regime computation for all tickers. called by scheduler at 13:00 utc.",
+      "id": "scanner_markov_tickers_rationale_153"
     },
     {
       "label": "Return copy of in-memory cache. Thread-safe, no I/O.",
       "file_type": "rationale",
       "source_file": "btc_agent/scanner/markov_tickers.py",
       "source_location": "L197",
-      "id": "scanner_markov_tickers_rationale_197",
       "community": 1,
-      "norm_label": "return copy of in-memory cache. thread-safe, no i/o."
+      "norm_label": "return copy of in-memory cache. thread-safe, no i/o.",
+      "id": "scanner_markov_tickers_rationale_197"
     },
     {
       "label": "oi_data.py",
@@ -2404,7 +2404,7 @@
       "source_file": "btc_agent/scanner/oi_data.py",
       "source_location": "L1",
       "id": "btc_agent_scanner_oi_data_py",
-      "community": 19,
+      "community": 18,
       "norm_label": "oi_data.py"
     },
     {
@@ -2413,7 +2413,7 @@
       "source_file": "btc_agent/scanner/oi_data.py",
       "source_location": "L27",
       "id": "scanner_oi_data_oisnapshot",
-      "community": 19,
+      "community": 18,
       "norm_label": "oisnapshot"
     },
     {
@@ -2422,7 +2422,7 @@
       "source_file": "btc_agent/scanner/oi_data.py",
       "source_location": "L34",
       "id": "scanner_oi_data_oisignals",
-      "community": 19,
+      "community": 18,
       "norm_label": "oisignals"
     },
     {
@@ -2431,7 +2431,7 @@
       "source_file": "btc_agent/scanner/oi_data.py",
       "source_location": "L45",
       "id": "scanner_oi_data_fetch_btc_price",
-      "community": 19,
+      "community": 18,
       "norm_label": "_fetch_btc_price()"
     },
     {
@@ -2440,7 +2440,7 @@
       "source_file": "btc_agent/scanner/oi_data.py",
       "source_location": "L56",
       "id": "scanner_oi_data_fetch_raw_oi",
-      "community": 19,
+      "community": 18,
       "norm_label": "_fetch_raw_oi()"
     },
     {
@@ -2449,7 +2449,7 @@
       "source_file": "btc_agent/scanner/oi_data.py",
       "source_location": "L72",
       "id": "scanner_oi_data_aggregate",
-      "community": 19,
+      "community": 18,
       "norm_label": "_aggregate()"
     },
     {
@@ -2458,7 +2458,7 @@
       "source_file": "btc_agent/scanner/oi_data.py",
       "source_location": "L79",
       "id": "scanner_oi_data_fetch_oi_snapshot",
-      "community": 19,
+      "community": 18,
       "norm_label": "fetch_oi_snapshot()"
     },
     {
@@ -2467,7 +2467,7 @@
       "source_file": "btc_agent/scanner/oi_data.py",
       "source_location": "L118",
       "id": "scanner_oi_data_compute_oi_signals",
-      "community": 19,
+      "community": 18,
       "norm_label": "compute_oi_signals()"
     },
     {
@@ -2475,18 +2475,18 @@
       "file_type": "rationale",
       "source_file": "btc_agent/scanner/oi_data.py",
       "source_location": "L46",
-      "id": "scanner_oi_data_rationale_46",
-      "community": 19,
-      "norm_label": "fetch current btc/usdt price from binance spot \u2014 needed to convert usdt-m oi (bt"
+      "community": 18,
+      "norm_label": "fetch current btc/usdt price from binance spot \u2014 needed to convert usdt-m oi (bt",
+      "id": "scanner_oi_data_rationale_46"
     },
     {
       "label": "Fetch raw OI series from Binance (USDT-M or COIN-M).",
       "file_type": "rationale",
       "source_file": "btc_agent/scanner/oi_data.py",
       "source_location": "L57",
-      "id": "scanner_oi_data_rationale_57",
-      "community": 19,
-      "norm_label": "fetch raw oi series from binance (usdt-m or coin-m)."
+      "community": 18,
+      "norm_label": "fetch raw oi series from binance (usdt-m or coin-m).",
+      "id": "scanner_oi_data_rationale_57"
     },
     {
       "label": "agent.py",
@@ -2665,7 +2665,7 @@
       "source_file": "btc_agent/scanner/data.py",
       "source_location": "L1",
       "id": "btc_agent_scanner_data_py",
-      "community": 20,
+      "community": 19,
       "norm_label": "data.py"
     },
     {
@@ -2674,7 +2674,7 @@
       "source_file": "btc_agent/scanner/data.py",
       "source_location": "L20",
       "id": "scanner_data_get_exchange",
-      "community": 20,
+      "community": 19,
       "norm_label": "_get_exchange()"
     },
     {
@@ -2683,7 +2683,7 @@
       "source_file": "btc_agent/scanner/data.py",
       "source_location": "L42",
       "id": "scanner_data_get_exchange_cached",
-      "community": 20,
+      "community": 19,
       "norm_label": "_get_exchange_cached()"
     },
     {
@@ -2692,7 +2692,7 @@
       "source_file": "btc_agent/scanner/data.py",
       "source_location": "L49",
       "id": "scanner_data_fetch_current_price",
-      "community": 20,
+      "community": 19,
       "norm_label": "fetch_current_price()"
     },
     {
@@ -2701,7 +2701,7 @@
       "source_file": "btc_agent/scanner/data.py",
       "source_location": "L56",
       "id": "scanner_data_fetch_ohlcv",
-      "community": 20,
+      "community": 19,
       "norm_label": "_fetch_ohlcv()"
     },
     {
@@ -2710,7 +2710,7 @@
       "source_file": "btc_agent/scanner/data.py",
       "source_location": "L68",
       "id": "scanner_data_fetch_1m_candles",
-      "community": 20,
+      "community": 19,
       "norm_label": "fetch_1m_candles()"
     },
     {
@@ -2718,7 +2718,7 @@
       "file_type": "rationale",
       "source_file": "btc_agent/scanner/data.py",
       "source_location": "L21",
-      "community": 20,
+      "community": 19,
       "norm_label": "return (exchange, symbol) for the first venue that is reachable.     skips excha",
       "id": "scanner_data_rationale_21"
     },
@@ -2727,7 +2727,7 @@
       "file_type": "rationale",
       "source_file": "btc_agent/scanner/data.py",
       "source_location": "L50",
-      "community": 20,
+      "community": 19,
       "norm_label": "lightweight single-call price fetch using a cached exchange connection.",
       "id": "scanner_data_rationale_50"
     },
@@ -2736,7 +2736,7 @@
       "file_type": "rationale",
       "source_file": "btc_agent/scanner/data.py",
       "source_location": "L57",
-      "community": 20,
+      "community": 19,
       "norm_label": "fetch ohlcv with exponential backoff on rate limit errors.",
       "id": "scanner_data_rationale_57"
     },
@@ -2745,7 +2745,7 @@
       "file_type": "rationale",
       "source_file": "btc_agent/scanner/data.py",
       "source_location": "L69",
-      "community": 20,
+      "community": 19,
       "norm_label": "fetch the latest `limit` 1-minute ohlcv candles for btcusdt perpetual (btcusdt.p",
       "id": "scanner_data_rationale_69"
     },
@@ -2844,63 +2844,63 @@
       "file_type": "rationale",
       "source_file": "btc_agent/scanner/markov_regime.py",
       "source_location": "L1",
-      "id": "scanner_markov_regime_rationale_1",
       "community": 16,
-      "norm_label": "daily markov regime computation for btc-usd.  app-level singleton (not per-user)"
+      "norm_label": "daily markov regime computation for btc-usd.  app-level singleton (not per-user)",
+      "id": "scanner_markov_regime_rationale_1"
     },
     {
       "label": "Fetch data, compute regime, validate yesterday, write to Firestore.",
       "file_type": "rationale",
       "source_file": "btc_agent/scanner/markov_regime.py",
       "source_location": "L61",
-      "id": "scanner_markov_regime_rationale_61",
       "community": 16,
-      "norm_label": "fetch data, compute regime, validate yesterday, write to firestore."
+      "norm_label": "fetch data, compute regime, validate yesterday, write to firestore.",
+      "id": "scanner_markov_regime_rationale_61"
     },
     {
       "label": "Compute yesterday's actual regime label and update Firestore.",
       "file_type": "rationale",
       "source_file": "btc_agent/scanner/markov_regime.py",
       "source_location": "L104",
-      "id": "scanner_markov_regime_rationale_104",
       "community": 16,
-      "norm_label": "compute yesterday's actual regime label and update firestore."
+      "norm_label": "compute yesterday's actual regime label and update firestore.",
+      "id": "scanner_markov_regime_rationale_104"
     },
     {
       "label": "Background thread target \u2014 compute and cache regime.",
       "file_type": "rationale",
       "source_file": "btc_agent/scanner/markov_regime.py",
       "source_location": "L132",
-      "id": "scanner_markov_regime_rationale_132",
       "community": 16,
-      "norm_label": "background thread target \u2014 compute and cache regime."
+      "norm_label": "background thread target \u2014 compute and cache regime.",
+      "id": "scanner_markov_regime_rationale_132"
     },
     {
       "label": "Return cached regime. Thread-safe, no I/O.",
       "file_type": "rationale",
       "source_file": "btc_agent/scanner/markov_regime.py",
       "source_location": "L152",
-      "id": "scanner_markov_regime_rationale_152",
       "community": 1,
-      "norm_label": "return cached regime. thread-safe, no i/o."
+      "norm_label": "return cached regime. thread-safe, no i/o.",
+      "id": "scanner_markov_regime_rationale_152"
     },
     {
       "label": "Synchronous refresh \u2014 called once at scanner startup.",
       "file_type": "rationale",
       "source_file": "btc_agent/scanner/markov_regime.py",
       "source_location": "L158",
-      "id": "scanner_markov_regime_rationale_158",
       "community": 16,
-      "norm_label": "synchronous refresh \u2014 called once at scanner startup."
+      "norm_label": "synchronous refresh \u2014 called once at scanner startup.",
+      "id": "scanner_markov_regime_rationale_158"
     },
     {
       "label": "Non-blocking daily refresh \u2014 called inside the scan-interval block.",
       "file_type": "rationale",
       "source_file": "btc_agent/scanner/markov_regime.py",
       "source_location": "L180",
-      "id": "scanner_markov_regime_rationale_180",
       "community": 16,
-      "norm_label": "non-blocking daily refresh \u2014 called inside the scan-interval block."
+      "norm_label": "non-blocking daily refresh \u2014 called inside the scan-interval block.",
+      "id": "scanner_markov_regime_rationale_180"
     },
     {
       "label": "vishal_strategies.py",
@@ -3681,90 +3681,90 @@
       "file_type": "rationale",
       "source_file": "btc_agent/trading/scanner.py",
       "source_location": "L132",
-      "id": "trading_scanner_rationale_132",
       "community": 3,
-      "norm_label": "instantiate the broker adapter for this user from their saved settings."
+      "norm_label": "instantiate the broker adapter for this user from their saved settings.",
+      "id": "trading_scanner_rationale_132"
     },
     {
       "label": "SL is always the wick low/high of the pattern candle.",
       "file_type": "rationale",
       "source_file": "btc_agent/trading/scanner.py",
       "source_location": "L154",
-      "id": "trading_scanner_rationale_154",
       "community": 3,
-      "norm_label": "sl is always the wick low/high of the pattern candle."
+      "norm_label": "sl is always the wick low/high of the pattern candle.",
+      "id": "trading_scanner_rationale_154"
     },
     {
       "label": "True during CME closure: Fri 16:00 CT \u2192 Sun 17:00 CT.",
       "file_type": "rationale",
       "source_file": "btc_agent/trading/scanner.py",
       "source_location": "L239",
-      "id": "trading_scanner_rationale_239",
       "community": 3,
-      "norm_label": "true during cme closure: fri 16:00 ct \u2192 sun 17:00 ct."
+      "norm_label": "true during cme closure: fri 16:00 ct \u2192 sun 17:00 ct.",
+      "id": "trading_scanner_rationale_239"
     },
     {
       "label": "30m-first, 1H-fallback compression signal: all 3 POCs inside one candle's H-L, c",
       "file_type": "rationale",
       "source_file": "btc_agent/trading/scanner.py",
       "source_location": "L435",
-      "id": "trading_scanner_rationale_435",
       "community": 3,
-      "norm_label": "30m-first, 1h-fallback compression signal: all 3 pocs inside one candle's h-l, c"
+      "norm_label": "30m-first, 1h-fallback compression signal: all 3 pocs inside one candle's h-l, c",
+      "id": "trading_scanner_rationale_435"
     },
     {
       "label": "Close compression positions whose same-TF candle closed on wrong side of 4H POC.",
       "file_type": "rationale",
       "source_file": "btc_agent/trading/scanner.py",
       "source_location": "L494",
-      "id": "trading_scanner_rationale_494",
       "community": 3,
-      "norm_label": "close compression positions whose same-tf candle closed on wrong side of 4h poc."
+      "norm_label": "close compression positions whose same-tf candle closed on wrong side of 4h poc.",
+      "id": "trading_scanner_rationale_494"
     },
     {
       "label": "Points lost on an SL close. Positive = real loss. Zero/negative = breakeven or b",
       "file_type": "rationale",
       "source_file": "btc_agent/trading/scanner.py",
       "source_location": "L779",
-      "id": "trading_scanner_rationale_779",
       "community": 3,
-      "norm_label": "points lost on an sl close. positive = real loss. zero/negative = breakeven or b"
+      "norm_label": "points lost on an sl close. positive = real loss. zero/negative = breakeven or b",
+      "id": "trading_scanner_rationale_779"
     },
     {
       "label": "Compute the new trailing SL price after partial TP.     SL = entry \u00b1 offset + fl",
       "file_type": "rationale",
       "source_file": "btc_agent/trading/scanner.py",
       "source_location": "L985",
-      "id": "trading_scanner_rationale_985",
       "community": 3,
-      "norm_label": "compute the new trailing sl price after partial tp.     sl = entry \u00b1 offset + fl"
+      "norm_label": "compute the new trailing sl price after partial tp.     sl = entry \u00b1 offset + fl",
+      "id": "trading_scanner_rationale_985"
     },
     {
       "label": "Restore in-memory state from Firestore on scanner startup.",
       "file_type": "rationale",
       "source_file": "btc_agent/trading/scanner.py",
       "source_location": "L1327",
-      "id": "trading_scanner_rationale_1327",
       "community": 3,
-      "norm_label": "restore in-memory state from firestore on scanner startup."
+      "norm_label": "restore in-memory state from firestore on scanner startup.",
+      "id": "trading_scanner_rationale_1327"
     },
     {
       "label": "Return current in-memory state for the web API.",
       "file_type": "rationale",
       "source_file": "btc_agent/trading/scanner.py",
       "source_location": "L1404",
-      "id": "trading_scanner_rationale_1404",
       "community": 3,
-      "norm_label": "return current in-memory state for the web api."
+      "norm_label": "return current in-memory state for the web api.",
+      "id": "trading_scanner_rationale_1404"
     },
     {
       "label": "Move all open positions to history as 'stopped_by_user'. No PnL calculated.",
       "file_type": "rationale",
       "source_file": "btc_agent/trading/scanner.py",
       "source_location": "L1489",
-      "id": "trading_scanner_rationale_1489",
       "community": 3,
-      "norm_label": "move all open positions to history as 'stopped_by_user'. no pnl calculated."
+      "norm_label": "move all open positions to history as 'stopped_by_user'. no pnl calculated.",
+      "id": "trading_scanner_rationale_1489"
     },
     {
       "label": "models.py",
@@ -4023,27 +4023,27 @@
       "file_type": "rationale",
       "source_file": "btc_agent/trading/firestore_store.py",
       "source_location": "L35",
-      "id": "trading_firestore_store_rationale_35",
       "community": 1,
-      "norm_label": "submit fn(*args) to the write pool \u2014 fire and forget."
+      "norm_label": "submit fn(*args) to the write pool \u2014 fire and forget.",
+      "id": "trading_firestore_store_rationale_35"
     },
     {
       "label": "Return [(uid, prefs_dict), ...] for all docs in user_settings.",
       "file_type": "rationale",
       "source_file": "btc_agent/trading/firestore_store.py",
       "source_location": "L121",
-      "id": "trading_firestore_store_rationale_121",
       "community": 1,
-      "norm_label": "return [(uid, prefs_dict), ...] for all docs in user_settings."
+      "norm_label": "return [(uid, prefs_dict), ...] for all docs in user_settings.",
+      "id": "trading_firestore_store_rationale_121"
     },
     {
       "label": "Read all three collections for the given uid, or None if Firestore is unavailabl",
       "file_type": "rationale",
       "source_file": "btc_agent/trading/firestore_store.py",
       "source_location": "L230",
-      "id": "trading_firestore_store_rationale_230",
       "community": 1,
-      "norm_label": "read all three collections for the given uid, or none if firestore is unavailabl"
+      "norm_label": "read all three collections for the given uid, or none if firestore is unavailabl",
+      "id": "trading_firestore_store_rationale_230"
     },
     {
       "label": "__init__.py",
@@ -4051,7 +4051,7 @@
       "source_file": "btc_agent/trading/__init__.py",
       "source_location": "L1",
       "id": "btc_agent_trading_init_py",
-      "community": 31,
+      "community": 30,
       "norm_label": "__init__.py"
     },
     {
@@ -4194,45 +4194,45 @@
       "file_type": "rationale",
       "source_file": "btc_agent/trading/executor.py",
       "source_location": "L141",
-      "id": "trading_executor_rationale_141",
       "community": 14,
-      "norm_label": "return the name of the user's default coinbase portfolio."
+      "norm_label": "return the name of the user's default coinbase portfolio.",
+      "id": "trading_executor_rationale_141"
     },
     {
       "label": "Place an immediate market order (IOC).",
       "file_type": "rationale",
       "source_file": "btc_agent/trading/executor.py",
       "source_location": "L160",
-      "id": "trading_executor_rationale_160",
       "community": 14,
-      "norm_label": "place an immediate market order (ioc)."
+      "norm_label": "place an immediate market order (ioc).",
+      "id": "trading_executor_rationale_160"
     },
     {
       "label": "Place a GTC stop-limit order for stop-loss.",
       "file_type": "rationale",
       "source_file": "btc_agent/trading/executor.py",
       "source_location": "L188",
-      "id": "trading_executor_rationale_188",
       "community": 14,
-      "norm_label": "place a gtc stop-limit order for stop-loss."
+      "norm_label": "place a gtc stop-limit order for stop-loss.",
+      "id": "trading_executor_rationale_188"
     },
     {
       "label": "Cancel a single order. Uses batch_cancel endpoint.",
       "file_type": "rationale",
       "source_file": "btc_agent/trading/executor.py",
       "source_location": "L212",
-      "id": "trading_executor_rationale_212",
       "community": 14,
-      "norm_label": "cancel a single order. uses batch_cancel endpoint."
+      "norm_label": "cancel a single order. uses batch_cancel endpoint.",
+      "id": "trading_executor_rationale_212"
     },
     {
       "label": "Place a GTC take-profit limit order.",
       "file_type": "rationale",
       "source_file": "btc_agent/trading/executor.py",
       "source_location": "L225",
-      "id": "trading_executor_rationale_225",
       "community": 14,
-      "norm_label": "place a gtc take-profit limit order."
+      "norm_label": "place a gtc take-profit limit order.",
+      "id": "trading_executor_rationale_225"
     },
     {
       "label": "bybit.py",
@@ -4689,72 +4689,72 @@
       "file_type": "rationale",
       "source_file": "btc_agent/trading/brokers/pepperstone.py",
       "source_location": "L19",
-      "id": "brokers_pepperstone_rationale_19",
       "community": 0,
-      "norm_label": "exchange refresh_token for a new access_token. returns (access_token, expires_at"
+      "norm_label": "exchange refresh_token for a new access_token. returns (access_token, expires_at",
+      "id": "brokers_pepperstone_rationale_19"
     },
     {
       "label": "Zigzag-encode signed int64 \u2192 varint bytes.",
       "file_type": "rationale",
       "source_file": "btc_agent/trading/brokers/pepperstone.py",
       "source_location": "L83",
-      "id": "brokers_pepperstone_rationale_83",
       "community": 0,
-      "norm_label": "zigzag-encode signed int64 \u2192 varint bytes."
+      "norm_label": "zigzag-encode signed int64 \u2192 varint bytes.",
+      "id": "brokers_pepperstone_rationale_83"
     },
     {
       "label": "Wrap in ProtoMessage envelope (field 1=payloadType, field 3=payload).",
       "file_type": "rationale",
       "source_file": "btc_agent/trading/brokers/pepperstone.py",
       "source_location": "L108",
-      "id": "brokers_pepperstone_rationale_108",
       "community": 0,
-      "norm_label": "wrap in protomessage envelope (field 1=payloadtype, field 3=payload)."
+      "norm_label": "wrap in protomessage envelope (field 1=payloadtype, field 3=payload).",
+      "id": "brokers_pepperstone_rationale_108"
     },
     {
       "label": "Parse protobuf wire format \u2192 {field_num: [raw_bytes, ...]}.",
       "file_type": "rationale",
       "source_file": "btc_agent/trading/brokers/pepperstone.py",
       "source_location": "L131",
-      "id": "brokers_pepperstone_rationale_131",
       "community": 0,
-      "norm_label": "parse protobuf wire format \u2192 {field_num: [raw_bytes, ...]}."
+      "norm_label": "parse protobuf wire format \u2192 {field_num: [raw_bytes, ...]}.",
+      "id": "brokers_pepperstone_rationale_131"
     },
     {
       "label": "Read messages until one with expected payloadType arrives.",
       "file_type": "rationale",
       "source_file": "btc_agent/trading/brokers/pepperstone.py",
       "source_location": "L243",
-      "id": "brokers_pepperstone_rationale_243",
       "community": 0,
-      "norm_label": "read messages until one with expected payloadtype arrives."
+      "norm_label": "read messages until one with expected payloadtype arrives.",
+      "id": "brokers_pepperstone_rationale_243"
     },
     {
       "label": "Pepperstone via cTrader Open API (TLS TCP + Protobuf).      Credentials required",
       "file_type": "rationale",
       "source_file": "btc_agent/trading/brokers/pepperstone.py",
       "source_location": "L262",
-      "id": "brokers_pepperstone_rationale_262",
       "community": 0,
-      "norm_label": "pepperstone via ctrader open api (tls tcp + protobuf).      credentials required"
+      "norm_label": "pepperstone via ctrader open api (tls tcp + protobuf).      credentials required",
+      "id": "brokers_pepperstone_rationale_262"
     },
     {
       "label": "Return a valid access_token, refreshing silently if expired.",
       "file_type": "rationale",
       "source_file": "btc_agent/trading/brokers/pepperstone.py",
       "source_location": "L289",
-      "id": "brokers_pepperstone_rationale_289",
       "community": 0,
-      "norm_label": "return a valid access_token, refreshing silently if expired."
+      "norm_label": "return a valid access_token, refreshing silently if expired.",
+      "id": "brokers_pepperstone_rationale_289"
     },
     {
       "label": "Extract positionId from ProtoOAExecutionEvent payload.",
       "file_type": "rationale",
       "source_file": "btc_agent/trading/brokers/pepperstone.py",
       "source_location": "L335",
-      "id": "brokers_pepperstone_rationale_335",
       "community": 0,
-      "norm_label": "extract positionid from protooaexecutionevent payload."
+      "norm_label": "extract positionid from protooaexecutionevent payload.",
+      "id": "brokers_pepperstone_rationale_335"
     },
     {
       "label": "coindcx.py",
@@ -4878,9 +4878,9 @@
       "file_type": "rationale",
       "source_file": "btc_agent/trading/brokers/__init__.py",
       "source_location": "L22",
-      "id": "brokers_init_rationale_22",
       "community": 0,
-      "norm_label": "instantiate the correct broker adapter from user credentials."
+      "norm_label": "instantiate the correct broker adapter from user credentials.",
+      "id": "brokers_init_rationale_22"
     },
     {
       "label": "coinbase.py",
@@ -5175,7 +5175,7 @@
       "file_type": "rationale",
       "source_file": "btc_agent/trading/brokers/base.py",
       "source_location": "L10",
-      "community": 32,
+      "community": 31,
       "norm_label": "place an immediate market order.          side: \"buy\" or \"sell\"         qty:  qu",
       "id": "brokers_base_rationale_10"
     },
@@ -5184,7 +5184,7 @@
       "file_type": "rationale",
       "source_file": "btc_agent/trading/brokers/base.py",
       "source_location": "L25",
-      "community": 33,
+      "community": 32,
       "norm_label": "place a gtc stop-limit order for stop-loss protection.",
       "id": "brokers_base_rationale_25"
     },
@@ -5193,36 +5193,36 @@
       "file_type": "rationale",
       "source_file": "btc_agent/trading/brokers/base.py",
       "source_location": "L35",
-      "id": "brokers_base_rationale_35",
-      "community": 34,
-      "norm_label": "place a gtc take-profit order that closes the position when tp is reached."
+      "community": 33,
+      "norm_label": "place a gtc take-profit order that closes the position when tp is reached.",
+      "id": "brokers_base_rationale_35"
     },
     {
       "label": "Cancel an open order by its broker-assigned order_id.",
       "file_type": "rationale",
       "source_file": "btc_agent/trading/brokers/base.py",
       "source_location": "L39",
-      "id": "brokers_base_rationale_39",
-      "community": 35,
-      "norm_label": "cancel an open order by its broker-assigned order_id."
+      "community": 34,
+      "norm_label": "cancel an open order by its broker-assigned order_id.",
+      "id": "brokers_base_rationale_39"
     },
     {
       "label": "BTC equivalent per unit/contract \u2014 used for PnL calculation.",
       "file_type": "rationale",
       "source_file": "btc_agent/trading/brokers/base.py",
       "source_location": "L44",
-      "id": "brokers_base_rationale_44",
-      "community": 36,
-      "norm_label": "btc equivalent per unit/contract \u2014 used for pnl calculation."
+      "community": 35,
+      "norm_label": "btc equivalent per unit/contract \u2014 used for pnl calculation.",
+      "id": "brokers_base_rationale_44"
     },
     {
       "label": "Return a human-readable account name from the broker API.",
       "file_type": "rationale",
       "source_file": "btc_agent/trading/brokers/base.py",
       "source_location": "L47",
-      "id": "brokers_base_rationale_47",
       "community": 0,
-      "norm_label": "return a human-readable account name from the broker api."
+      "norm_label": "return a human-readable account name from the broker api.",
+      "id": "brokers_base_rationale_47"
     },
     {
       "label": "binance.py",
@@ -5230,7 +5230,7 @@
       "source_file": "btc_agent/trading/brokers/binance.py",
       "source_location": "L1",
       "id": "btc_agent_trading_brokers_binance_py",
-      "community": 18,
+      "community": 0,
       "norm_label": "binance.py"
     },
     {
@@ -5239,7 +5239,7 @@
       "source_file": "btc_agent/trading/brokers/binance.py",
       "source_location": "L18",
       "id": "brokers_binance_binanceadapter",
-      "community": 18,
+      "community": 0,
       "norm_label": "binanceadapter"
     },
     {
@@ -5248,7 +5248,7 @@
       "source_file": "btc_agent/trading/brokers/binance.py",
       "source_location": "L21",
       "id": "brokers_binance_binanceadapter_init",
-      "community": 18,
+      "community": 0,
       "norm_label": ".__init__()"
     },
     {
@@ -5257,7 +5257,7 @@
       "source_file": "btc_agent/trading/brokers/binance.py",
       "source_location": "L26",
       "id": "brokers_binance_binanceadapter_sign",
-      "community": 18,
+      "community": 0,
       "norm_label": "._sign()"
     },
     {
@@ -5266,7 +5266,7 @@
       "source_file": "btc_agent/trading/brokers/binance.py",
       "source_location": "L34",
       "id": "brokers_binance_binanceadapter_headers",
-      "community": 18,
+      "community": 0,
       "norm_label": "._headers()"
     },
     {
@@ -5275,7 +5275,7 @@
       "source_file": "btc_agent/trading/brokers/binance.py",
       "source_location": "L37",
       "id": "brokers_binance_binanceadapter_post",
-      "community": 18,
+      "community": 0,
       "norm_label": "._post()"
     },
     {
@@ -5284,7 +5284,7 @@
       "source_file": "btc_agent/trading/brokers/binance.py",
       "source_location": "L48",
       "id": "brokers_binance_binanceadapter_delete",
-      "community": 18,
+      "community": 0,
       "norm_label": "._delete()"
     },
     {
@@ -5293,7 +5293,7 @@
       "source_file": "btc_agent/trading/brokers/binance.py",
       "source_location": "L61",
       "id": "brokers_binance_binanceadapter_place_market_order",
-      "community": 18,
+      "community": 0,
       "norm_label": ".place_market_order()"
     },
     {
@@ -5302,7 +5302,7 @@
       "source_file": "btc_agent/trading/brokers/binance.py",
       "source_location": "L69",
       "id": "brokers_binance_binanceadapter_place_stop_limit_order",
-      "community": 18,
+      "community": 0,
       "norm_label": ".place_stop_limit_order()"
     },
     {
@@ -5311,7 +5311,7 @@
       "source_file": "btc_agent/trading/brokers/binance.py",
       "source_location": "L80",
       "id": "brokers_binance_binanceadapter_place_take_profit_order",
-      "community": 18,
+      "community": 0,
       "norm_label": ".place_take_profit_order()"
     },
     {
@@ -5320,7 +5320,7 @@
       "source_file": "btc_agent/trading/brokers/binance.py",
       "source_location": "L93",
       "id": "brokers_binance_binanceadapter_cancel_order",
-      "community": 18,
+      "community": 0,
       "norm_label": ".cancel_order()"
     },
     {
@@ -5329,7 +5329,7 @@
       "source_file": "btc_agent/trading/brokers/binance.py",
       "source_location": "L97",
       "id": "brokers_binance_contract_size",
-      "community": 18,
+      "community": 0,
       "norm_label": "contract_size()"
     },
     {
@@ -5337,7 +5337,7 @@
       "file_type": "rationale",
       "source_file": "btc_agent/trading/brokers/binance.py",
       "source_location": "L19",
-      "community": 18,
+      "community": 0,
       "norm_label": "binance usdt-m perpetual futures via rest api.",
       "id": "brokers_binance_rationale_19"
     },
@@ -5535,27 +5535,27 @@
       "file_type": "rationale",
       "source_file": "btc_agent/liquidity/collector.py",
       "source_location": "L1",
-      "id": "liquidity_collector_rationale_1",
       "community": 12,
-      "norm_label": "coinglass liquidation heatmap \u2014 dynamic leverage collector (playwright)  kill-an"
+      "norm_label": "coinglass liquidation heatmap \u2014 dynamic leverage collector (playwright)  kill-an",
+      "id": "liquidity_collector_rationale_1"
     },
     {
       "label": "Full collection loop \u2014 kill-and-restart playwright every 15 min.",
       "file_type": "rationale",
       "source_file": "btc_agent/liquidity/collector.py",
       "source_location": "L424",
-      "id": "liquidity_collector_rationale_424",
       "community": 12,
-      "norm_label": "full collection loop \u2014 kill-and-restart playwright every 15 min."
+      "norm_label": "full collection loop \u2014 kill-and-restart playwright every 15 min.",
+      "id": "liquidity_collector_rationale_424"
     },
     {
       "label": "One-shot headed browser \u2014 inspect chart manually.",
       "file_type": "rationale",
       "source_file": "btc_agent/liquidity/collector.py",
       "source_location": "L457",
-      "id": "liquidity_collector_rationale_457",
       "community": 12,
-      "norm_label": "one-shot headed browser \u2014 inspect chart manually."
+      "norm_label": "one-shot headed browser \u2014 inspect chart manually.",
+      "id": "liquidity_collector_rationale_457"
     },
     {
       "label": "probe.py",
@@ -5580,9 +5580,9 @@
       "file_type": "rationale",
       "source_file": "btc_agent/liquidity/probe.py",
       "source_location": "L1",
-      "id": "liquidity_probe_rationale_1",
       "community": 12,
-      "norm_label": "one-shot probe: find chart api + correct selectors for leverage and price."
+      "norm_label": "one-shot probe: find chart api + correct selectors for leverage and price.",
+      "id": "liquidity_probe_rationale_1"
     },
     {
       "label": "test_trading.py",
@@ -6003,9 +6003,9 @@
       "file_type": "rationale",
       "source_file": "tests/test_trading.py",
       "source_location": "L249",
-      "id": "tests_test_trading_rationale_249",
       "community": 3,
-      "norm_label": "regression: overlapping rolling windows used to emit a cluster of     near-ident"
+      "norm_label": "regression: overlapping rolling windows used to emit a cluster of     near-ident",
+      "id": "tests_test_trading_rationale_249"
     },
     {
       "label": "test_levels.py",
@@ -6246,117 +6246,117 @@
       "file_type": "rationale",
       "source_file": "tests/test_levels.py",
       "source_location": "L36",
-      "id": "tests_test_levels_rationale_36",
       "community": 6,
-      "norm_label": "call compute_levels with a fixed 'now' so tests are deterministic.      levels.p"
+      "norm_label": "call compute_levels with a fixed 'now' so tests are deterministic.      levels.p",
+      "id": "tests_test_levels_rationale_36"
     },
     {
       "label": "Yesterday's candles must not affect MRP.",
       "file_type": "rationale",
       "source_file": "tests/test_levels.py",
       "source_location": "L49",
-      "id": "tests_test_levels_rationale_49",
       "community": 6,
-      "norm_label": "yesterday's candles must not affect mrp."
+      "norm_label": "yesterday's candles must not affect mrp.",
+      "id": "tests_test_levels_rationale_49"
     },
     {
       "label": "VWAP = \u03a3(tp \u00d7 vol) / \u03a3(vol) across today's candles.",
       "file_type": "rationale",
       "source_file": "tests/test_levels.py",
       "source_location": "L63",
-      "id": "tests_test_levels_rationale_63",
       "community": 6,
-      "norm_label": "vwap = \u03c3(tp \u00d7 vol) / \u03c3(vol) across today's candles."
+      "norm_label": "vwap = \u03c3(tp \u00d7 vol) / \u03c3(vol) across today's candles.",
+      "id": "tests_test_levels_rationale_63"
     },
     {
       "label": "Daily POC = (prev_H + prev_L + prev_C) / 3 from yesterday's candles.",
       "file_type": "rationale",
       "source_file": "tests/test_levels.py",
       "source_location": "L86",
-      "id": "tests_test_levels_rationale_86",
       "community": 6,
-      "norm_label": "daily poc = (prev_h + prev_l + prev_c) / 3 from yesterday's candles."
+      "norm_label": "daily poc = (prev_h + prev_l + prev_c) / 3 from yesterday's candles.",
+      "id": "tests_test_levels_rationale_86"
     },
     {
       "label": "Weekly POC = weekly_open \u00d7 (1 + weekly_adj / 100).",
       "file_type": "rationale",
       "source_file": "tests/test_levels.py",
       "source_location": "L110",
-      "id": "tests_test_levels_rationale_110",
       "community": 6,
-      "norm_label": "weekly poc = weekly_open \u00d7 (1 + weekly_adj / 100)."
+      "norm_label": "weekly poc = weekly_open \u00d7 (1 + weekly_adj / 100).",
+      "id": "tests_test_levels_rationale_110"
     },
     {
       "label": "weekly_open = open of the very first 1m candle of the current week.",
       "file_type": "rationale",
       "source_file": "tests/test_levels.py",
       "source_location": "L121",
-      "id": "tests_test_levels_rationale_121",
       "community": 6,
-      "norm_label": "weekly_open = open of the very first 1m candle of the current week."
+      "norm_label": "weekly_open = open of the very first 1m candle of the current week.",
+      "id": "tests_test_levels_rationale_121"
     },
     {
       "label": "Mid-day window: 4H POC = VWAP of today's candles up to the prior 4H bar.",
       "file_type": "rationale",
       "source_file": "tests/test_levels.py",
       "source_location": "L141",
-      "id": "tests_test_levels_rationale_141",
       "community": 6,
-      "norm_label": "mid-day window: 4h poc = vwap of today's candles up to the prior 4h bar."
+      "norm_label": "mid-day window: 4h poc = vwap of today's candles up to the prior 4h bar.",
+      "id": "tests_test_levels_rationale_141"
     },
     {
       "label": "Regression: in the 00:00\u201304:00 UTC window 4H POC must carry yesterday's     full",
       "file_type": "rationale",
       "source_file": "tests/test_levels.py",
       "source_location": "L155",
-      "id": "tests_test_levels_rationale_155",
       "community": 6,
-      "norm_label": "regression: in the 00:00\u201304:00 utc window 4h poc must carry yesterday's     full"
+      "norm_label": "regression: in the 00:00\u201304:00 utc window 4h poc must carry yesterday's     full",
+      "id": "tests_test_levels_rationale_155"
     },
     {
       "label": "Minimal stand-in exposing the attributes _calc_tp reads.",
       "file_type": "rationale",
       "source_file": "tests/test_levels.py",
       "source_location": "L170",
-      "id": "tests_test_levels_rationale_170",
       "community": 6,
-      "norm_label": "minimal stand-in exposing the attributes _calc_tp reads."
+      "norm_label": "minimal stand-in exposing the attributes _calc_tp reads.",
+      "id": "tests_test_levels_rationale_170"
     },
     {
       "label": "Call _calc_tp(sc, direction, entry) with a fake scanner (min_tp=500).",
       "file_type": "rationale",
       "source_file": "tests/test_levels.py",
       "source_location": "L177",
-      "id": "tests_test_levels_rationale_177",
       "community": 6,
-      "norm_label": "call _calc_tp(sc, direction, entry) with a fake scanner (min_tp=500)."
+      "norm_label": "call _calc_tp(sc, direction, entry) with a fake scanner (min_tp=500).",
+      "id": "tests_test_levels_rationale_177"
     },
     {
       "label": "If nearest level is only 100 pts above entry, TP should be floored at entry + 50",
       "file_type": "rationale",
       "source_file": "tests/test_levels.py",
       "source_location": "L199",
-      "id": "tests_test_levels_rationale_199",
       "community": 6,
-      "norm_label": "if nearest level is only 100 pts above entry, tp should be floored at entry + 50"
+      "norm_label": "if nearest level is only 100 pts above entry, tp should be floored at entry + 50",
+      "id": "tests_test_levels_rationale_199"
     },
     {
       "label": "No levels above entry \u2192 fixed_500 fallback.",
       "file_type": "rationale",
       "source_file": "tests/test_levels.py",
       "source_location": "L214",
-      "id": "tests_test_levels_rationale_214",
       "community": 6,
-      "norm_label": "no levels above entry \u2192 fixed_500 fallback."
+      "norm_label": "no levels above entry \u2192 fixed_500 fallback.",
+      "id": "tests_test_levels_rationale_214"
     },
     {
       "label": "None values for individual levels must be skipped (not raise TypeError).",
       "file_type": "rationale",
       "source_file": "tests/test_levels.py",
       "source_location": "L229",
-      "id": "tests_test_levels_rationale_229",
       "community": 6,
-      "norm_label": "none values for individual levels must be skipped (not raise typeerror)."
+      "norm_label": "none values for individual levels must be skipped (not raise typeerror).",
+      "id": "tests_test_levels_rationale_229"
     },
     {
       "label": "test_patterns.py",
@@ -6697,7 +6697,7 @@
       "source_file": "tests/__init__.py",
       "source_location": "L1",
       "id": "tests_init_py",
-      "community": 37,
+      "community": 36,
       "norm_label": "__init__.py"
     },
     {
@@ -7893,34 +7893,34 @@
       "file_type": "rationale",
       "source_file": "tests/test_executor.py",
       "source_location": "L36",
-      "id": "tests_test_executor_rationale_36",
       "community": 11,
-      "norm_label": "return a context-manager mock that yields a fake http response."
+      "norm_label": "return a context-manager mock that yields a fake http response.",
+      "id": "tests_test_executor_rationale_36"
     },
     {
       "label": "Long position take-profit: sell when price rises above target.",
       "file_type": "rationale",
       "source_file": "tests/test_executor.py",
       "source_location": "L193",
-      "id": "tests_test_executor_rationale_193",
       "community": 11,
-      "norm_label": "long position take-profit: sell when price rises above target."
+      "norm_label": "long position take-profit: sell when price rises above target.",
+      "id": "tests_test_executor_rationale_193"
     },
     {
       "label": "Short position take-profit: buy when price falls below target.",
       "file_type": "rationale",
       "source_file": "tests/test_executor.py",
       "source_location": "L200",
-      "id": "tests_test_executor_rationale_200",
       "community": 11,
-      "norm_label": "short position take-profit: buy when price falls below target."
+      "norm_label": "short position take-profit: buy when price falls below target.",
+      "id": "tests_test_executor_rationale_200"
     },
     {
       "label": "Override module-level config vars from a Firestore settings dict.",
       "file_type": "rationale",
       "source_file": "btc_agent/config.py",
       "source_location": "L128",
-      "community": 38,
+      "community": 37,
       "norm_label": "override module-level config vars from a firestore settings dict.",
       "id": "btc_agent_config_rationale_128"
     },
@@ -7929,7 +7929,7 @@
       "file_type": "rationale",
       "source_file": "btc_agent/notifiers.py",
       "source_location": "L106",
-      "community": 39,
+      "community": 38,
       "norm_label": "deliver scan results with channel-specific formatting.",
       "id": "btc_agent_notifiers_rationale_106"
     },
@@ -7938,7 +7938,7 @@
       "file_type": "rationale",
       "source_file": "btc_agent/web/app.py",
       "source_location": "L73",
-      "community": 40,
+      "community": 39,
       "norm_label": "qty must be a positive integer that is a multiple of 2.",
       "id": "web_app_rationale_73"
     },
@@ -7947,7 +7947,7 @@
       "file_type": "rationale",
       "source_file": "btc_agent/web/app.py",
       "source_location": "L267",
-      "community": 41,
+      "community": 40,
       "norm_label": "called by frontend on login \u2014 restarts scanner if firestore says it was running.",
       "id": "web_app_rationale_267"
     },
@@ -8010,7 +8010,7 @@
       "file_type": "rationale",
       "source_file": "btc_agent/trading/firestore_store.py",
       "source_location": "L31",
-      "community": 42,
+      "community": 41,
       "norm_label": "run fn(*args) in a daemon thread \u2014 fire and forget.",
       "id": "trading_firestore_store_rationale_31"
     },
@@ -8019,7 +8019,7 @@
       "file_type": "rationale",
       "source_file": "btc_agent/trading/firestore_store.py",
       "source_location": "L119",
-      "community": 43,
+      "community": 42,
       "norm_label": "read all three collections for the given uid, or none if firestore is unavailabl",
       "id": "trading_firestore_store_rationale_119"
     },
@@ -8028,7 +8028,7 @@
       "file_type": "rationale",
       "source_file": "btc_agent/trading/executor.py",
       "source_location": "L137",
-      "community": 44,
+      "community": 43,
       "norm_label": "return the name of the user's default coinbase portfolio.",
       "id": "trading_executor_rationale_137"
     },
@@ -8037,7 +8037,7 @@
       "file_type": "rationale",
       "source_file": "btc_agent/trading/executor.py",
       "source_location": "L156",
-      "community": 45,
+      "community": 44,
       "norm_label": "place an immediate market order (ioc).",
       "id": "trading_executor_rationale_156"
     },
@@ -8046,7 +8046,7 @@
       "file_type": "rationale",
       "source_file": "btc_agent/trading/executor.py",
       "source_location": "L180",
-      "community": 46,
+      "community": 45,
       "norm_label": "place a gtc stop-limit order for stop-loss.",
       "id": "trading_executor_rationale_180"
     },
@@ -8055,7 +8055,7 @@
       "file_type": "rationale",
       "source_file": "btc_agent/trading/executor.py",
       "source_location": "L200",
-      "community": 47,
+      "community": 46,
       "norm_label": "cancel a single order. uses batch_cancel endpoint.",
       "id": "trading_executor_rationale_200"
     },
@@ -8064,7 +8064,7 @@
       "file_type": "rationale",
       "source_file": "btc_agent/trading/executor.py",
       "source_location": "L213",
-      "community": 48,
+      "community": 47,
       "norm_label": "place a gtc take-profit limit order.",
       "id": "trading_executor_rationale_213"
     },
@@ -8082,7 +8082,7 @@
       "file_type": "rationale",
       "source_file": "btc_agent/trading/brokers/base.py",
       "source_location": "L29",
-      "community": 49,
+      "community": 48,
       "norm_label": "cancel an open order by its broker-assigned order_id.",
       "id": "brokers_base_rationale_29"
     },
@@ -8091,7 +8091,7 @@
       "file_type": "rationale",
       "source_file": "btc_agent/trading/brokers/base.py",
       "source_location": "L34",
-      "community": 50,
+      "community": 49,
       "norm_label": "btc equivalent per unit/contract \u2014 used for pnl calculation.",
       "id": "brokers_base_rationale_34"
     },
@@ -8100,7 +8100,7 @@
       "file_type": "rationale",
       "source_file": "btc_agent/trading/brokers/base.py",
       "source_location": "L37",
-      "community": 51,
+      "community": 50,
       "norm_label": "return a human-readable account name from the broker api.",
       "id": "brokers_base_rationale_37"
     },
@@ -8109,7 +8109,7 @@
       "file_type": "rationale",
       "source_file": "tests/test_levels.py",
       "source_location": "L35",
-      "community": 52,
+      "community": 51,
       "norm_label": "call compute_levels with a fixed 'now' so tests are deterministic.",
       "id": "tests_test_levels_rationale_35"
     },
@@ -8118,7 +8118,7 @@
       "file_type": "rationale",
       "source_file": "tests/test_levels.py",
       "source_location": "L45",
-      "community": 53,
+      "community": 52,
       "norm_label": "yesterday's candles must not affect mrp.",
       "id": "tests_test_levels_rationale_45"
     },
@@ -8127,7 +8127,7 @@
       "file_type": "rationale",
       "source_file": "tests/test_levels.py",
       "source_location": "L59",
-      "community": 54,
+      "community": 53,
       "norm_label": "vwap = \u03c3(tp \u00d7 vol) / \u03c3(vol) across today's candles.",
       "id": "tests_test_levels_rationale_59"
     },
@@ -8136,7 +8136,7 @@
       "file_type": "rationale",
       "source_file": "tests/test_levels.py",
       "source_location": "L82",
-      "community": 55,
+      "community": 54,
       "norm_label": "daily poc = (prev_h + prev_l + prev_c) / 3 from yesterday's candles.",
       "id": "tests_test_levels_rationale_82"
     },
@@ -8145,7 +8145,7 @@
       "file_type": "rationale",
       "source_file": "tests/test_levels.py",
       "source_location": "L106",
-      "community": 56,
+      "community": 55,
       "norm_label": "weekly poc = weekly_open \u00d7 (1 + weekly_adj / 100).",
       "id": "tests_test_levels_rationale_106"
     },
@@ -8154,7 +8154,7 @@
       "file_type": "rationale",
       "source_file": "tests/test_levels.py",
       "source_location": "L117",
-      "community": 57,
+      "community": 56,
       "norm_label": "weekly_open = open of the very first 1m candle of the current week.",
       "id": "tests_test_levels_rationale_117"
     },
@@ -8163,7 +8163,7 @@
       "file_type": "rationale",
       "source_file": "tests/test_levels.py",
       "source_location": "L137",
-      "community": 58,
+      "community": 57,
       "norm_label": "import and call _calc_tp with a temporary min_tp of 500.",
       "id": "tests_test_levels_rationale_137"
     },
@@ -8172,7 +8172,7 @@
       "file_type": "rationale",
       "source_file": "tests/test_levels.py",
       "source_location": "L158",
-      "community": 59,
+      "community": 58,
       "norm_label": "if nearest level is only 100 pts above entry, tp should be floored at entry + 50",
       "id": "tests_test_levels_rationale_158"
     },
@@ -8181,7 +8181,7 @@
       "file_type": "rationale",
       "source_file": "tests/test_levels.py",
       "source_location": "L173",
-      "community": 60,
+      "community": 59,
       "norm_label": "no levels above entry \u2192 fixed_500 fallback.",
       "id": "tests_test_levels_rationale_173"
     },
@@ -8190,7 +8190,7 @@
       "file_type": "rationale",
       "source_file": "tests/test_levels.py",
       "source_location": "L188",
-      "community": 61,
+      "community": 60,
       "norm_label": "none values for individual levels must be skipped (not raise typeerror).",
       "id": "tests_test_levels_rationale_188"
     },
@@ -8199,7 +8199,7 @@
       "file_type": "rationale",
       "source_file": "tests/test_executor.py",
       "source_location": "L26",
-      "community": 62,
+      "community": 61,
       "norm_label": "return a context-manager mock that yields a fake http response.",
       "id": "tests_test_executor_rationale_26"
     },
@@ -8208,7 +8208,7 @@
       "file_type": "rationale",
       "source_file": "tests/test_executor.py",
       "source_location": "L188",
-      "community": 63,
+      "community": 62,
       "norm_label": "long position take-profit: sell when price rises above target.",
       "id": "tests_test_executor_rationale_188"
     },
@@ -8217,7 +8217,7 @@
       "file_type": "rationale",
       "source_file": "tests/test_executor.py",
       "source_location": "L195",
-      "community": 64,
+      "community": 63,
       "norm_label": "short position take-profit: buy when price falls below target.",
       "id": "tests_test_executor_rationale_195"
     },
@@ -8230,7 +8230,7 @@
       "captured_at": null,
       "author": "Shashank Reddy Ganta",
       "contributor": null,
-      "community": 25,
+      "community": 24,
       "norm_label": "btc ai agent project",
       "id": "readme_btc_ai_agent"
     },
@@ -8243,7 +8243,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 25,
+      "community": 24,
       "norm_label": "task backlog & todo",
       "id": "tasks_todo"
     },
@@ -8257,7 +8257,7 @@
       "author": null,
       "contributor": null,
       "rationale": "Added after 2026-04-28 security audit; contains 1 Critical, 5 High, 4 Medium, 2 Low findings with exact file paths (app.py:164-201, main.js:645,842,890). Most urgent: add Depends(_require_admin) to GET /api/settings/app and move POST /api/brief/trigger to priv router.",
-      "community": 25,
+      "community": 24,
       "norm_label": "security backlog",
       "id": "tasks_todo_security_backlog"
     },
@@ -8394,7 +8394,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 21,
+      "community": 20,
       "norm_label": "strategy 2: ping pong strategy",
       "id": "strategy_2_ping_pong"
     },
@@ -8408,7 +8408,7 @@
       "author": null,
       "contributor": null,
       "rationale": "Zone resets every 4-hour session using IST open candle (01:30, 05:30, 09:30, 13:30, 17:30, 21:30 UTC+05:30). Blue line 200pts below (Buy), Red line 200pts above (Sell), Yellow lines 200pts further out (SL). Can be drawn as Trend Line, Rectangle, or Fibonacci Retracement.",
-      "community": 21,
+      "community": 20,
       "norm_label": "ping pong session zone",
       "id": "strategy_2_session_zone"
     },
@@ -8422,7 +8422,7 @@
       "author": null,
       "contributor": null,
       "rationale": "Target 400pts; SL 200pts; 3-min timeframe; 10-12 trades/day; 46% win rate still profitable. Targets sideways market (70-80% of BTC time). 8222 trades backtested Dec 2024-Dec 2025 on 1min TF.",
-      "community": 21,
+      "community": 20,
       "norm_label": "mean-reversion scalping logic",
       "id": "strategy_2_mean_reversion"
     },
@@ -8435,7 +8435,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 21,
+      "community": 20,
       "norm_label": "strategy 3: escalator strategy",
       "id": "strategy_3_escalator"
     },
@@ -8449,7 +8449,7 @@
       "author": null,
       "contributor": null,
       "rationale": "Entry: Long +200pts / Short -200pts from Baseline. 200pt trailing stop locks profits every 200pts. Strategy ends after 3 consecutive negative/zero SL hits. Fibonacci grid with 200pt bands.",
-      "community": 21,
+      "community": 20,
       "norm_label": "escalator trailing stop grid",
       "id": "strategy_3_trailing_stop"
     },
@@ -8463,7 +8463,7 @@
       "author": null,
       "contributor": null,
       "rationale": "Escalator Zone overlays on top of Ping Pong Zone on the same chart. Where Ping Pong fades moves, Escalator rides them.",
-      "community": 21,
+      "community": 20,
       "norm_label": "escalator as high-volatility complement to ping pong",
       "id": "strategy_3_volatility_complement"
     },
@@ -8572,7 +8572,7 @@
       "author": null,
       "contributor": null,
       "rationale": "All high-leverage strategies (Ping Pong, Escalator) share the same 500pt liquidation buffer warning at 150x leverage. Conservative recommendation is 10x-40x.",
-      "community": 21,
+      "community": 20,
       "norm_label": "shared 150x leverage risk (500pt liquidation buffer)",
       "id": "shared_leverage_risk"
     },
@@ -10888,7 +10888,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L304",
+      "source_location": "L312",
       "weight": 1.0,
       "_src": "btc_agent_web_static_main_js",
       "_tgt": "static_main_savesettings",
@@ -10900,7 +10900,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L319",
+      "source_location": "L327",
       "weight": 1.0,
       "_src": "btc_agent_web_static_main_js",
       "_tgt": "static_main_gv",
@@ -10912,7 +10912,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L320",
+      "source_location": "L328",
       "weight": 1.0,
       "_src": "btc_agent_web_static_main_js",
       "_tgt": "static_main_gn",
@@ -10924,7 +10924,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L321",
+      "source_location": "L329",
       "weight": 1.0,
       "_src": "btc_agent_web_static_main_js",
       "_tgt": "static_main_gc",
@@ -10936,7 +10936,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L323",
+      "source_location": "L331",
       "weight": 1.0,
       "_src": "btc_agent_web_static_main_js",
       "_tgt": "static_main_saveappsection",
@@ -10948,7 +10948,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L356",
+      "source_location": "L364",
       "weight": 1.0,
       "_src": "btc_agent_web_static_main_js",
       "_tgt": "static_main_saveusersection",
@@ -10960,7 +10960,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L375",
+      "source_location": "L383",
       "weight": 1.0,
       "_src": "btc_agent_web_static_main_js",
       "_tgt": "static_main_showtradingcontent",
@@ -10972,7 +10972,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L388",
+      "source_location": "L396",
       "weight": 1.0,
       "_src": "btc_agent_web_static_main_js",
       "_tgt": "static_main_showvishalcontent",
@@ -10984,7 +10984,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L402",
+      "source_location": "L410",
       "weight": 1.0,
       "_src": "btc_agent_web_static_main_js",
       "_tgt": "static_main_loadvishalsettings",
@@ -10996,7 +10996,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L436",
+      "source_location": "L444",
       "weight": 1.0,
       "_src": "btc_agent_web_static_main_js",
       "_tgt": "static_main_savevishalstrategy",
@@ -11008,7 +11008,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L464",
+      "source_location": "L472",
       "weight": 1.0,
       "_src": "btc_agent_web_static_main_js",
       "_tgt": "static_main_show",
@@ -11020,7 +11020,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L469",
+      "source_location": "L477",
       "weight": 1.0,
       "_src": "btc_agent_web_static_main_js",
       "_tgt": "static_main_settext",
@@ -11032,7 +11032,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L480",
+      "source_location": "L488",
       "weight": 1.0,
       "_src": "btc_agent_web_static_main_js",
       "_tgt": "static_main_navto",
@@ -11044,7 +11044,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L558",
+      "source_location": "L566",
       "weight": 1.0,
       "_src": "btc_agent_web_static_main_js",
       "_tgt": "static_main_onpingpongtfchange",
@@ -11056,7 +11056,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L568",
+      "source_location": "L576",
       "weight": 1.0,
       "_src": "btc_agent_web_static_main_js",
       "_tgt": "static_main_togglevishal",
@@ -11068,7 +11068,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L577",
+      "source_location": "L585",
       "weight": 1.0,
       "_src": "btc_agent_web_static_main_js",
       "_tgt": "static_main_togglecfg",
@@ -11080,7 +11080,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L585",
+      "source_location": "L593",
       "weight": 1.0,
       "_src": "btc_agent_web_static_main_js",
       "_tgt": "static_main_switchsubtab",
@@ -11092,7 +11092,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L594",
+      "source_location": "L602",
       "weight": 1.0,
       "_src": "btc_agent_web_static_main_js",
       "_tgt": "static_main_showpage",
@@ -11104,7 +11104,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L601",
+      "source_location": "L609",
       "weight": 1.0,
       "_src": "btc_agent_web_static_main_js",
       "_tgt": "static_main_activatesubtab",
@@ -11116,7 +11116,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L607",
+      "source_location": "L615",
       "weight": 1.0,
       "_src": "btc_agent_web_static_main_js",
       "_tgt": "static_main_setsidebaractive",
@@ -11128,7 +11128,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L613",
+      "source_location": "L621",
       "weight": 1.0,
       "_src": "btc_agent_web_static_main_js",
       "_tgt": "static_main_setmobtabactive",
@@ -11140,7 +11140,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L619",
+      "source_location": "L627",
       "weight": 1.0,
       "_src": "btc_agent_web_static_main_js",
       "_tgt": "static_main_settopbartitle",
@@ -11152,7 +11152,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L630",
+      "source_location": "L638",
       "weight": 1.0,
       "_src": "btc_agent_web_static_main_js",
       "_tgt": "static_main_gettz",
@@ -11164,7 +11164,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L631",
+      "source_location": "L639",
       "weight": 1.0,
       "_src": "btc_agent_web_static_main_js",
       "_tgt": "static_main_settz",
@@ -11176,7 +11176,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L633",
+      "source_location": "L641",
       "weight": 1.0,
       "_src": "btc_agent_web_static_main_js",
       "_tgt": "static_main_formatts",
@@ -11188,7 +11188,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L644",
+      "source_location": "L652",
       "weight": 1.0,
       "_src": "btc_agent_web_static_main_js",
       "_tgt": "static_main_tzabbr",
@@ -11200,7 +11200,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L649",
+      "source_location": "L657",
       "weight": 1.0,
       "_src": "btc_agent_web_static_main_js",
       "_tgt": "static_main_updatethheader",
@@ -11212,7 +11212,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L655",
+      "source_location": "L663",
       "weight": 1.0,
       "_src": "btc_agent_web_static_main_js",
       "_tgt": "static_main_gettheme",
@@ -11224,7 +11224,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L657",
+      "source_location": "L665",
       "weight": 1.0,
       "_src": "btc_agent_web_static_main_js",
       "_tgt": "static_main_applytheme",
@@ -11236,7 +11236,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L668",
+      "source_location": "L676",
       "weight": 1.0,
       "_src": "btc_agent_web_static_main_js",
       "_tgt": "static_main_fetchjson",
@@ -11248,7 +11248,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L679",
+      "source_location": "L692",
       "weight": 1.0,
       "_src": "btc_agent_web_static_main_js",
       "_tgt": "static_main_inferdirection",
@@ -11260,7 +11260,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L686",
+      "source_location": "L699",
       "weight": 1.0,
       "_src": "btc_agent_web_static_main_js",
       "_tgt": "static_main_directionbadge",
@@ -11272,7 +11272,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L692",
+      "source_location": "L705",
       "weight": 1.0,
       "_src": "btc_agent_web_static_main_js",
       "_tgt": "static_main_patternmatchesfilter",
@@ -11284,7 +11284,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L702",
+      "source_location": "L715",
       "weight": 1.0,
       "_src": "btc_agent_web_static_main_js",
       "_tgt": "static_main_rendermarkdown",
@@ -11296,7 +11296,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L733",
+      "source_location": "L745",
       "weight": 1.0,
       "_src": "btc_agent_web_static_main_js",
       "_tgt": "static_main_renderbriefing",
@@ -11308,7 +11308,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L739",
+      "source_location": "L751",
       "weight": 1.0,
       "_src": "btc_agent_web_static_main_js",
       "_tgt": "static_main_loadbriefing",
@@ -11320,7 +11320,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L749",
+      "source_location": "L761",
       "weight": 1.0,
       "_src": "btc_agent_web_static_main_js",
       "_tgt": "static_main_renderscan",
@@ -11332,7 +11332,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L789",
+      "source_location": "L801",
       "weight": 1.0,
       "_src": "btc_agent_web_static_main_js",
       "_tgt": "static_main_loadliquidity",
@@ -11344,7 +11344,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L860",
+      "source_location": "L872",
       "weight": 1.0,
       "_src": "btc_agent_web_static_main_js",
       "_tgt": "static_main_loadoistatus",
@@ -11356,7 +11356,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L921",
+      "source_location": "L933",
       "weight": 1.0,
       "_src": "btc_agent_web_static_main_js",
       "_tgt": "static_main_loadoisettingsinputs",
@@ -11368,7 +11368,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L939",
+      "source_location": "L951",
       "weight": 1.0,
       "_src": "btc_agent_web_static_main_js",
       "_tgt": "static_main_saveoisettings",
@@ -11380,7 +11380,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L954",
+      "source_location": "L966",
       "weight": 1.0,
       "_src": "btc_agent_web_static_main_js",
       "_tgt": "static_main_loadscan",
@@ -11392,7 +11392,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L965",
+      "source_location": "L977",
       "weight": 1.0,
       "_src": "btc_agent_web_static_main_js",
       "_tgt": "static_main_pollstatus",
@@ -11404,7 +11404,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L978",
+      "source_location": "L990",
       "weight": 1.0,
       "_src": "btc_agent_web_static_main_js",
       "_tgt": "static_main_setdot",
@@ -11416,7 +11416,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L983",
+      "source_location": "L995",
       "weight": 1.0,
       "_src": "btc_agent_web_static_main_js",
       "_tgt": "static_main_setrunningbtn",
@@ -11428,7 +11428,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L1004",
+      "source_location": "L1017",
       "weight": 1.0,
       "_src": "btc_agent_web_static_main_js",
       "_tgt": "static_main_triggerscan",
@@ -11440,7 +11440,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L1011",
+      "source_location": "L1026",
       "weight": 1.0,
       "_src": "btc_agent_web_static_main_js",
       "_tgt": "static_main_triggerbrief",
@@ -11452,7 +11452,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L1019",
+      "source_location": "L1036",
       "weight": 1.0,
       "_src": "btc_agent_web_static_main_js",
       "_tgt": "static_main_fetchbtcprice",
@@ -11464,7 +11464,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L1037",
+      "source_location": "L1054",
       "weight": 1.0,
       "_src": "btc_agent_web_static_main_js",
       "_tgt": "static_main_connectpricews",
@@ -11476,7 +11476,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L1051",
+      "source_location": "L1068",
       "weight": 1.0,
       "_src": "btc_agent_web_static_main_js",
       "_tgt": "static_main_applyprice",
@@ -11488,7 +11488,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L1072",
+      "source_location": "L1089",
       "weight": 1.0,
       "_src": "btc_agent_web_static_main_js",
       "_tgt": "static_main_fmtprice",
@@ -11500,7 +11500,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L1078",
+      "source_location": "L1095",
       "weight": 1.0,
       "_src": "btc_agent_web_static_main_js",
       "_tgt": "static_main_renderlevels",
@@ -11512,7 +11512,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L1119",
+      "source_location": "L1136",
       "weight": 1.0,
       "_src": "btc_agent_web_static_main_js",
       "_tgt": "static_main_renderpointsstats",
@@ -11524,7 +11524,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L1166",
+      "source_location": "L1183",
       "weight": 1.0,
       "_src": "btc_agent_web_static_main_js",
       "_tgt": "static_main_loadregimelog",
@@ -11536,7 +11536,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L1173",
+      "source_location": "L1190",
       "weight": 1.0,
       "_src": "btc_agent_web_static_main_js",
       "_tgt": "static_main_renderregimelog",
@@ -11548,7 +11548,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L1212",
+      "source_location": "L1229",
       "weight": 1.0,
       "_src": "btc_agent_web_static_main_js",
       "_tgt": "static_main_loadmarkovtickers",
@@ -11560,7 +11560,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L1219",
+      "source_location": "L1236",
       "weight": 1.0,
       "_src": "btc_agent_web_static_main_js",
       "_tgt": "static_main_setmarkovfilter",
@@ -11572,7 +11572,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L1228",
+      "source_location": "L1245",
       "weight": 1.0,
       "_src": "btc_agent_web_static_main_js",
       "_tgt": "static_main_rendermarkovpage",
@@ -11584,7 +11584,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L1308",
+      "source_location": "L1332",
       "weight": 1.0,
       "_src": "btc_agent_web_static_main_js",
       "_tgt": "static_main_togglemarkovexpand",
@@ -11596,7 +11596,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L1313",
+      "source_location": "L1337",
       "weight": 1.0,
       "_src": "btc_agent_web_static_main_js",
       "_tgt": "static_main_loadmarkovhistory",
@@ -11608,7 +11608,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L1346",
+      "source_location": "L1370",
       "weight": 1.0,
       "_src": "btc_agent_web_static_main_js",
       "_tgt": "static_main_addmarkovcustomticker",
@@ -11620,7 +11620,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L1359",
+      "source_location": "L1383",
       "weight": 1.0,
       "_src": "btc_agent_web_static_main_js",
       "_tgt": "static_main_removemarkovcustomticker",
@@ -11632,7 +11632,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L1369",
+      "source_location": "L1393",
       "weight": 1.0,
       "_src": "btc_agent_web_static_main_js",
       "_tgt": "static_main_renderregimepage",
@@ -11644,7 +11644,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L1445",
+      "source_location": "L1469",
       "weight": 1.0,
       "_src": "btc_agent_web_static_main_js",
       "_tgt": "static_main_rendertrading",
@@ -11656,7 +11656,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L1637",
+      "source_location": "L1661",
       "weight": 1.0,
       "_src": "btc_agent_web_static_main_js",
       "_tgt": "static_main_histpagenav",
@@ -11668,7 +11668,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L1644",
+      "source_location": "L1668",
       "weight": 1.0,
       "_src": "btc_agent_web_static_main_js",
       "_tgt": "static_main_histfilterchanged",
@@ -11680,7 +11680,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L1649",
+      "source_location": "L1673",
       "weight": 1.0,
       "_src": "btc_agent_web_static_main_js",
       "_tgt": "static_main_applyhistfilters",
@@ -11692,7 +11692,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L1659",
+      "source_location": "L1683",
       "weight": 1.0,
       "_src": "btc_agent_web_static_main_js",
       "_tgt": "static_main_loadtrading",
@@ -11704,7 +11704,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L1671",
+      "source_location": "L1695",
       "weight": 1.0,
       "_src": "btc_agent_web_static_main_js",
       "_tgt": "static_main_starttrading",
@@ -11716,7 +11716,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L1676",
+      "source_location": "L1700",
       "weight": 1.0,
       "_src": "btc_agent_web_static_main_js",
       "_tgt": "static_main_stoptrading",
@@ -11728,7 +11728,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L1681",
+      "source_location": "L1705",
       "weight": 1.0,
       "_src": "btc_agent_web_static_main_js",
       "_tgt": "static_main_cancelposition",
@@ -11740,7 +11740,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L1688",
+      "source_location": "L1712",
       "weight": 1.0,
       "_src": "btc_agent_web_static_main_js",
       "_tgt": "static_main_syncsettingsinputs",
@@ -11752,7 +11752,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L1745",
+      "source_location": "L1769",
       "weight": 1.0,
       "_src": "btc_agent_web_static_main_js",
       "_tgt": "static_main_updateslstoprow",
@@ -11764,7 +11764,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L1752",
+      "source_location": "L1776",
       "weight": 1.0,
       "_src": "btc_agent_web_static_main_js",
       "_tgt": "static_main_rendersettingspage",
@@ -11776,7 +11776,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L1761",
+      "source_location": "L1785",
       "weight": 1.0,
       "_src": "btc_agent_web_static_main_js",
       "_tgt": "static_main_savetradingsettings",
@@ -11788,7 +11788,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L1879",
+      "source_location": "L1903",
       "weight": 1.0,
       "_src": "btc_agent_web_static_main_js",
       "_tgt": "static_main_showuserspage",
@@ -11800,7 +11800,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L1937",
+      "source_location": "L1970",
       "weight": 1.0,
       "_src": "btc_agent_web_static_main_js",
       "_tgt": "static_main_toggleusertrades",
@@ -11812,7 +11812,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L1956",
+      "source_location": "L1989",
       "weight": 1.0,
       "_src": "btc_agent_web_static_main_js",
       "_tgt": "static_main_renderusertrades",
@@ -11824,7 +11824,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L2004",
+      "source_location": "L2037",
       "weight": 1.0,
       "_src": "btc_agent_web_static_main_js",
       "_tgt": "static_main_adminstopuser",
@@ -11836,7 +11836,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L2009",
+      "source_location": "L2042",
       "weight": 1.0,
       "_src": "btc_agent_web_static_main_js",
       "_tgt": "static_main_adminsetmode",
@@ -11848,7 +11848,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L2018",
+      "source_location": "L2051",
       "weight": 1.0,
       "_src": "btc_agent_web_static_main_js",
       "_tgt": "static_main_refreshusers",
@@ -11860,7 +11860,79 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L669",
+      "source_location": "L868",
+      "weight": 1.0,
+      "_src": "static_main_loadliquidity",
+      "_tgt": "static_main_esc",
+      "source": "static_main_esc",
+      "target": "static_main_loadliquidity",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "btc_agent/web/static/main.js",
+      "source_location": "L928",
+      "weight": 1.0,
+      "_src": "static_main_loadoistatus",
+      "_tgt": "static_main_esc",
+      "source": "static_main_esc",
+      "target": "static_main_loadoistatus",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "btc_agent/web/static/main.js",
+      "source_location": "L1285",
+      "weight": 1.0,
+      "_src": "static_main_rendermarkovpage",
+      "_tgt": "static_main_esc",
+      "source": "static_main_esc",
+      "target": "static_main_rendermarkovpage",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "btc_agent/web/static/main.js",
+      "source_location": "L1401",
+      "weight": 1.0,
+      "_src": "static_main_renderregimepage",
+      "_tgt": "static_main_esc",
+      "source": "static_main_esc",
+      "target": "static_main_renderregimepage",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "btc_agent/web/static/main.js",
+      "source_location": "L1966",
+      "weight": 1.0,
+      "_src": "static_main_showuserspage",
+      "_tgt": "static_main_esc",
+      "source": "static_main_esc",
+      "target": "static_main_showuserspage",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "btc_agent/web/static/main.js",
+      "source_location": "L1984",
+      "weight": 1.0,
+      "_src": "static_main_toggleusertrades",
+      "_tgt": "static_main_esc",
+      "source": "static_main_esc",
+      "target": "static_main_toggleusertrades",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "btc_agent/web/static/main.js",
+      "source_location": "L677",
       "weight": 1.0,
       "_src": "static_main_fetchjson",
       "_tgt": "static_main_gettoken",
@@ -11932,7 +12004,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L324",
+      "source_location": "L332",
       "weight": 1.0,
       "_src": "static_main_saveappsection",
       "_tgt": "static_main_isadmin",
@@ -11944,7 +12016,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L986",
+      "source_location": "L998",
       "weight": 1.0,
       "_src": "static_main_setrunningbtn",
       "_tgt": "static_main_isadmin",
@@ -12004,7 +12076,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L1753",
+      "source_location": "L1777",
       "weight": 1.0,
       "_src": "static_main_rendersettingspage",
       "_tgt": "static_main_renderaccountcard",
@@ -12028,7 +12100,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L1758",
+      "source_location": "L1782",
       "weight": 1.0,
       "_src": "static_main_rendersettingspage",
       "_tgt": "static_main_loadappsettings",
@@ -12076,7 +12148,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L372",
+      "source_location": "L380",
       "weight": 1.0,
       "_src": "static_main_saveusersection",
       "_tgt": "static_main_loadusersettings",
@@ -12088,7 +12160,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L1758",
+      "source_location": "L1782",
       "weight": 1.0,
       "_src": "static_main_rendersettingspage",
       "_tgt": "static_main_loadusersettings",
@@ -12172,7 +12244,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L291",
+      "source_location": "L293",
       "weight": 1.0,
       "_src": "static_main_connectpepperstone",
       "_tgt": "static_main_fetchjson",
@@ -12184,7 +12256,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L311",
+      "source_location": "L319",
       "weight": 1.0,
       "_src": "static_main_savesettings",
       "_tgt": "static_main_fetchjson",
@@ -12196,7 +12268,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L353",
+      "source_location": "L361",
       "weight": 1.0,
       "_src": "static_main_saveappsection",
       "_tgt": "static_main_savesettings",
@@ -12208,7 +12280,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L371",
+      "source_location": "L379",
       "weight": 1.0,
       "_src": "static_main_saveusersection",
       "_tgt": "static_main_savesettings",
@@ -12220,7 +12292,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L320",
+      "source_location": "L328",
       "weight": 1.0,
       "_src": "static_main_gn",
       "_tgt": "static_main_gv",
@@ -12232,7 +12304,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L327",
+      "source_location": "L335",
       "weight": 1.0,
       "_src": "static_main_saveappsection",
       "_tgt": "static_main_gv",
@@ -12244,7 +12316,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L360",
+      "source_location": "L368",
       "weight": 1.0,
       "_src": "static_main_saveusersection",
       "_tgt": "static_main_gv",
@@ -12256,7 +12328,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L329",
+      "source_location": "L337",
       "weight": 1.0,
       "_src": "static_main_saveappsection",
       "_tgt": "static_main_gn",
@@ -12268,7 +12340,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L342",
+      "source_location": "L350",
       "weight": 1.0,
       "_src": "static_main_saveappsection",
       "_tgt": "static_main_gc",
@@ -12280,7 +12352,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L1667",
+      "source_location": "L1691",
       "weight": 1.0,
       "_src": "static_main_loadtrading",
       "_tgt": "static_main_showtradingcontent",
@@ -12292,7 +12364,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L496",
+      "source_location": "L504",
       "weight": 1.0,
       "_src": "static_main_navto",
       "_tgt": "static_main_showtradingcontent",
@@ -12304,7 +12376,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L394",
+      "source_location": "L402",
       "weight": 1.0,
       "_src": "static_main_showvishalcontent",
       "_tgt": "static_main_loadvishalsettings",
@@ -12316,7 +12388,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L489",
+      "source_location": "L497",
       "weight": 1.0,
       "_src": "static_main_navto",
       "_tgt": "static_main_showvishalcontent",
@@ -12328,7 +12400,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L405",
+      "source_location": "L413",
       "weight": 1.0,
       "_src": "static_main_loadvishalsettings",
       "_tgt": "static_main_fetchjson",
@@ -12340,7 +12412,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L440",
+      "source_location": "L448",
       "weight": 1.0,
       "_src": "static_main_savevishalstrategy",
       "_tgt": "static_main_fetchjson",
@@ -12352,7 +12424,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L736",
+      "source_location": "L748",
       "weight": 1.0,
       "_src": "static_main_renderbriefing",
       "_tgt": "static_main_settext",
@@ -12364,7 +12436,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L751",
+      "source_location": "L763",
       "weight": 1.0,
       "_src": "static_main_renderscan",
       "_tgt": "static_main_settext",
@@ -12376,7 +12448,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L1449",
+      "source_location": "L1473",
       "weight": 1.0,
       "_src": "static_main_rendertrading",
       "_tgt": "static_main_settext",
@@ -12388,7 +12460,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L485",
+      "source_location": "L493",
       "weight": 1.0,
       "_src": "static_main_navto",
       "_tgt": "static_main_showpage",
@@ -12400,7 +12472,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L487",
+      "source_location": "L495",
       "weight": 1.0,
       "_src": "static_main_navto",
       "_tgt": "static_main_settopbartitle",
@@ -12412,7 +12484,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L488",
+      "source_location": "L496",
       "weight": 1.0,
       "_src": "static_main_navto",
       "_tgt": "static_main_setsidebaractive",
@@ -12424,7 +12496,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L495",
+      "source_location": "L503",
       "weight": 1.0,
       "_src": "static_main_navto",
       "_tgt": "static_main_setmobtabactive",
@@ -12436,7 +12508,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L502",
+      "source_location": "L510",
       "weight": 1.0,
       "_src": "static_main_navto",
       "_tgt": "static_main_showuserspage",
@@ -12448,7 +12520,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L508",
+      "source_location": "L516",
       "weight": 1.0,
       "_src": "static_main_navto",
       "_tgt": "static_main_loadregimelog",
@@ -12460,7 +12532,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L514",
+      "source_location": "L522",
       "weight": 1.0,
       "_src": "static_main_navto",
       "_tgt": "static_main_loadmarkovtickers",
@@ -12472,7 +12544,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L521",
+      "source_location": "L529",
       "weight": 1.0,
       "_src": "static_main_navto",
       "_tgt": "static_main_rendersettingspage",
@@ -12484,7 +12556,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L528",
+      "source_location": "L536",
       "weight": 1.0,
       "_src": "static_main_navto",
       "_tgt": "static_main_loadliquidity",
@@ -12496,7 +12568,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L536",
+      "source_location": "L544",
       "weight": 1.0,
       "_src": "static_main_navto",
       "_tgt": "static_main_loadoistatus",
@@ -12508,7 +12580,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L537",
+      "source_location": "L545",
       "weight": 1.0,
       "_src": "static_main_navto",
       "_tgt": "static_main_loadoisettingsinputs",
@@ -12520,7 +12592,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L542",
+      "source_location": "L550",
       "weight": 1.0,
       "_src": "static_main_navto",
       "_tgt": "static_main_activatesubtab",
@@ -12532,7 +12604,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L588",
+      "source_location": "L596",
       "weight": 1.0,
       "_src": "static_main_switchsubtab",
       "_tgt": "static_main_showpage",
@@ -12544,7 +12616,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L589",
+      "source_location": "L597",
       "weight": 1.0,
       "_src": "static_main_switchsubtab",
       "_tgt": "static_main_activatesubtab",
@@ -12556,7 +12628,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L590",
+      "source_location": "L598",
       "weight": 1.0,
       "_src": "static_main_switchsubtab",
       "_tgt": "static_main_settopbartitle",
@@ -12568,7 +12640,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L591",
+      "source_location": "L599",
       "weight": 1.0,
       "_src": "static_main_switchsubtab",
       "_tgt": "static_main_setmobtabactive",
@@ -12580,7 +12652,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L638",
+      "source_location": "L646",
       "weight": 1.0,
       "_src": "static_main_formatts",
       "_tgt": "static_main_gettz",
@@ -12592,7 +12664,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L1757",
+      "source_location": "L1781",
       "weight": 1.0,
       "_src": "static_main_rendersettingspage",
       "_tgt": "static_main_gettz",
@@ -12604,7 +12676,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L736",
+      "source_location": "L748",
       "weight": 1.0,
       "_src": "static_main_renderbriefing",
       "_tgt": "static_main_formatts",
@@ -12616,7 +12688,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L751",
+      "source_location": "L763",
       "weight": 1.0,
       "_src": "static_main_renderscan",
       "_tgt": "static_main_formatts",
@@ -12628,7 +12700,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L852",
+      "source_location": "L864",
       "weight": 1.0,
       "_src": "static_main_loadliquidity",
       "_tgt": "static_main_formatts",
@@ -12640,7 +12712,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L914",
+      "source_location": "L926",
       "weight": 1.0,
       "_src": "static_main_loadoistatus",
       "_tgt": "static_main_formatts",
@@ -12652,7 +12724,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L651",
+      "source_location": "L659",
       "weight": 1.0,
       "_src": "static_main_updatethheader",
       "_tgt": "static_main_tzabbr",
@@ -12664,7 +12736,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L1756",
+      "source_location": "L1780",
       "weight": 1.0,
       "_src": "static_main_rendersettingspage",
       "_tgt": "static_main_gettheme",
@@ -12676,7 +12748,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L741",
+      "source_location": "L753",
       "weight": 1.0,
       "_src": "static_main_loadbriefing",
       "_tgt": "static_main_fetchjson",
@@ -12688,7 +12760,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L795",
+      "source_location": "L807",
       "weight": 1.0,
       "_src": "static_main_loadliquidity",
       "_tgt": "static_main_fetchjson",
@@ -12700,7 +12772,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L866",
+      "source_location": "L878",
       "weight": 1.0,
       "_src": "static_main_loadoistatus",
       "_tgt": "static_main_fetchjson",
@@ -12712,7 +12784,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L923",
+      "source_location": "L935",
       "weight": 1.0,
       "_src": "static_main_loadoisettingsinputs",
       "_tgt": "static_main_fetchjson",
@@ -12724,7 +12796,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L948",
+      "source_location": "L960",
       "weight": 1.0,
       "_src": "static_main_saveoisettings",
       "_tgt": "static_main_fetchjson",
@@ -12736,7 +12808,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L956",
+      "source_location": "L968",
       "weight": 1.0,
       "_src": "static_main_loadscan",
       "_tgt": "static_main_fetchjson",
@@ -12748,7 +12820,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L967",
+      "source_location": "L979",
       "weight": 1.0,
       "_src": "static_main_pollstatus",
       "_tgt": "static_main_fetchjson",
@@ -12760,7 +12832,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L1006",
+      "source_location": "L1019",
       "weight": 1.0,
       "_src": "static_main_triggerscan",
       "_tgt": "static_main_fetchjson",
@@ -12772,7 +12844,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L1013",
+      "source_location": "L1028",
       "weight": 1.0,
       "_src": "static_main_triggerbrief",
       "_tgt": "static_main_fetchjson",
@@ -12784,7 +12856,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L1168",
+      "source_location": "L1185",
       "weight": 1.0,
       "_src": "static_main_loadregimelog",
       "_tgt": "static_main_fetchjson",
@@ -12796,7 +12868,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L1214",
+      "source_location": "L1231",
       "weight": 1.0,
       "_src": "static_main_loadmarkovtickers",
       "_tgt": "static_main_fetchjson",
@@ -12808,7 +12880,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L1318",
+      "source_location": "L1342",
       "weight": 1.0,
       "_src": "static_main_loadmarkovhistory",
       "_tgt": "static_main_fetchjson",
@@ -12820,7 +12892,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L1351",
+      "source_location": "L1375",
       "weight": 1.0,
       "_src": "static_main_addmarkovcustomticker",
       "_tgt": "static_main_fetchjson",
@@ -12832,7 +12904,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L1362",
+      "source_location": "L1386",
       "weight": 1.0,
       "_src": "static_main_removemarkovcustomticker",
       "_tgt": "static_main_fetchjson",
@@ -12844,7 +12916,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L1661",
+      "source_location": "L1685",
       "weight": 1.0,
       "_src": "static_main_loadtrading",
       "_tgt": "static_main_fetchjson",
@@ -12856,7 +12928,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L1672",
+      "source_location": "L1696",
       "weight": 1.0,
       "_src": "static_main_starttrading",
       "_tgt": "static_main_fetchjson",
@@ -12868,7 +12940,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L1677",
+      "source_location": "L1701",
       "weight": 1.0,
       "_src": "static_main_stoptrading",
       "_tgt": "static_main_fetchjson",
@@ -12880,7 +12952,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L1683",
+      "source_location": "L1707",
       "weight": 1.0,
       "_src": "static_main_cancelposition",
       "_tgt": "static_main_fetchjson",
@@ -12892,7 +12964,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L1797",
+      "source_location": "L1821",
       "weight": 1.0,
       "_src": "static_main_savetradingsettings",
       "_tgt": "static_main_fetchjson",
@@ -12904,7 +12976,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L1888",
+      "source_location": "L1912",
       "weight": 1.0,
       "_src": "static_main_showuserspage",
       "_tgt": "static_main_fetchjson",
@@ -12916,7 +12988,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L1948",
+      "source_location": "L1981",
       "weight": 1.0,
       "_src": "static_main_toggleusertrades",
       "_tgt": "static_main_fetchjson",
@@ -12928,7 +13000,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L2005",
+      "source_location": "L2038",
       "weight": 1.0,
       "_src": "static_main_adminstopuser",
       "_tgt": "static_main_fetchjson",
@@ -12940,7 +13012,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L2010",
+      "source_location": "L2043",
       "weight": 1.0,
       "_src": "static_main_adminsetmode",
       "_tgt": "static_main_fetchjson",
@@ -12952,7 +13024,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L695",
+      "source_location": "L708",
       "weight": 1.0,
       "_src": "static_main_patternmatchesfilter",
       "_tgt": "static_main_inferdirection",
@@ -12964,7 +13036,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L735",
+      "source_location": "L747",
       "weight": 1.0,
       "_src": "static_main_renderbriefing",
       "_tgt": "static_main_rendermarkdown",
@@ -12976,7 +13048,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L742",
+      "source_location": "L754",
       "weight": 1.0,
       "_src": "static_main_loadbriefing",
       "_tgt": "static_main_renderbriefing",
@@ -12988,7 +13060,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L957",
+      "source_location": "L969",
       "weight": 1.0,
       "_src": "static_main_loadscan",
       "_tgt": "static_main_renderscan",
@@ -13000,7 +13072,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L968",
+      "source_location": "L980",
       "weight": 1.0,
       "_src": "static_main_pollstatus",
       "_tgt": "static_main_setdot",
@@ -13012,7 +13084,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L970",
+      "source_location": "L982",
       "weight": 1.0,
       "_src": "static_main_pollstatus",
       "_tgt": "static_main_setrunningbtn",
@@ -13024,7 +13096,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L1026",
+      "source_location": "L1043",
       "weight": 1.0,
       "_src": "static_main_fetchbtcprice",
       "_tgt": "static_main_applyprice",
@@ -13036,7 +13108,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L1458",
+      "source_location": "L1482",
       "weight": 1.0,
       "_src": "static_main_rendertrading",
       "_tgt": "static_main_applyprice",
@@ -13048,7 +13120,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L1083",
+      "source_location": "L1100",
       "weight": 1.0,
       "_src": "static_main_renderlevels",
       "_tgt": "static_main_fmtprice",
@@ -13060,7 +13132,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L1473",
+      "source_location": "L1497",
       "weight": 1.0,
       "_src": "static_main_rendertrading",
       "_tgt": "static_main_renderlevels",
@@ -13072,7 +13144,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L1559",
+      "source_location": "L1583",
       "weight": 1.0,
       "_src": "static_main_rendertrading",
       "_tgt": "static_main_renderpointsstats",
@@ -13084,7 +13156,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L1169",
+      "source_location": "L1186",
       "weight": 1.0,
       "_src": "static_main_loadregimelog",
       "_tgt": "static_main_renderregimelog",
@@ -13096,7 +13168,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L1215",
+      "source_location": "L1232",
       "weight": 1.0,
       "_src": "static_main_loadmarkovtickers",
       "_tgt": "static_main_rendermarkovpage",
@@ -13108,7 +13180,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L1353",
+      "source_location": "L1377",
       "weight": 1.0,
       "_src": "static_main_addmarkovcustomticker",
       "_tgt": "static_main_loadmarkovtickers",
@@ -13120,7 +13192,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L1363",
+      "source_location": "L1387",
       "weight": 1.0,
       "_src": "static_main_removemarkovcustomticker",
       "_tgt": "static_main_loadmarkovtickers",
@@ -13132,7 +13204,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L1225",
+      "source_location": "L1242",
       "weight": 1.0,
       "_src": "static_main_setmarkovfilter",
       "_tgt": "static_main_rendermarkovpage",
@@ -13144,7 +13216,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L1304",
+      "source_location": "L1328",
       "weight": 1.0,
       "_src": "static_main_rendermarkovpage",
       "_tgt": "static_main_loadmarkovhistory",
@@ -13156,7 +13228,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L1310",
+      "source_location": "L1334",
       "weight": 1.0,
       "_src": "static_main_togglemarkovexpand",
       "_tgt": "static_main_rendermarkovpage",
@@ -13168,7 +13240,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L1477",
+      "source_location": "L1501",
       "weight": 1.0,
       "_src": "static_main_rendertrading",
       "_tgt": "static_main_syncsettingsinputs",
@@ -13180,7 +13252,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L1564",
+      "source_location": "L1588",
       "weight": 1.0,
       "_src": "static_main_rendertrading",
       "_tgt": "static_main_applyhistfilters",
@@ -13192,7 +13264,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L1641",
+      "source_location": "L1665",
       "weight": 1.0,
       "_src": "static_main_histpagenav",
       "_tgt": "static_main_rendertrading",
@@ -13204,7 +13276,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L1646",
+      "source_location": "L1670",
       "weight": 1.0,
       "_src": "static_main_histfilterchanged",
       "_tgt": "static_main_rendertrading",
@@ -13216,7 +13288,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L1665",
+      "source_location": "L1689",
       "weight": 1.0,
       "_src": "static_main_loadtrading",
       "_tgt": "static_main_rendertrading",
@@ -13228,7 +13300,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L1673",
+      "source_location": "L1697",
       "weight": 1.0,
       "_src": "static_main_starttrading",
       "_tgt": "static_main_loadtrading",
@@ -13240,7 +13312,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L1678",
+      "source_location": "L1702",
       "weight": 1.0,
       "_src": "static_main_stoptrading",
       "_tgt": "static_main_loadtrading",
@@ -13252,7 +13324,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L1684",
+      "source_location": "L1708",
       "weight": 1.0,
       "_src": "static_main_cancelposition",
       "_tgt": "static_main_loadtrading",
@@ -13264,7 +13336,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L1740",
+      "source_location": "L1764",
       "weight": 1.0,
       "_src": "static_main_syncsettingsinputs",
       "_tgt": "static_main_updateslstoprow",
@@ -13276,7 +13348,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L2006",
+      "source_location": "L2039",
       "weight": 1.0,
       "_src": "static_main_adminstopuser",
       "_tgt": "static_main_showuserspage",
@@ -13288,7 +13360,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L2015",
+      "source_location": "L2048",
       "weight": 1.0,
       "_src": "static_main_adminsetmode",
       "_tgt": "static_main_showuserspage",
@@ -13300,7 +13372,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L2018",
+      "source_location": "L2051",
       "weight": 1.0,
       "_src": "static_main_refreshusers",
       "_tgt": "static_main_showuserspage",
@@ -13312,7 +13384,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "btc_agent/web/static/main.js",
-      "source_location": "L1949",
+      "source_location": "L1982",
       "weight": 1.0,
       "_src": "static_main_toggleusertrades",
       "_tgt": "static_main_renderusertrades",
@@ -13543,8 +13615,8 @@
       "source_file": "btc_agent/trading/scanner.py",
       "source_location": "L83",
       "weight": 1.0,
-      "_src": "trading_scanner_get_depo_lines",
-      "_tgt": "scanner_depo_generate_depo_lines",
+      "_src": "scanner_depo_generate_depo_lines",
+      "_tgt": "trading_scanner_get_depo_lines",
       "source": "scanner_depo_generate_depo_lines",
       "target": "trading_scanner_get_depo_lines"
     },
@@ -13579,8 +13651,8 @@
       "source_file": "btc_agent/trading/scanner.py",
       "source_location": "L539",
       "weight": 1.0,
-      "_src": "trading_scanner_scan_patterns",
-      "_tgt": "scanner_depo_check_depo",
+      "_src": "scanner_depo_check_depo",
+      "_tgt": "trading_scanner_scan_patterns",
       "source": "scanner_depo_check_depo",
       "target": "trading_scanner_scan_patterns"
     },
@@ -13603,8 +13675,8 @@
       "source_file": "btc_agent/trading/scanner.py",
       "source_location": "L896",
       "weight": 1.0,
-      "_src": "trading_scanner_execute_entry",
-      "_tgt": "scanner_depo_next_depo_level",
+      "_src": "scanner_depo_next_depo_level",
+      "_tgt": "trading_scanner_execute_entry",
       "source": "scanner_depo_next_depo_level",
       "target": "trading_scanner_execute_entry"
     },
@@ -14203,8 +14275,8 @@
       "source_file": "btc_agent/trading/scanner.py",
       "source_location": "L443",
       "weight": 1.0,
-      "_src": "trading_scanner_check_compression",
-      "_tgt": "scanner_aggregator_aggregate_tf",
+      "_src": "scanner_aggregator_aggregate_tf",
+      "_tgt": "trading_scanner_check_compression",
       "source": "scanner_aggregator_aggregate_tf",
       "target": "trading_scanner_check_compression"
     },
@@ -14215,8 +14287,8 @@
       "source_file": "btc_agent/trading/scanner.py",
       "source_location": "L498",
       "weight": 1.0,
-      "_src": "trading_scanner_check_compression_exits",
-      "_tgt": "scanner_aggregator_aggregate_tf",
+      "_src": "scanner_aggregator_aggregate_tf",
+      "_tgt": "trading_scanner_check_compression_exits",
       "source": "scanner_aggregator_aggregate_tf",
       "target": "trading_scanner_check_compression_exits"
     },
@@ -14239,8 +14311,8 @@
       "source_file": "btc_agent/trading/scanner.py",
       "source_location": "L629",
       "weight": 1.0,
-      "_src": "trading_scanner_tick_bsg",
-      "_tgt": "scanner_aggregator_aggregate_tf",
+      "_src": "scanner_aggregator_aggregate_tf",
+      "_tgt": "trading_scanner_tick_bsg",
       "source": "scanner_aggregator_aggregate_tf",
       "target": "trading_scanner_tick_bsg"
     },
@@ -14251,8 +14323,8 @@
       "source_file": "btc_agent/trading/scanner.py",
       "source_location": "L1726",
       "weight": 1.0,
-      "_src": "trading_scanner_run_trading_scanner",
-      "_tgt": "scanner_aggregator_aggregate_tf",
+      "_src": "scanner_aggregator_aggregate_tf",
+      "_tgt": "trading_scanner_run_trading_scanner",
       "source": "scanner_aggregator_aggregate_tf",
       "target": "trading_scanner_run_trading_scanner"
     },
@@ -14911,8 +14983,8 @@
       "source_file": "btc_agent/trading/scanner.py",
       "source_location": "L1725",
       "weight": 1.0,
-      "_src": "trading_scanner_run_trading_scanner",
-      "_tgt": "scanner_oi_data_fetch_oi_snapshot",
+      "_src": "scanner_oi_data_fetch_oi_snapshot",
+      "_tgt": "trading_scanner_run_trading_scanner",
       "source": "scanner_oi_data_fetch_oi_snapshot",
       "target": "trading_scanner_run_trading_scanner"
     },
@@ -14923,8 +14995,8 @@
       "source_file": "btc_agent/trading/scanner.py",
       "source_location": "L1729",
       "weight": 1.0,
-      "_src": "trading_scanner_run_trading_scanner",
-      "_tgt": "scanner_oi_data_compute_oi_signals",
+      "_src": "scanner_oi_data_compute_oi_signals",
+      "_tgt": "trading_scanner_run_trading_scanner",
       "source": "scanner_oi_data_compute_oi_signals",
       "target": "trading_scanner_run_trading_scanner"
     },
@@ -15691,8 +15763,8 @@
       "source_file": "btc_agent/trading/scanner.py",
       "source_location": "L1582",
       "weight": 1.0,
-      "_src": "trading_scanner_run_trading_scanner",
-      "_tgt": "scanner_markov_regime_refresh_regime_blocking",
+      "_src": "scanner_markov_regime_refresh_regime_blocking",
+      "_tgt": "trading_scanner_run_trading_scanner",
       "source": "scanner_markov_regime_refresh_regime_blocking",
       "target": "trading_scanner_run_trading_scanner"
     },
@@ -18655,8 +18727,8 @@
       "source_file": "tests/test_trading.py",
       "source_location": "L275",
       "weight": 1.0,
-      "_src": "tests_test_trading_testfourflaglatestwindow_test_only_latest_window_emits",
-      "_tgt": "trading_scanner_scan_patterns",
+      "_src": "trading_scanner_scan_patterns",
+      "_tgt": "tests_test_trading_testfourflaglatestwindow_test_only_latest_window_emits",
       "source": "trading_scanner_scan_patterns",
       "target": "tests_test_trading_testfourflaglatestwindow_test_only_latest_window_emits"
     },
@@ -18943,8 +19015,8 @@
       "source_file": "tests/test_trading.py",
       "source_location": "L326",
       "weight": 1.0,
-      "_src": "tests_test_trading_testsametfdirectionguard_test_same_tf_direction_blocked",
-      "_tgt": "trading_scanner_execute_entry",
+      "_src": "trading_scanner_execute_entry",
+      "_tgt": "tests_test_trading_testsametfdirectionguard_test_same_tf_direction_blocked",
       "source": "trading_scanner_execute_entry",
       "target": "tests_test_trading_testsametfdirectionguard_test_same_tf_direction_blocked"
     },
@@ -18955,8 +19027,8 @@
       "source_file": "tests/test_trading.py",
       "source_location": "L337",
       "weight": 1.0,
-      "_src": "tests_test_trading_testsametfdirectionguard_test_different_tf_allowed",
-      "_tgt": "trading_scanner_execute_entry",
+      "_src": "trading_scanner_execute_entry",
+      "_tgt": "tests_test_trading_testsametfdirectionguard_test_different_tf_allowed",
       "source": "trading_scanner_execute_entry",
       "target": "tests_test_trading_testsametfdirectionguard_test_different_tf_allowed"
     },
@@ -18967,8 +19039,8 @@
       "source_file": "tests/test_trading.py",
       "source_location": "L348",
       "weight": 1.0,
-      "_src": "tests_test_trading_testsametfdirectionguard_test_flip_still_works_with_guard",
-      "_tgt": "trading_scanner_execute_entry",
+      "_src": "trading_scanner_execute_entry",
+      "_tgt": "tests_test_trading_testsametfdirectionguard_test_flip_still_works_with_guard",
       "source": "trading_scanner_execute_entry",
       "target": "tests_test_trading_testsametfdirectionguard_test_flip_still_works_with_guard"
     },
@@ -19604,9 +19676,9 @@
       "weight": 0.8,
       "_src": "trading_scanner_rationale_132",
       "_tgt": "trading_models_position",
+      "confidence_score": 0.5,
       "source": "trading_scanner_rationale_132",
-      "target": "trading_models_position",
-      "confidence_score": 0.5
+      "target": "trading_models_position"
     },
     {
       "relation": "uses",
@@ -19616,9 +19688,9 @@
       "weight": 0.8,
       "_src": "trading_scanner_rationale_132",
       "_tgt": "trading_models_signal",
+      "confidence_score": 0.5,
       "source": "trading_scanner_rationale_132",
-      "target": "trading_models_signal",
-      "confidence_score": 0.5
+      "target": "trading_models_signal"
     },
     {
       "relation": "uses",
@@ -19628,9 +19700,9 @@
       "weight": 0.8,
       "_src": "trading_scanner_rationale_132",
       "_tgt": "trading_models_traderesult",
+      "confidence_score": 0.5,
       "source": "trading_scanner_rationale_132",
-      "target": "trading_models_traderesult",
-      "confidence_score": 0.5
+      "target": "trading_models_traderesult"
     },
     {
       "relation": "uses",
@@ -19640,9 +19712,9 @@
       "weight": 0.8,
       "_src": "trading_scanner_rationale_154",
       "_tgt": "trading_models_position",
+      "confidence_score": 0.5,
       "source": "trading_scanner_rationale_154",
-      "target": "trading_models_position",
-      "confidence_score": 0.5
+      "target": "trading_models_position"
     },
     {
       "relation": "uses",
@@ -19652,9 +19724,9 @@
       "weight": 0.8,
       "_src": "trading_scanner_rationale_154",
       "_tgt": "trading_models_signal",
+      "confidence_score": 0.5,
       "source": "trading_scanner_rationale_154",
-      "target": "trading_models_signal",
-      "confidence_score": 0.5
+      "target": "trading_models_signal"
     },
     {
       "relation": "uses",
@@ -19664,9 +19736,9 @@
       "weight": 0.8,
       "_src": "trading_scanner_rationale_154",
       "_tgt": "trading_models_traderesult",
+      "confidence_score": 0.5,
       "source": "trading_scanner_rationale_154",
-      "target": "trading_models_traderesult",
-      "confidence_score": 0.5
+      "target": "trading_models_traderesult"
     },
     {
       "relation": "uses",
@@ -19676,9 +19748,9 @@
       "weight": 0.8,
       "_src": "trading_scanner_rationale_239",
       "_tgt": "trading_models_position",
+      "confidence_score": 0.5,
       "source": "trading_scanner_rationale_239",
-      "target": "trading_models_position",
-      "confidence_score": 0.5
+      "target": "trading_models_position"
     },
     {
       "relation": "uses",
@@ -19688,9 +19760,9 @@
       "weight": 0.8,
       "_src": "trading_scanner_rationale_239",
       "_tgt": "trading_models_signal",
+      "confidence_score": 0.5,
       "source": "trading_scanner_rationale_239",
-      "target": "trading_models_signal",
-      "confidence_score": 0.5
+      "target": "trading_models_signal"
     },
     {
       "relation": "uses",
@@ -19700,9 +19772,9 @@
       "weight": 0.8,
       "_src": "trading_scanner_rationale_239",
       "_tgt": "trading_models_traderesult",
+      "confidence_score": 0.5,
       "source": "trading_scanner_rationale_239",
-      "target": "trading_models_traderesult",
-      "confidence_score": 0.5
+      "target": "trading_models_traderesult"
     },
     {
       "relation": "uses",
@@ -19712,9 +19784,9 @@
       "weight": 0.8,
       "_src": "trading_scanner_rationale_435",
       "_tgt": "trading_models_position",
+      "confidence_score": 0.5,
       "source": "trading_scanner_rationale_435",
-      "target": "trading_models_position",
-      "confidence_score": 0.5
+      "target": "trading_models_position"
     },
     {
       "relation": "uses",
@@ -19724,9 +19796,9 @@
       "weight": 0.8,
       "_src": "trading_scanner_rationale_435",
       "_tgt": "trading_models_signal",
+      "confidence_score": 0.5,
       "source": "trading_scanner_rationale_435",
-      "target": "trading_models_signal",
-      "confidence_score": 0.5
+      "target": "trading_models_signal"
     },
     {
       "relation": "uses",
@@ -19736,9 +19808,9 @@
       "weight": 0.8,
       "_src": "trading_scanner_rationale_435",
       "_tgt": "trading_models_traderesult",
+      "confidence_score": 0.5,
       "source": "trading_scanner_rationale_435",
-      "target": "trading_models_traderesult",
-      "confidence_score": 0.5
+      "target": "trading_models_traderesult"
     },
     {
       "relation": "uses",
@@ -19748,9 +19820,9 @@
       "weight": 0.8,
       "_src": "trading_scanner_rationale_494",
       "_tgt": "trading_models_position",
+      "confidence_score": 0.5,
       "source": "trading_scanner_rationale_494",
-      "target": "trading_models_position",
-      "confidence_score": 0.5
+      "target": "trading_models_position"
     },
     {
       "relation": "uses",
@@ -19760,9 +19832,9 @@
       "weight": 0.8,
       "_src": "trading_scanner_rationale_494",
       "_tgt": "trading_models_signal",
+      "confidence_score": 0.5,
       "source": "trading_scanner_rationale_494",
-      "target": "trading_models_signal",
-      "confidence_score": 0.5
+      "target": "trading_models_signal"
     },
     {
       "relation": "uses",
@@ -19772,9 +19844,9 @@
       "weight": 0.8,
       "_src": "trading_scanner_rationale_494",
       "_tgt": "trading_models_traderesult",
+      "confidence_score": 0.5,
       "source": "trading_scanner_rationale_494",
-      "target": "trading_models_traderesult",
-      "confidence_score": 0.5
+      "target": "trading_models_traderesult"
     },
     {
       "relation": "uses",
@@ -19784,9 +19856,9 @@
       "weight": 0.8,
       "_src": "trading_scanner_rationale_779",
       "_tgt": "trading_models_position",
+      "confidence_score": 0.5,
       "source": "trading_scanner_rationale_779",
-      "target": "trading_models_position",
-      "confidence_score": 0.5
+      "target": "trading_models_position"
     },
     {
       "relation": "uses",
@@ -19796,9 +19868,9 @@
       "weight": 0.8,
       "_src": "trading_scanner_rationale_779",
       "_tgt": "trading_models_signal",
+      "confidence_score": 0.5,
       "source": "trading_scanner_rationale_779",
-      "target": "trading_models_signal",
-      "confidence_score": 0.5
+      "target": "trading_models_signal"
     },
     {
       "relation": "uses",
@@ -19808,9 +19880,9 @@
       "weight": 0.8,
       "_src": "trading_scanner_rationale_779",
       "_tgt": "trading_models_traderesult",
+      "confidence_score": 0.5,
       "source": "trading_scanner_rationale_779",
-      "target": "trading_models_traderesult",
-      "confidence_score": 0.5
+      "target": "trading_models_traderesult"
     },
     {
       "relation": "uses",
@@ -19820,9 +19892,9 @@
       "weight": 0.8,
       "_src": "trading_scanner_rationale_985",
       "_tgt": "trading_models_position",
+      "confidence_score": 0.5,
       "source": "trading_scanner_rationale_985",
-      "target": "trading_models_position",
-      "confidence_score": 0.5
+      "target": "trading_models_position"
     },
     {
       "relation": "uses",
@@ -19832,9 +19904,9 @@
       "weight": 0.8,
       "_src": "trading_scanner_rationale_985",
       "_tgt": "trading_models_signal",
+      "confidence_score": 0.5,
       "source": "trading_scanner_rationale_985",
-      "target": "trading_models_signal",
-      "confidence_score": 0.5
+      "target": "trading_models_signal"
     },
     {
       "relation": "uses",
@@ -19844,9 +19916,9 @@
       "weight": 0.8,
       "_src": "trading_scanner_rationale_985",
       "_tgt": "trading_models_traderesult",
+      "confidence_score": 0.5,
       "source": "trading_scanner_rationale_985",
-      "target": "trading_models_traderesult",
-      "confidence_score": 0.5
+      "target": "trading_models_traderesult"
     },
     {
       "relation": "uses",
@@ -19856,9 +19928,9 @@
       "weight": 0.8,
       "_src": "trading_scanner_rationale_1327",
       "_tgt": "trading_models_position",
+      "confidence_score": 0.5,
       "source": "trading_scanner_rationale_1327",
-      "target": "trading_models_position",
-      "confidence_score": 0.5
+      "target": "trading_models_position"
     },
     {
       "relation": "uses",
@@ -19868,9 +19940,9 @@
       "weight": 0.8,
       "_src": "trading_scanner_rationale_1327",
       "_tgt": "trading_models_signal",
+      "confidence_score": 0.5,
       "source": "trading_scanner_rationale_1327",
-      "target": "trading_models_signal",
-      "confidence_score": 0.5
+      "target": "trading_models_signal"
     },
     {
       "relation": "uses",
@@ -19880,9 +19952,9 @@
       "weight": 0.8,
       "_src": "trading_scanner_rationale_1327",
       "_tgt": "trading_models_traderesult",
+      "confidence_score": 0.5,
       "source": "trading_scanner_rationale_1327",
-      "target": "trading_models_traderesult",
-      "confidence_score": 0.5
+      "target": "trading_models_traderesult"
     },
     {
       "relation": "uses",
@@ -19892,9 +19964,9 @@
       "weight": 0.8,
       "_src": "trading_scanner_rationale_1404",
       "_tgt": "trading_models_position",
+      "confidence_score": 0.5,
       "source": "trading_scanner_rationale_1404",
-      "target": "trading_models_position",
-      "confidence_score": 0.5
+      "target": "trading_models_position"
     },
     {
       "relation": "uses",
@@ -19904,9 +19976,9 @@
       "weight": 0.8,
       "_src": "trading_scanner_rationale_1404",
       "_tgt": "trading_models_signal",
+      "confidence_score": 0.5,
       "source": "trading_scanner_rationale_1404",
-      "target": "trading_models_signal",
-      "confidence_score": 0.5
+      "target": "trading_models_signal"
     },
     {
       "relation": "uses",
@@ -19916,9 +19988,9 @@
       "weight": 0.8,
       "_src": "trading_scanner_rationale_1404",
       "_tgt": "trading_models_traderesult",
+      "confidence_score": 0.5,
       "source": "trading_scanner_rationale_1404",
-      "target": "trading_models_traderesult",
-      "confidence_score": 0.5
+      "target": "trading_models_traderesult"
     },
     {
       "relation": "uses",
@@ -19928,9 +20000,9 @@
       "weight": 0.8,
       "_src": "trading_scanner_rationale_1489",
       "_tgt": "trading_models_position",
+      "confidence_score": 0.5,
       "source": "trading_scanner_rationale_1489",
-      "target": "trading_models_position",
-      "confidence_score": 0.5
+      "target": "trading_models_position"
     },
     {
       "relation": "uses",
@@ -19940,9 +20012,9 @@
       "weight": 0.8,
       "_src": "trading_scanner_rationale_1489",
       "_tgt": "trading_models_signal",
+      "confidence_score": 0.5,
       "source": "trading_scanner_rationale_1489",
-      "target": "trading_models_signal",
-      "confidence_score": 0.5
+      "target": "trading_models_signal"
     },
     {
       "relation": "uses",
@@ -19952,9 +20024,9 @@
       "weight": 0.8,
       "_src": "trading_scanner_rationale_1489",
       "_tgt": "trading_models_traderesult",
+      "confidence_score": 0.5,
       "source": "trading_scanner_rationale_1489",
-      "target": "trading_models_traderesult",
-      "confidence_score": 0.5
+      "target": "trading_models_traderesult"
     },
     {
       "relation": "contains",
@@ -20070,11 +20142,11 @@
       "source_file": "tests/test_trading.py",
       "source_location": "L14",
       "weight": 0.8,
-      "_src": "tests_test_trading_testfourflaglatestwindow",
-      "_tgt": "trading_models_signal",
+      "_src": "trading_models_signal",
+      "_tgt": "tests_test_trading_testfourflaglatestwindow",
+      "confidence_score": 0.5,
       "source": "trading_models_signal",
-      "target": "tests_test_trading_testfourflaglatestwindow",
-      "confidence_score": 0.5
+      "target": "tests_test_trading_testfourflaglatestwindow"
     },
     {
       "relation": "uses",
@@ -20082,11 +20154,11 @@
       "source_file": "tests/test_trading.py",
       "source_location": "L14",
       "weight": 0.8,
-      "_src": "tests_test_trading_testsametfdirectionguard",
-      "_tgt": "trading_models_signal",
+      "_src": "trading_models_signal",
+      "_tgt": "tests_test_trading_testsametfdirectionguard",
+      "confidence_score": 0.5,
       "source": "trading_models_signal",
-      "target": "tests_test_trading_testsametfdirectionguard",
-      "confidence_score": 0.5
+      "target": "tests_test_trading_testsametfdirectionguard"
     },
     {
       "relation": "uses",
@@ -20118,11 +20190,11 @@
       "source_file": "tests/test_trading.py",
       "source_location": "L14",
       "weight": 0.8,
-      "_src": "tests_test_trading_rationale_249",
-      "_tgt": "trading_models_signal",
+      "_src": "trading_models_signal",
+      "_tgt": "tests_test_trading_rationale_249",
+      "confidence_score": 0.5,
       "source": "trading_models_signal",
-      "target": "tests_test_trading_rationale_249",
-      "confidence_score": 0.5
+      "target": "tests_test_trading_rationale_249"
     },
     {
       "relation": "calls",
@@ -20167,8 +20239,8 @@
       "source_file": "tests/test_trading.py",
       "source_location": "L304",
       "weight": 1.0,
-      "_src": "tests_test_trading_testsametfdirectionguard_signal",
-      "_tgt": "trading_models_signal",
+      "_src": "trading_models_signal",
+      "_tgt": "tests_test_trading_testsametfdirectionguard_signal",
       "source": "trading_models_signal",
       "target": "tests_test_trading_testsametfdirectionguard_signal"
     },
@@ -20178,8 +20250,8 @@
       "source_file": "btc_agent/trading/scanner.py",
       "source_location": "L26",
       "weight": 0.8,
-      "_src": "trading_scanner_rationale_111",
-      "_tgt": "trading_models_signal",
+      "_src": "trading_models_signal",
+      "_tgt": "trading_scanner_rationale_111",
       "confidence_score": 0.5,
       "source": "trading_models_signal",
       "target": "trading_scanner_rationale_111"
@@ -20190,8 +20262,8 @@
       "source_file": "btc_agent/trading/scanner.py",
       "source_location": "L26",
       "weight": 0.8,
-      "_src": "trading_scanner_rationale_127",
-      "_tgt": "trading_models_signal",
+      "_src": "trading_models_signal",
+      "_tgt": "trading_scanner_rationale_127",
       "confidence_score": 0.5,
       "source": "trading_models_signal",
       "target": "trading_scanner_rationale_127"
@@ -20202,8 +20274,8 @@
       "source_file": "btc_agent/trading/scanner.py",
       "source_location": "L26",
       "weight": 0.8,
-      "_src": "trading_scanner_rationale_434",
-      "_tgt": "trading_models_signal",
+      "_src": "trading_models_signal",
+      "_tgt": "trading_scanner_rationale_434",
       "confidence_score": 0.5,
       "source": "trading_models_signal",
       "target": "trading_scanner_rationale_434"
@@ -20214,8 +20286,8 @@
       "source_file": "btc_agent/trading/scanner.py",
       "source_location": "L26",
       "weight": 0.8,
-      "_src": "trading_scanner_rationale_656",
-      "_tgt": "trading_models_signal",
+      "_src": "trading_models_signal",
+      "_tgt": "trading_scanner_rationale_656",
       "confidence_score": 0.5,
       "source": "trading_models_signal",
       "target": "trading_scanner_rationale_656"
@@ -20226,8 +20298,8 @@
       "source_file": "btc_agent/trading/scanner.py",
       "source_location": "L26",
       "weight": 0.8,
-      "_src": "trading_scanner_rationale_725",
-      "_tgt": "trading_models_signal",
+      "_src": "trading_models_signal",
+      "_tgt": "trading_scanner_rationale_725",
       "confidence_score": 0.5,
       "source": "trading_models_signal",
       "target": "trading_scanner_rationale_725"
@@ -20238,8 +20310,8 @@
       "source_file": "btc_agent/trading/scanner.py",
       "source_location": "L26",
       "weight": 0.8,
-      "_src": "trading_scanner_rationale_776",
-      "_tgt": "trading_models_signal",
+      "_src": "trading_models_signal",
+      "_tgt": "trading_scanner_rationale_776",
       "confidence_score": 0.5,
       "source": "trading_models_signal",
       "target": "trading_scanner_rationale_776"
@@ -20310,11 +20382,11 @@
       "source_file": "tests/test_trading.py",
       "source_location": "L313",
       "weight": 0.8,
-      "_src": "tests_test_trading_testfourflaglatestwindow",
-      "_tgt": "trading_models_position",
+      "_src": "trading_models_position",
+      "_tgt": "tests_test_trading_testfourflaglatestwindow",
+      "confidence_score": 0.5,
       "source": "trading_models_position",
-      "target": "tests_test_trading_testfourflaglatestwindow",
-      "confidence_score": 0.5
+      "target": "tests_test_trading_testfourflaglatestwindow"
     },
     {
       "relation": "uses",
@@ -20322,11 +20394,11 @@
       "source_file": "tests/test_trading.py",
       "source_location": "L313",
       "weight": 0.8,
-      "_src": "tests_test_trading_testsametfdirectionguard",
-      "_tgt": "trading_models_position",
+      "_src": "trading_models_position",
+      "_tgt": "tests_test_trading_testsametfdirectionguard",
+      "confidence_score": 0.5,
       "source": "trading_models_position",
-      "target": "tests_test_trading_testsametfdirectionguard",
-      "confidence_score": 0.5
+      "target": "tests_test_trading_testsametfdirectionguard"
     },
     {
       "relation": "uses",
@@ -20358,11 +20430,11 @@
       "source_file": "tests/test_trading.py",
       "source_location": "L313",
       "weight": 0.8,
-      "_src": "tests_test_trading_rationale_249",
-      "_tgt": "trading_models_position",
+      "_src": "trading_models_position",
+      "_tgt": "tests_test_trading_rationale_249",
+      "confidence_score": 0.5,
       "source": "trading_models_position",
-      "target": "tests_test_trading_rationale_249",
-      "confidence_score": 0.5
+      "target": "tests_test_trading_rationale_249"
     },
     {
       "relation": "calls",
@@ -20395,8 +20467,8 @@
       "source_file": "tests/test_trading.py",
       "source_location": "L314",
       "weight": 1.0,
-      "_src": "tests_test_trading_testsametfdirectionguard_open_pos",
-      "_tgt": "trading_models_position",
+      "_src": "trading_models_position",
+      "_tgt": "tests_test_trading_testsametfdirectionguard_open_pos",
       "source": "trading_models_position",
       "target": "tests_test_trading_testsametfdirectionguard_open_pos"
     },
@@ -20406,8 +20478,8 @@
       "source_file": "btc_agent/trading/scanner.py",
       "source_location": "L26",
       "weight": 0.8,
-      "_src": "trading_scanner_rationale_111",
-      "_tgt": "trading_models_position",
+      "_src": "trading_models_position",
+      "_tgt": "trading_scanner_rationale_111",
       "confidence_score": 0.5,
       "source": "trading_models_position",
       "target": "trading_scanner_rationale_111"
@@ -20418,8 +20490,8 @@
       "source_file": "btc_agent/trading/scanner.py",
       "source_location": "L26",
       "weight": 0.8,
-      "_src": "trading_scanner_rationale_127",
-      "_tgt": "trading_models_position",
+      "_src": "trading_models_position",
+      "_tgt": "trading_scanner_rationale_127",
       "confidence_score": 0.5,
       "source": "trading_models_position",
       "target": "trading_scanner_rationale_127"
@@ -20430,8 +20502,8 @@
       "source_file": "btc_agent/trading/scanner.py",
       "source_location": "L26",
       "weight": 0.8,
-      "_src": "trading_scanner_rationale_434",
-      "_tgt": "trading_models_position",
+      "_src": "trading_models_position",
+      "_tgt": "trading_scanner_rationale_434",
       "confidence_score": 0.5,
       "source": "trading_models_position",
       "target": "trading_scanner_rationale_434"
@@ -20442,8 +20514,8 @@
       "source_file": "btc_agent/trading/scanner.py",
       "source_location": "L26",
       "weight": 0.8,
-      "_src": "trading_scanner_rationale_656",
-      "_tgt": "trading_models_position",
+      "_src": "trading_models_position",
+      "_tgt": "trading_scanner_rationale_656",
       "confidence_score": 0.5,
       "source": "trading_models_position",
       "target": "trading_scanner_rationale_656"
@@ -20454,8 +20526,8 @@
       "source_file": "btc_agent/trading/scanner.py",
       "source_location": "L26",
       "weight": 0.8,
-      "_src": "trading_scanner_rationale_725",
-      "_tgt": "trading_models_position",
+      "_src": "trading_models_position",
+      "_tgt": "trading_scanner_rationale_725",
       "confidence_score": 0.5,
       "source": "trading_models_position",
       "target": "trading_scanner_rationale_725"
@@ -20466,8 +20538,8 @@
       "source_file": "btc_agent/trading/scanner.py",
       "source_location": "L26",
       "weight": 0.8,
-      "_src": "trading_scanner_rationale_776",
-      "_tgt": "trading_models_position",
+      "_src": "trading_models_position",
+      "_tgt": "trading_scanner_rationale_776",
       "confidence_score": 0.5,
       "source": "trading_models_position",
       "target": "trading_scanner_rationale_776"
@@ -20478,8 +20550,8 @@
       "source_file": "btc_agent/trading/scanner.py",
       "source_location": "L26",
       "weight": 0.8,
-      "_src": "trading_scanner_rationale_111",
-      "_tgt": "trading_models_traderesult",
+      "_src": "trading_models_traderesult",
+      "_tgt": "trading_scanner_rationale_111",
       "confidence_score": 0.5,
       "source": "trading_models_traderesult",
       "target": "trading_scanner_rationale_111"
@@ -20490,8 +20562,8 @@
       "source_file": "btc_agent/trading/scanner.py",
       "source_location": "L26",
       "weight": 0.8,
-      "_src": "trading_scanner_rationale_127",
-      "_tgt": "trading_models_traderesult",
+      "_src": "trading_models_traderesult",
+      "_tgt": "trading_scanner_rationale_127",
       "confidence_score": 0.5,
       "source": "trading_models_traderesult",
       "target": "trading_scanner_rationale_127"
@@ -20502,8 +20574,8 @@
       "source_file": "btc_agent/trading/scanner.py",
       "source_location": "L26",
       "weight": 0.8,
-      "_src": "trading_scanner_rationale_434",
-      "_tgt": "trading_models_traderesult",
+      "_src": "trading_models_traderesult",
+      "_tgt": "trading_scanner_rationale_434",
       "confidence_score": 0.5,
       "source": "trading_models_traderesult",
       "target": "trading_scanner_rationale_434"
@@ -20514,8 +20586,8 @@
       "source_file": "btc_agent/trading/scanner.py",
       "source_location": "L26",
       "weight": 0.8,
-      "_src": "trading_scanner_rationale_656",
-      "_tgt": "trading_models_traderesult",
+      "_src": "trading_models_traderesult",
+      "_tgt": "trading_scanner_rationale_656",
       "confidence_score": 0.5,
       "source": "trading_models_traderesult",
       "target": "trading_scanner_rationale_656"
@@ -20526,8 +20598,8 @@
       "source_file": "btc_agent/trading/scanner.py",
       "source_location": "L26",
       "weight": 0.8,
-      "_src": "trading_scanner_rationale_725",
-      "_tgt": "trading_models_traderesult",
+      "_src": "trading_models_traderesult",
+      "_tgt": "trading_scanner_rationale_725",
       "confidence_score": 0.5,
       "source": "trading_models_traderesult",
       "target": "trading_scanner_rationale_725"
@@ -20538,8 +20610,8 @@
       "source_file": "btc_agent/trading/scanner.py",
       "source_location": "L26",
       "weight": 0.8,
-      "_src": "trading_scanner_rationale_776",
-      "_tgt": "trading_models_traderesult",
+      "_src": "trading_models_traderesult",
+      "_tgt": "trading_scanner_rationale_776",
       "confidence_score": 0.5,
       "source": "trading_models_traderesult",
       "target": "trading_scanner_rationale_776"
@@ -21606,11 +21678,11 @@
       "source_file": "btc_agent/trading/brokers/__init__.py",
       "source_location": "L5",
       "weight": 0.8,
-      "_src": "brokers_init_rationale_22",
-      "_tgt": "brokers_bybit_bybitadapter",
+      "_src": "brokers_bybit_bybitadapter",
+      "_tgt": "brokers_init_rationale_22",
+      "confidence_score": 0.5,
       "source": "brokers_bybit_bybitadapter",
-      "target": "brokers_init_rationale_22",
-      "confidence_score": 0.5
+      "target": "brokers_init_rationale_22"
     },
     {
       "relation": "calls",
@@ -23000,9 +23072,9 @@
       "weight": 0.8,
       "_src": "brokers_pepperstone_pepperstoneadapter",
       "_tgt": "brokers_base_brokeradapter",
+      "confidence_score": 0.5,
       "source": "brokers_pepperstone_pepperstoneadapter",
-      "target": "brokers_base_brokeradapter",
-      "confidence_score": 0.5
+      "target": "brokers_base_brokeradapter"
     },
     {
       "relation": "uses",
@@ -23010,11 +23082,11 @@
       "source_file": "btc_agent/trading/brokers/__init__.py",
       "source_location": "L9",
       "weight": 0.8,
-      "_src": "brokers_init_rationale_22",
-      "_tgt": "brokers_pepperstone_pepperstoneadapter",
+      "_src": "brokers_pepperstone_pepperstoneadapter",
+      "_tgt": "brokers_init_rationale_22",
+      "confidence_score": 0.5,
       "source": "brokers_pepperstone_pepperstoneadapter",
-      "target": "brokers_init_rationale_22",
-      "confidence_score": 0.5
+      "target": "brokers_init_rationale_22"
     },
     {
       "relation": "calls",
@@ -23023,8 +23095,8 @@
       "source_file": "btc_agent/trading/brokers/__init__.py",
       "source_location": "L43",
       "weight": 1.0,
-      "_src": "brokers_init_get_broker",
-      "_tgt": "brokers_pepperstone_pepperstoneadapter",
+      "_src": "brokers_pepperstone_pepperstoneadapter",
+      "_tgt": "brokers_init_get_broker",
       "source": "brokers_pepperstone_pepperstoneadapter",
       "target": "brokers_init_get_broker"
     },
@@ -23156,9 +23228,9 @@
       "weight": 0.8,
       "_src": "brokers_pepperstone_rationale_19",
       "_tgt": "brokers_base_brokeradapter",
+      "confidence_score": 0.5,
       "source": "brokers_pepperstone_rationale_19",
-      "target": "brokers_base_brokeradapter",
-      "confidence_score": 0.5
+      "target": "brokers_base_brokeradapter"
     },
     {
       "relation": "uses",
@@ -23168,9 +23240,9 @@
       "weight": 0.8,
       "_src": "brokers_pepperstone_rationale_83",
       "_tgt": "brokers_base_brokeradapter",
+      "confidence_score": 0.5,
       "source": "brokers_pepperstone_rationale_83",
-      "target": "brokers_base_brokeradapter",
-      "confidence_score": 0.5
+      "target": "brokers_base_brokeradapter"
     },
     {
       "relation": "uses",
@@ -23180,9 +23252,9 @@
       "weight": 0.8,
       "_src": "brokers_pepperstone_rationale_108",
       "_tgt": "brokers_base_brokeradapter",
+      "confidence_score": 0.5,
       "source": "brokers_pepperstone_rationale_108",
-      "target": "brokers_base_brokeradapter",
-      "confidence_score": 0.5
+      "target": "brokers_base_brokeradapter"
     },
     {
       "relation": "uses",
@@ -23192,9 +23264,9 @@
       "weight": 0.8,
       "_src": "brokers_pepperstone_rationale_131",
       "_tgt": "brokers_base_brokeradapter",
+      "confidence_score": 0.5,
       "source": "brokers_pepperstone_rationale_131",
-      "target": "brokers_base_brokeradapter",
-      "confidence_score": 0.5
+      "target": "brokers_base_brokeradapter"
     },
     {
       "relation": "uses",
@@ -23204,9 +23276,9 @@
       "weight": 0.8,
       "_src": "brokers_pepperstone_rationale_243",
       "_tgt": "brokers_base_brokeradapter",
+      "confidence_score": 0.5,
       "source": "brokers_pepperstone_rationale_243",
-      "target": "brokers_base_brokeradapter",
-      "confidence_score": 0.5
+      "target": "brokers_base_brokeradapter"
     },
     {
       "relation": "uses",
@@ -23216,9 +23288,9 @@
       "weight": 0.8,
       "_src": "brokers_pepperstone_rationale_262",
       "_tgt": "brokers_base_brokeradapter",
+      "confidence_score": 0.5,
       "source": "brokers_pepperstone_rationale_262",
-      "target": "brokers_base_brokeradapter",
-      "confidence_score": 0.5
+      "target": "brokers_base_brokeradapter"
     },
     {
       "relation": "uses",
@@ -23228,9 +23300,9 @@
       "weight": 0.8,
       "_src": "brokers_pepperstone_rationale_289",
       "_tgt": "brokers_base_brokeradapter",
+      "confidence_score": 0.5,
       "source": "brokers_pepperstone_rationale_289",
-      "target": "brokers_base_brokeradapter",
-      "confidence_score": 0.5
+      "target": "brokers_base_brokeradapter"
     },
     {
       "relation": "uses",
@@ -23240,9 +23312,9 @@
       "weight": 0.8,
       "_src": "brokers_pepperstone_rationale_335",
       "_tgt": "brokers_base_brokeradapter",
+      "confidence_score": 0.5,
       "source": "brokers_pepperstone_rationale_335",
-      "target": "brokers_base_brokeradapter",
-      "confidence_score": 0.5
+      "target": "brokers_base_brokeradapter"
     },
     {
       "relation": "contains",
@@ -23382,11 +23454,11 @@
       "source_file": "btc_agent/trading/brokers/__init__.py",
       "source_location": "L7",
       "weight": 0.8,
-      "_src": "brokers_init_rationale_22",
-      "_tgt": "brokers_coindcx_coindcxadapter",
+      "_src": "brokers_coindcx_coindcxadapter",
+      "_tgt": "brokers_init_rationale_22",
+      "confidence_score": 0.5,
       "source": "brokers_coindcx_coindcxadapter",
-      "target": "brokers_init_rationale_22",
-      "confidence_score": 0.5
+      "target": "brokers_init_rationale_22"
     },
     {
       "relation": "calls",
@@ -23552,9 +23624,9 @@
       "weight": 0.8,
       "_src": "brokers_init_rationale_22",
       "_tgt": "brokers_base_brokeradapter",
+      "confidence_score": 0.5,
       "source": "brokers_init_rationale_22",
-      "target": "brokers_base_brokeradapter",
-      "confidence_score": 0.5
+      "target": "brokers_base_brokeradapter"
     },
     {
       "relation": "uses",
@@ -23564,9 +23636,9 @@
       "weight": 0.8,
       "_src": "brokers_init_rationale_22",
       "_tgt": "brokers_binance_binanceadapter",
+      "confidence_score": 0.5,
       "source": "brokers_init_rationale_22",
-      "target": "brokers_binance_binanceadapter",
-      "confidence_score": 0.5
+      "target": "brokers_binance_binanceadapter"
     },
     {
       "relation": "uses",
@@ -23576,9 +23648,9 @@
       "weight": 0.8,
       "_src": "brokers_init_rationale_22",
       "_tgt": "brokers_coinbase_coinbaseadapter",
+      "confidence_score": 0.5,
       "source": "brokers_init_rationale_22",
-      "target": "brokers_coinbase_coinbaseadapter",
-      "confidence_score": 0.5
+      "target": "brokers_coinbase_coinbaseadapter"
     },
     {
       "relation": "uses",
@@ -23588,9 +23660,9 @@
       "weight": 0.8,
       "_src": "brokers_init_rationale_22",
       "_tgt": "brokers_delta_deltaadapter",
+      "confidence_score": 0.5,
       "source": "brokers_init_rationale_22",
-      "target": "brokers_delta_deltaadapter",
-      "confidence_score": 0.5
+      "target": "brokers_delta_deltaadapter"
     },
     {
       "relation": "contains",
@@ -23718,8 +23790,8 @@
       "source_file": "btc_agent/trading/brokers/__init__.py",
       "source_location": "L6",
       "weight": 0.8,
-      "_src": "brokers_init_rationale_20",
-      "_tgt": "brokers_coinbase_coinbaseadapter",
+      "_src": "brokers_coinbase_coinbaseadapter",
+      "_tgt": "brokers_init_rationale_20",
       "confidence_score": 0.5,
       "source": "brokers_coinbase_coinbaseadapter",
       "target": "brokers_init_rationale_20"
@@ -23886,8 +23958,8 @@
       "source_file": "btc_agent/trading/brokers/__init__.py",
       "source_location": "L8",
       "weight": 0.8,
-      "_src": "brokers_init_rationale_20",
-      "_tgt": "brokers_delta_deltaadapter",
+      "_src": "brokers_delta_deltaadapter",
+      "_tgt": "brokers_init_rationale_20",
       "confidence_score": 0.5,
       "source": "brokers_delta_deltaadapter",
       "target": "brokers_init_rationale_20"
@@ -24174,8 +24246,8 @@
       "source_file": "btc_agent/trading/brokers/__init__.py",
       "source_location": "L3",
       "weight": 0.8,
-      "_src": "brokers_init_rationale_20",
-      "_tgt": "brokers_base_brokeradapter",
+      "_src": "brokers_base_brokeradapter",
+      "_tgt": "brokers_init_rationale_20",
       "confidence_score": 0.5,
       "source": "brokers_base_brokeradapter",
       "target": "brokers_init_rationale_20"
@@ -24342,8 +24414,8 @@
       "source_file": "btc_agent/trading/brokers/__init__.py",
       "source_location": "L4",
       "weight": 0.8,
-      "_src": "brokers_init_rationale_20",
-      "_tgt": "brokers_binance_binanceadapter",
+      "_src": "brokers_binance_binanceadapter",
+      "_tgt": "brokers_init_rationale_20",
       "confidence_score": 0.5,
       "source": "brokers_binance_binanceadapter",
       "target": "brokers_init_rationale_20"
@@ -24763,8 +24835,8 @@
       "source_file": "btc_agent/liquidity/probe.py",
       "source_location": "L14",
       "weight": 1.0,
-      "_src": "liquidity_probe_main",
-      "_tgt": "liquidity_collector_make_browser",
+      "_src": "liquidity_collector_make_browser",
+      "_tgt": "liquidity_probe_main",
       "source": "liquidity_collector_make_browser",
       "target": "liquidity_probe_main"
     },
@@ -24799,8 +24871,8 @@
       "source_file": "btc_agent/liquidity/probe.py",
       "source_location": "L17",
       "weight": 1.0,
-      "_src": "liquidity_probe_main",
-      "_tgt": "liquidity_collector_login",
+      "_src": "liquidity_collector_login",
+      "_tgt": "liquidity_probe_main",
       "source": "liquidity_collector_login",
       "target": "liquidity_probe_main"
     },
@@ -24847,8 +24919,8 @@
       "source_file": "btc_agent/liquidity/probe.py",
       "source_location": "L21",
       "weight": 1.0,
-      "_src": "liquidity_probe_main",
-      "_tgt": "liquidity_collector_load_chart",
+      "_src": "liquidity_collector_load_chart",
+      "_tgt": "liquidity_probe_main",
       "source": "liquidity_collector_load_chart",
       "target": "liquidity_probe_main"
     },
