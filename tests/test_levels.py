@@ -31,11 +31,15 @@ _YEST  = _TODAY - timedelta(days=1)                                  # 2026-01-0
 _MON   = _TODAY - timedelta(days=2)                                  # 2026-01-05 00:00 UTC
 
 
-def _patched_levels(df: pd.DataFrame, weekly_adj: float = 0.0324) -> dict:
-    """Call compute_levels with a fixed 'now' so tests are deterministic."""
-    with patch("btc_agent.scanner.levels.datetime") as mock_dt:
-        mock_dt.now.return_value = _NOW
-        mock_dt.side_effect = lambda *a, **kw: datetime(*a, **kw)
+def _patched_levels(df: pd.DataFrame, weekly_adj: float = 0.0324,
+                    now: datetime = _NOW) -> dict:
+    """Call compute_levels with a fixed 'now' so tests are deterministic.
+
+    levels.py reads the clock via ``pd.Timestamp.now(tz="UTC")``, so we patch
+    that classmethod (not ``datetime``).
+    """
+    now_ts = pd.Timestamp(now)
+    with patch.object(pd.Timestamp, "now", staticmethod(lambda tz=None: now_ts)):
         return compute_levels(df, weekly_adj=weekly_adj)
 
 
@@ -131,26 +135,63 @@ def test_weekly_poc_none_when_no_week_candles():
     assert result["weekly_poc"] is None
 
 
+# ── 4H POC ──────────────────────────────────────────────────────────────────
+
+def test_4h_poc_normal_window_uses_today():
+    """Mid-day window: 4H POC = VWAP of today's candles up to the prior 4H bar."""
+    # _NOW is 14:30 → current 4H window starts 12:00, accumulation = 00:00–12:00.
+    c1 = {"timestamp": _ms(_TODAY),                        "open": 100, "high": 110, "low": 90,  "close": 105, "volume": 2}
+    c2 = {"timestamp": _ms(_TODAY + timedelta(hours=11)),  "open": 105, "high": 115, "low": 100, "close": 110, "volume": 3}
+    after_bar = {"timestamp": _ms(_TODAY + timedelta(hours=13)), "open": 999, "high": 999, "low": 999, "close": 999, "volume": 99}
+    df = _make_df([c1, c2, after_bar])
+    tp1 = (110 + 90 + 105) / 3
+    tp2 = (115 + 100 + 110) / 3
+    expected = round((tp1 * 2 + tp2 * 3) / (2 + 3), 2)  # 13:00 bar excluded
+    result = _patched_levels(df)
+    assert result["4h_poc"] == pytest.approx(expected, abs=0.1)
+
+
+def test_4h_poc_first_window_carries_yesterday():
+    """Regression: in the 00:00–04:00 UTC window 4H POC must carry yesterday's
+    full-day VWAP, not blank out to None."""
+    now_first_window = _TODAY + timedelta(hours=1, minutes=30)
+    yest_c = {"timestamp": _ms(_YEST),                        "open": 100, "high": 120, "low": 80, "close": 110, "volume": 5}
+    today_c = {"timestamp": _ms(_TODAY + timedelta(minutes=1)), "open": 999, "high": 999, "low": 999, "close": 999, "volume": 9}
+    df = _make_df([yest_c, today_c])
+    result = _patched_levels(df, now=now_first_window)
+    expected = round((120 + 80 + 110) / 3, 2)  # yesterday's single 4H bar VWAP
+    assert result["4h_poc"] is not None
+    assert result["4h_poc"] == pytest.approx(expected, abs=0.1)
+
+
 # ── _calc_tp ──────────────────────────────────────────────────────────────────
 
-def _calc_tp(direction, entry, levels):
-    """Import and call _calc_tp with a temporary min_tp of 500."""
+class _FakeScanner:
+    """Minimal stand-in exposing the attributes _calc_tp reads."""
+    def __init__(self, levels: dict, min_tp: float = 500.0):
+        self.current_levels = levels
+        self.settings = {"min_tp": min_tp}
+
+
+def _calc_tp(direction, entry, levels, min_tp: float = 500.0):
+    """Call _calc_tp(sc, direction, entry) with a fake scanner (min_tp=500)."""
     from btc_agent.trading import scanner as sc
-    with patch.object(sc, "min_tp", return_value=500.0):
-        return sc._calc_tp(direction, entry, levels)
+    return sc._calc_tp(_FakeScanner(levels, min_tp), direction, entry)
 
 
 def test_calc_tp_long_picks_nearest_above():
-    levels = {"mrp": 84000, "daily_poc": 83000, "weekly_poc": 85000}
-    tp, reason = _calc_tp("long", 82000, levels)
-    assert tp == 83000   # nearest above entry
+    # min_tp=100 keeps levels inside the [floor, 500] band so the selected
+    # level passes through unclamped (no min_floor / 500_cap).
+    levels = {"mrp": 82400, "daily_poc": 82300, "weekly_poc": 82450}
+    tp, reason = _calc_tp("long", 82000, levels, min_tp=100)
+    assert tp == 82300   # nearest above entry
     assert reason == "Daily POC"
 
 
 def test_calc_tp_short_picks_nearest_below():
-    levels = {"mrp": 80000, "daily_poc": 79000, "weekly_poc": 78000}
-    tp, reason = _calc_tp("short", 81000, levels)
-    assert tp == 80000   # nearest below entry
+    levels = {"mrp": 81700, "daily_poc": 81600, "weekly_poc": 81550}
+    tp, reason = _calc_tp("short", 82000, levels, min_tp=100)
+    assert tp == 81700   # nearest below entry
     assert reason == "MRP"
 
 
@@ -186,7 +227,7 @@ def test_calc_tp_fallback_when_no_levels_ahead_short():
 
 def test_calc_tp_none_levels_treated_as_absent():
     """None values for individual levels must be skipped (not raise TypeError)."""
-    levels = {"mrp": None, "daily_poc": 83500, "weekly_poc": None}
-    tp, reason = _calc_tp("long", 82000, levels)
-    assert tp == 83500
+    levels = {"mrp": None, "daily_poc": 82300, "weekly_poc": None}
+    tp, reason = _calc_tp("long", 82000, levels, min_tp=100)
+    assert tp == 82300
     assert reason == "Daily POC"
