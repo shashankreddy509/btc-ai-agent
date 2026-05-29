@@ -249,15 +249,19 @@ def _is_cme_closed() -> bool:
 
 
 def _trend_bias(price: float, levels: dict) -> str:
-    above = sum([
-        price > (levels.get("mrp") or 0),
-        price > (levels.get("daily_poc") or 0),
-        price > (levels.get("weekly_poc") or 0),
-    ])
-    if above == 3: return "strongly bullish"
-    if above == 2: return "bullish"
-    if above == 1: return "bearish"
-    return "strongly bearish"
+    # Counts how many of MRP / Daily POC / Weekly POC / 4H POC the price sits
+    # above. Null levels are dropped so the threshold scales with how many are
+    # available. Mirrors the frontend formula in main.js renderLevels().
+    vals = [levels.get(k) for k in ("mrp", "daily_poc", "weekly_poc", "4h_poc")]
+    vals = [v for v in vals if v]
+    if not vals:
+        return ""
+    above = sum(price > v for v in vals)
+    n = len(vals)
+    if above == n:    return "strongly bullish"
+    if above > n / 2: return "bullish"
+    if above == 0:    return "strongly bearish"
+    return "bearish"
 
 
 # ── signal creation ───────────────────────────────────────────────────────────
