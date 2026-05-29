@@ -29,7 +29,7 @@ log = logging.getLogger(__name__)
 # ── Configuration ──────────────────────────────────────────────────────────────
 CHART_URL        = "https://legend.coinglass.com/chart/93ab9a7dbf63446c9c2b9944f10e6ef2"
 SESSION_FILE     = Path(".coinglass_session.json")
-INTERVAL_SECONDS = 15 * 60
+INTERVAL_SECONDS = int(os.getenv("LIQUIDITY_INTERVAL_MIN", "15")) * 60
 OUTPUT_CSV       = "leverage_data.csv"
 SCREENSHOT_DIR   = Path("screenshots")
 VIEWPORT_WIDTH   = 1527

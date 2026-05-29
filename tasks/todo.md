@@ -15,6 +15,20 @@ Current task planning goes here. Each session creates a new section.
 
 ---
 
+## EC2 slowdown — split Playwright collector to own capped service (2026-05-29)
+**Goal**: EC2 (t3.medium, 2 vCPU) goes slow intermittently. Root cause: liquidity collector runs headless Chromium **in the web process** every 15 min; multi-process Chromium grabs both vCPUs for 60-90s (worse on `networkidle` stalls) → uvicorn + 1-min scanner starve → API crawls.
+
+### Review
+- Result: Split collector out of the web process into its own cgroup-bounded systemd unit.
+  - `collector.py`: `INTERVAL_SECONDS` now env-tunable via `LIQUIDITY_INTERVAL_MIN` (default 15, unchanged).
+  - `deploy/install_service.sh`: writes 2 units — `btc-agent` (web+scheduler, `Environment=LIQUIDITY_ENABLED=false` so it never spawns the in-process collector) and new `btc-liquidity` (`uv run liquidity-collect`, `CPUQuota=60%` + `MemoryMax=900M` + `Nice=15` + `IOSchedulingClass=idle`, `LIQUIDITY_INTERVAL_MIN=30`). Also runs `playwright install chromium`.
+  - `deploy/deploy.sh`: restarts `btc-liquidity` too when the unit exists.
+- Tests: py_compile + `bash -n` pass; interval parse verified (unset→900, =30→1800).
+- Deploy: `./deploy/deploy.sh <host>` then **on EC2 once**: `bash deploy/install_service.sh` (creates the new unit). Verify CloudWatch CPU smooths + `journalctl -u btc-liquidity -f`.
+- Flagged (not fixed): `login()`/`load_chart` use `wait_until="networkidle"` on CoinGlass — main stall risk; switching to `domcontentloaded` + explicit selector wait would cut the worst CPU bursts. Touches scrape correctness → left for decision.
+
+---
+
 ## 4-Flag multi-fire fix (2026-05-29)
 **Goal**: One visual 4-Flag fired 5 same-TF shorts (62m). Stop the cluster.
 

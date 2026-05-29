@@ -53,7 +53,14 @@ cd ~/btc-ai-agent
 uv sync --quiet
 if systemctl is-active --quiet btc-agent; then
     sudo systemctl restart btc-agent
-    echo "✅ Service restarted."
+    echo "✅ btc-agent restarted."
+    # Restart the collector unit too if it has been installed.
+    if systemctl list-unit-files | grep -q '^btc-liquidity\.service'; then
+        sudo systemctl restart btc-liquidity
+        echo "✅ btc-liquidity restarted."
+    else
+        echo "ℹ️  btc-liquidity unit not installed yet. Run deploy/install_service.sh on EC2 to split the collector out."
+    fi
 else
     echo "ℹ️  Service not running yet. Run deploy/install_service.sh on EC2 first."
 fi
