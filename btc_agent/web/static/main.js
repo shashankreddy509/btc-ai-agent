@@ -286,6 +286,7 @@ async function savePepperstoneCreds() {
   if (stEl) stEl.value = '';
 }
 
+let _pepperPollIv = null;
 async function connectPepperstone() {
   if (!_currentUser) return;
   let url;
@@ -300,10 +301,11 @@ async function connectPepperstone() {
   // (tabnabbing). The handle is null under noopener, so poll settings to pick
   // up the connection instead of watching popup.closed.
   window.open(url, 'pepperstone_auth', 'width=600,height=700,noopener,noreferrer');
+  if (_pepperPollIv) clearInterval(_pepperPollIv);
   let ticks = 0;
-  const timer = setInterval(() => {
+  _pepperPollIv = setInterval(() => {
     loadUserSettings();
-    if (++ticks >= 60) clearInterval(timer);  // stop after ~2 min
+    if (++ticks >= 60) { clearInterval(_pepperPollIv); _pepperPollIv = null; }  // stop after ~2 min
   }, 2000);
 }
 
@@ -1533,7 +1535,7 @@ function renderTrading() {
         <td style="text-align:right;color:var(--red);font-variant-numeric:tabular-nums">${Number(s.sl_wick).toLocaleString('en-US',{minimumFractionDigits:1,maximumFractionDigits:1})}</td>
         <td style="color:var(--text-3);font-size:12px">${formatTs(s.expires_at)}</td>
         <td style="color:var(--accent)">
-          ${s.status}
+          ${esc(s.status)}
           ${s.note ? `<div style="font-size:10px;color:#f5a623;margin-top:2px">${esc(s.note)}</div>` : ''}
         </td>
       </tr>`;
@@ -1575,9 +1577,13 @@ function renderTrading() {
         <td style="text-align:right;color:var(--text-3)">${remQty}</td>
         <td>${phaseHtml}</td>
         <td style="color:var(--text-3);font-size:12px">${formatTs(p.opened_at)}</td>
-        <td><button class="btn btn-danger" style="font-size:11px;padding:3px 10px" onclick="cancelPosition('${p.signal_id}')">Cancel</button></td>
+        <td><button class="btn btn-danger" style="font-size:11px;padding:3px 10px" data-cancel-sig="${esc(p.signal_id)}">Cancel</button></td>
       </tr>`;
     }).join('');
+    posBody.onclick = (ev) => {
+      const btn = ev.target.closest('[data-cancel-sig]');
+      if (btn) cancelPosition(btn.dataset.cancelSig);
+    };
   }
 
   _renderPointsStats(history);

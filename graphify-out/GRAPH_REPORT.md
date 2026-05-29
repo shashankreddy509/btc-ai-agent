@@ -1,12 +1,12 @@
 # Graph Report - btc-ai-agent  (2026-05-29)
 
 ## Corpus Check
-- 51 files · ~53,546 words
+- 51 files · ~53,667 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 935 nodes · 1875 edges · 57 communities detected
-- Extraction: 83% EXTRACTED · 17% INFERRED · 0% AMBIGUOUS · INFERRED: 319 edges (avg confidence: 0.7)
+- 941 nodes · 1894 edges · 57 communities detected
+- Extraction: 82% EXTRACTED · 18% INFERRED · 0% AMBIGUOUS · INFERRED: 334 edges (avg confidence: 0.69)
 - Token cost: 0 input · 0 output
 
 ## Community Hubs (Navigation)
@@ -70,14 +70,14 @@
 
 ## God Nodes (most connected - your core abstractions)
 1. `run_trading_scanner()` - 48 edges
-2. `Signal` - 41 edges
-3. `get_state()` - 35 edges
-4. `Position` - 34 edges
+2. `Signal` - 46 edges
+3. `Position` - 40 edges
+4. `get_state()` - 35 edges
 5. `_sc()` - 34 edges
 6. `fetchJSON()` - 32 edges
 7. `_execute_entry()` - 27 edges
-8. `BrokerAdapter` - 25 edges
-9. `TradeResult` - 23 edges
+8. `TradeResult` - 26 edges
+9. `BrokerAdapter` - 25 edges
 10. `bar()` - 23 edges
 
 ## Surprising Connections (you probably didn't know these)
@@ -101,7 +101,7 @@
 
 ### Community 0 - "Community 0"
 Cohesion: 0.04
-Nodes (52): ABC, BrokerAdapter, BrokerAdapter, Return a human-readable account name from the broker API., Minimal interface every broker must implement., BinanceAdapter, Binance USDT-M Perpetual Futures via REST API., BybitAdapter (+44 more)
+Nodes (50): ABC, BrokerAdapter, BrokerAdapter, Return a human-readable account name from the broker API., Minimal interface every broker must implement., BybitAdapter, Bybit V5 Linear Perpetual Futures via REST API., CoinbaseAdapter (+42 more)
 
 ### Community 1 - "Community 1"
 Cohesion: 0.03
@@ -113,7 +113,7 @@ Nodes (87): _activateSubTab(), addMarkovCustomTicker(), _adminSetMode(), _adminS
 
 ### Community 3 - "Community 3"
 Cohesion: 0.07
-Nodes (35): Tests for the trading scanner:   - detect_engulfing pattern   - calc_sl (wick of, Tests for _trail_sl() ratchet logic., Regression: overlapping rolling windows used to emit a cluster of     near-ident, TestCalcSL, TestFourFlagLatestWindow, TestQtyValidation, TestSameTfDirectionGuard, TestSignalExpiry (+27 more)
+Nodes (40): Tests for the trading scanner:   - detect_engulfing pattern   - calc_sl (wick of, Tests for _trail_sl() ratchet logic., Regression: overlapping rolling windows used to emit a cluster of     near-ident, Regression: _close_position must not crash in paper mode when sc.broker     is N, TestCalcSL, TestClosePositionNoBroker, TestFourFlagLatestWindow, TestQtyValidation (+32 more)
 
 ### Community 4 - "Community 4"
 Cohesion: 0.1
@@ -124,16 +124,16 @@ Cohesion: 0.09
 Nodes (20): _ist(), Unit tests for Vishal Sir strategy detection functions., _sc(), TestChaukepeChauka, TestDoubleProfit, TestEscalator, TestHighWinRate, TestPingPong (+12 more)
 
 ### Community 6 - "Community 6"
+Cohesion: 0.06
+Nodes (45): deliver(), deliver_scan(), print_terminal(), Deliver scan results with channel-specific formatting., Send a payload to Telegram's sendMessage and log errors clearly., Send one or more HTML-formatted messages (Telegram caps each at 4096 chars)., Send one or more HTML-formatted messages (Telegram caps each at 4096 chars)., send_desktop() (+37 more)
+
+### Community 7 - "Community 7"
 Cohesion: 0.09
 Nodes (40): compute_levels(), Market structure levels for the trading scanner.    MRP        = VWAP (daily res, Compute MRP, Daily POC, and Weekly POC from 1-minute OHLCV data.      Parameters, _calc_tp(), _FakeScanner, _make_df(), _ms(), _patched_levels() (+32 more)
 
-### Community 7 - "Community 7"
+### Community 8 - "Community 8"
 Cohesion: 0.12
 Nodes (15): detect_4flag(), detect_evening_star(), detect_morning_star(), Bearish 3-candle reversal:       Bar 0: large bullish candle       Bar 1: small, 4 Flags Whale Pattern — matches the Pine Script logic exactly:      1. Alternati, Bullish 3-candle reversal:       Bar 0: large bearish candle       Bar 1: small, bar(), bars() (+7 more)
-
-### Community 8 - "Community 8"
-Cohesion: 0.08
-Nodes (35): deliver(), deliver_scan(), print_terminal(), Deliver scan results with channel-specific formatting., Send a payload to Telegram's sendMessage and log errors clearly., Send one or more HTML-formatted messages (Telegram caps each at 4096 chars)., Send one or more HTML-formatted messages (Telegram caps each at 4096 chars)., send_desktop() (+27 more)
 
 ### Community 9 - "Community 9"
 Cohesion: 0.07
@@ -172,12 +172,12 @@ Cohesion: 0.25
 Nodes (8): _detect_bearish_engulfing(), _detect_bullish_engulfing(), detect_engulfing(), Pattern detection functions. Each accepts bars: np.ndarray of shape (N, 5) — [op, Bullish engulfing: bars[-2] is bearish, bars[-1] is bullish and fully engulfs ba, _make_bars(), candles: list of (open, high, low, close, volume), TestEngulfing
 
 ### Community 18 - "Community 18"
-Cohesion: 0.29
-Nodes (10): _aggregate(), compute_oi_signals(), _fetch_btc_price(), fetch_oi_snapshot(), _fetch_raw_oi(), OISignals, OISnapshot, Fetch current BTC/USDT price from Binance spot — needed to convert USDT-M OI (BT (+2 more)
+Cohesion: 0.26
+Nodes (2): BinanceAdapter, Binance USDT-M Perpetual Futures via REST API.
 
 ### Community 19 - "Community 19"
-Cohesion: 0.25
-Nodes (10): fetch_1m_candles(), fetch_current_price(), _fetch_ohlcv(), _get_exchange(), _get_exchange_cached(), Return (exchange, symbol) for the first venue that is reachable.     Skips excha, Lightweight single-call price fetch using a cached exchange connection., Fetch OHLCV with exponential backoff on rate limit errors. (+2 more)
+Cohesion: 0.29
+Nodes (10): _aggregate(), compute_oi_signals(), _fetch_btc_price(), fetch_oi_snapshot(), _fetch_raw_oi(), OISignals, OISnapshot, Fetch current BTC/USDT price from Binance spot — needed to convert USDT-M OI (BT (+2 more)
 
 ### Community 20 - "Community 20"
 Cohesion: 0.38
@@ -330,6 +330,8 @@ Nodes (1): Short position take-profit: buy when price falls below target.
 ## Knowledge Gaps
 - **154 isolated node(s):** `Fetch Binance perpetual futures OHLCV data.     interval: 1m, 3m, 5m, 15m, 30m,`, `Detect GTI 4-Flag candlestick pattern.      Rules:       1. 4 consecutive altern`, `BTC AI Agent — CLI entrypoint  Usage:   python main.py brief     Run morning bri`, `Filter out noisy /api/status poll lines from uvicorn access logs.`, `Debug a specific timeframe — shows bars and exactly why patterns pass/fail. Usag` (+149 more)
   These have ≤1 connection - possible missing edges or undocumented components.
+- **Thin community `Community 18`** (13 nodes): `BinanceAdapter`, `.cancel_order()`, `._delete()`, `._headers()`, `.__init__()`, `.place_market_order()`, `.place_stop_limit_order()`, `.place_take_profit_order()`, `._post()`, `._sign()`, `contract_size()`, `Binance USDT-M Perpetual Futures via REST API.`, `binance.py`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
 - **Thin community `Community 23`** (4 nodes): `apply_settings()`, `config.py`, `Override module-level config vars from a Firestore settings dict.`, `_validate()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
 - **Thin community `Community 25`** (2 nodes): `Debug a specific timeframe — shows bars and exactly why patterns pass/fail. Usag`, `debug_tf.py`
@@ -402,17 +404,17 @@ Nodes (1): Short position take-profit: buy when price falls below target.
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `run_trading_scanner()` connect `Community 4` to `Community 3`, `Community 5`, `Community 6`, `Community 8`, `Community 9`, `Community 10`, `Community 16`, `Community 18`, `Community 19`?**
-  _High betweenness centrality (0.257) - this node is a cross-community bridge._
-- **Why does `get_broker()` connect `Community 0` to `Community 4`?**
-  _High betweenness centrality (0.173) - this node is a cross-community bridge._
-- **Why does `_build_broker()` connect `Community 4` to `Community 0`, `Community 3`?**
+- **Why does `run_trading_scanner()` connect `Community 4` to `Community 3`, `Community 5`, `Community 6`, `Community 7`, `Community 9`, `Community 10`, `Community 16`, `Community 19`?**
+  _High betweenness centrality (0.256) - this node is a cross-community bridge._
+- **Why does `get_broker()` connect `Community 0` to `Community 18`, `Community 4`?**
   _High betweenness centrality (0.172) - this node is a cross-community bridge._
+- **Why does `_build_broker()` connect `Community 4` to `Community 0`, `Community 3`?**
+  _High betweenness centrality (0.171) - this node is a cross-community bridge._
 - **Are the 10 inferred relationships involving `run_trading_scanner()` (e.g. with `main()` and `refresh_regime_blocking()`) actually correct?**
   _`run_trading_scanner()` has 10 INFERRED edges - model-reasoned connections that need verification._
-- **Are the 40 inferred relationships involving `Signal` (e.g. with `Vishal Sir Strategy detection functions. Called each tick from run_trading_scann` and `Create a signal that fires on the next price tick.`) actually correct?**
-  _`Signal` has 40 INFERRED edges - model-reasoned connections that need verification._
+- **Are the 45 inferred relationships involving `Signal` (e.g. with `Vishal Sir Strategy detection functions. Called each tick from run_trading_scann` and `Create a signal that fires on the next price tick.`) actually correct?**
+  _`Signal` has 45 INFERRED edges - model-reasoned connections that need verification._
+- **Are the 39 inferred relationships involving `Position` (e.g. with `_Scanner` and `Trading Scanner — scans 15m–90m TFs for 4-Flag and Engulfing patterns, monitors`) actually correct?**
+  _`Position` has 39 INFERRED edges - model-reasoned connections that need verification._
 - **Are the 5 inferred relationships involving `get_state()` (e.g. with `trading_state()` and `trading_start()`) actually correct?**
   _`get_state()` has 5 INFERRED edges - model-reasoned connections that need verification._
-- **Are the 33 inferred relationships involving `Position` (e.g. with `_Scanner` and `Trading Scanner — scans 15m–90m TFs for 4-Flag and Engulfing patterns, monitors`) actually correct?**
-  _`Position` has 33 INFERRED edges - model-reasoned connections that need verification._
