@@ -15,6 +15,16 @@ Current task planning goes here. Each session creates a new section.
 
 ---
 
+## 4-Flag multi-fire fix (2026-05-29)
+**Goal**: One visual 4-Flag fired 5 same-TF shorts (62m). Stop the cluster.
+
+### Review
+- Result: Two layers in `scanner.py`. Layer 1 (`_scan_patterns`): dropped rolling `for w in range(len(bars)-3)` window scan; 4-Flag now detects only the just-closed window `bars[-4:]` (mirrors Engulfing) → no overlapping-window cluster. Layer 2 (`_execute_entry`): added same-(TF, direction) open-position guard after the flip/skip block, before `max_concurrent` cap → max one position per TF/dir; flip unaffected (closes opposite first).
+- Tests: 151 passed. Added `TestFourFlagLatestWindow` (latest-window-only) + `TestSameTfDirectionGuard` (block / different-tf-allowed / flip-still-works).
+- Notes: Guard is `(tf, direction)` not pattern-scoped — also blocks BSG+4-Flag same-dir/TF double exposure (deliberate). Root cause: distinct `bar_open_time` per overlapping window slipped past `_is_duplicate`.
+
+---
+
 ## Backlog (future improvements)
 
 ### Trading / Signal Quality

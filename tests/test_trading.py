@@ -242,3 +242,113 @@ class TestQtyValidation:
     def test_bool_is_invalid(self):
         assert not self._v(True)
         assert not self._v(False)
+
+
+# ── 4-Flag: only the latest closed window fires ───────────────────────────────
+class TestFourFlagLatestWindow:
+    """Regression: overlapping rolling windows used to emit a cluster of
+    near-identical 4-Flag signals. Now only the just-closed window fires."""
+
+    def test_only_latest_window_emits(self, monkeypatch):
+        import btc_agent.trading.scanner as scanner
+        from btc_agent.trading.scanner import _Scanner, _scan_patterns
+
+        # 7 alternating equal-body candles → every rolling 4-window matches.
+        # [open, high, low, close, volume]
+        rows = []
+        for i in range(7):
+            green = i % 2 == 0
+            o, c = (100.0, 110.0) if green else (110.0, 100.0)
+            rows.append((o, max(o, c) + 2, min(o, c) - 2, c, 1.0))
+        bars = np.array(rows, dtype=np.float64)
+        bar_open_times = np.arange(7, dtype=np.int64) * 3720  # 62m spacing
+
+        monkeypatch.setattr(scanner, "aggregate_tf",
+                            lambda *a, **k: (bars, bar_open_times))
+        monkeypatch.setattr("btc_agent.scanner.depo.check_depo",
+                            lambda *a, **k: None)
+
+        sc = _Scanner(uid="testuid")
+        sc.settings = {"patterns": ["4-Flag"], "tf_min": 62, "tf_max": 62,
+                       "lookback_candles": 6}
+
+        signals = _scan_patterns(sc, None, None, None, None)
+        flags = [s for s in signals if s.pattern == "4-Flag"]
+        # Old code: 4 overlapping windows × both directions. New: latest window only.
+        assert len(flags) == 2
+        assert {s.direction for s in flags} == {"long", "short"}
+        assert all(s.bar_open_time == flags[0].bar_open_time for s in flags)
+
+
+# ── _execute_entry: one open position per (TF, direction) ─────────────────────
+class TestSameTfDirectionGuard:
+    def _scanner(self, monkeypatch, action="skip"):
+        import btc_agent.trading.scanner as scanner
+        from btc_agent.trading.scanner import _Scanner
+
+        monkeypatch.setattr(scanner, "_save_state", lambda *a, **k: None)
+        monkeypatch.setattr(scanner, "_notify_trade", lambda *a, **k: None)
+        monkeypatch.setattr(scanner, "_FS", False)
+
+        class _Brk:
+            contract_size = 0.01
+
+        sc = _Scanner(uid="testuid")
+        sc.broker = _Brk()
+        sc.settings = {"mode": "paper", "max_sl": 99999, "max_concurrent": 5,
+                       "opposite_signal_action": action}
+        return sc
+
+    def _signal(self, direction, tf=62):
+        now = datetime.now(timezone.utc)
+        return Signal(
+            id="sig01", pattern="4-Flag", direction=direction, tf=tf,
+            bar_open_time=now.isoformat(), entry_trigger=73500.0,
+            sl_wick=73600.0 if direction == "short" else 73400.0,
+            sl_body=73600.0 if direction == "short" else 73400.0,
+            created_at=now, expires_at=now + timedelta(minutes=tf),
+        )
+
+    def _open_pos(self, direction, tf=62):
+        from btc_agent.trading.models import Position
+        return Position(
+            signal_id="prev", entry_price=73500.0, sl=73600.0, tp=73000.0,
+            qty=2, direction=direction, opened_at=datetime.now(timezone.utc),
+            pattern="4-Flag", tf=tf, status="open",
+        )
+
+    def test_same_tf_direction_blocked(self, monkeypatch):
+        from btc_agent.trading.scanner import _execute_entry
+        sc = self._scanner(monkeypatch)
+        sc.open_positions.append(self._open_pos("short", 62))
+        sig = self._signal("short", 62)
+
+        _execute_entry(sc, sig, 73450.0)
+
+        assert sig.status == "skipped"
+        assert len(sc.open_positions) == 1  # no new position opened
+
+    def test_different_tf_allowed(self, monkeypatch):
+        from btc_agent.trading.scanner import _execute_entry
+        sc = self._scanner(monkeypatch)
+        sc.open_positions.append(self._open_pos("short", 62))
+        sig = self._signal("short", 30)
+
+        _execute_entry(sc, sig, 73450.0)
+
+        assert sig.status == "triggered"
+        assert len(sc.open_positions) == 2
+
+    def test_flip_still_works_with_guard(self, monkeypatch):
+        from btc_agent.trading.scanner import _execute_entry
+        sc = self._scanner(monkeypatch, action="flip")
+        sc.open_positions.append(self._open_pos("short", 62))
+        sig = self._signal("long", 62)
+
+        _execute_entry(sc, sig, 73450.0)
+
+        # Flip closed the opposite short, then opened the long on the same TF.
+        assert sig.status == "triggered"
+        opens = [p for p in sc.open_positions if p.status == "open"]
+        assert len(opens) == 1
+        assert opens[0].direction == "long"

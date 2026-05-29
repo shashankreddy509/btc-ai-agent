@@ -524,15 +524,11 @@ def _scan_patterns(sc: _Scanner, arr, ts_arr, minutes_of_day, unix_days) -> list
         bar_open_time = datetime.fromtimestamp(bar_open_ts, tz=timezone.utc).isoformat()
 
         if "4-Flag" in patterns and len(bars) >= 4:
-            for w in range(len(bars) - 3):
-                window = bars[w:w + 4]
-                if not detect_4flag(window):
-                    continue
-                w_open_ts = int(bar_open_times[w + 3])
-                w_open_time = datetime.fromtimestamp(w_open_ts, tz=timezone.utc).isoformat()
+            window = bars[-4:]
+            if detect_4flag(window):
                 for direction in ("long", "short"):
-                    if not _is_duplicate(sc, tf, "4-Flag", direction, w_open_time):
-                        sig = _bars_to_signal("4-Flag", direction, tf, window, w_open_time, lookback)
+                    if not _is_duplicate(sc, tf, "4-Flag", direction, bar_open_time):
+                        sig = _bars_to_signal("4-Flag", direction, tf, window, bar_open_time, lookback)
                         sig.meta["bar_high"] = float(window[:, 1].max())
                         sig.meta["bar_low"]  = float(window[:, 2].min())
                         from btc_agent.scanner.depo import check_depo
@@ -819,6 +815,15 @@ def _execute_entry(sc: _Scanner, sig: Signal, current_price: float) -> None:
             if _FS: _fs.update_signal_status(sig.id, "skipped")
             _save_state(sc)
             return
+
+    same_dir = [p for p in sc.open_positions
+                if p.status == "open" and p.tf == sig.tf and p.direction == sig.direction]
+    if same_dir:
+        sig.status = "skipped"
+        console.print(f"[yellow]Signal {sig.id} skipped — {sig.direction} position already open on {sig.tf}m[/yellow]")
+        if _FS: _fs.update_signal_status(sig.id, "skipped")
+        _save_state(sc)
+        return
 
     n_open = sum(1 for p in sc.open_positions if p.status == "open")
     cap = _max_concurrent(sc)
