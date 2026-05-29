@@ -1107,7 +1107,7 @@ function renderLevels(levels, running, regime) {
   const price = _tradingData?.current_price;
   let bias = '—', biasColor = 'var(--text-3)';
   if (price) {
-    const vals  = [levels.mrp, levels.daily_poc, levels.weekly_poc].filter(v => v != null);
+    const vals  = [levels.mrp, levels.daily_poc, levels.weekly_poc, levels['4h_poc']].filter(v => v != null);
     const above = vals.filter(v => price > v).length;
     if (vals.length) {
       if      (above === vals.length)       { bias = 'strongly bullish'; biasColor = 'var(--green)'; }
