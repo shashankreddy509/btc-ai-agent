@@ -25,6 +25,7 @@ serviceAccountKey.json
 
 # Liquidity scraper generated files
 .coinglass_session.json
+.coinglass_cookies.json
 leverage_data.csv
 debug_hover.html
 debug_text.txt
