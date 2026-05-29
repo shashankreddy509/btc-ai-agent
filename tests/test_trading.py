@@ -231,10 +231,14 @@ class TestQtyValidation:
         assert not self._v(-2)
         assert not self._v(-4)
 
-    def test_float_whole_multiple_of_2_is_valid(self):
-        assert self._v(4.0)
-        assert self._v(6.0)
-
-    def test_non_integer_float_is_invalid(self):
+    def test_floats_are_invalid(self):
+        # Security hardening: qty must be a real int — floats are rejected
+        # outright (even whole-number floats like 4.0).
+        assert not self._v(4.0)
+        assert not self._v(6.0)
         assert not self._v(3.5)
         assert not self._v(2.1)
+
+    def test_bool_is_invalid(self):
+        assert not self._v(True)
+        assert not self._v(False)

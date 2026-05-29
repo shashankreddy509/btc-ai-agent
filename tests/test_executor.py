@@ -5,21 +5,31 @@ All network calls are mocked — no real HTTP requests are made.
 """
 from __future__ import annotations
 
-import hashlib
-import hmac
+import base64
 import json
 from unittest.mock import MagicMock, patch
 
 import pytest
+from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.primitives.asymmetric import ec
 
 import btc_agent.trading.executor as executor
 
 
 # ── helpers ───────────────────────────────────────────────────────────────────
 
-_FAKE_KEY    = "test-api-key"
-_FAKE_SECRET = "test-api-secret"
-_FAKE_PID    = "BTC-USD"
+_FAKE_KEY = "test-api-key"
+_FAKE_PID = "BTC-USD"
+# Coinbase CDP keys are ES256 — the secret must be a real EC private key PEM.
+_FAKE_SECRET = ec.generate_private_key(ec.SECP256R1()).private_bytes(
+    serialization.Encoding.PEM,
+    serialization.PrivateFormat.PKCS8,
+    serialization.NoEncryption(),
+).decode()
+
+# Auth headers that don't require building a real JWT, for tests that only care
+# about request/response plumbing.
+_FAKE_HEADERS = {"Authorization": "Bearer fake.jwt.token", "Content-Type": "application/json"}
 
 
 def _make_urlopen_mock(response_body: dict):
@@ -32,38 +42,35 @@ def _make_urlopen_mock(response_body: dict):
     return cm
 
 
-# ── _sign ─────────────────────────────────────────────────────────────────────
+def _decode_jwt_segment(seg: str) -> dict:
+    return json.loads(base64.urlsafe_b64decode(seg + "=" * (-len(seg) % 4)))
 
-class TestSign:
-    def test_required_headers_present(self):
-        with patch.object(executor.config, "COINBASE_API_KEY", _FAKE_KEY), \
-             patch.object(executor.config, "COINBASE_API_SECRET", _FAKE_SECRET):
-            headers = executor._sign("POST", "/api/v3/brokerage/orders", '{"foo":1}')
-        assert headers["CB-ACCESS-KEY"] == _FAKE_KEY
-        assert "CB-ACCESS-TIMESTAMP" in headers
-        assert "CB-ACCESS-SIGN" in headers
+
+# ── auth headers (ES256 JWT) ────────────────────────────────────────────────────
+
+class TestAuthHeaders:
+    def test_bearer_jwt_es256(self):
+        headers = executor._auth_headers(
+            "POST", "/api/v3/brokerage/orders", _FAKE_KEY, _FAKE_SECRET
+        )
         assert headers["Content-Type"] == "application/json"
+        assert headers["Authorization"].startswith("Bearer ")
+        h, p, sig = headers["Authorization"].split(" ", 1)[1].split(".")
+        assert sig  # signature present
+        head = _decode_jwt_segment(h)
+        payload = _decode_jwt_segment(p)
+        assert head["alg"] == "ES256"
+        assert head["kid"] == _FAKE_KEY
+        assert payload["sub"] == _FAKE_KEY
+        assert payload["uri"] == "POST api.coinbase.com/api/v3/brokerage/orders"
+        assert payload["exp"] > payload["nbf"]
 
-    def test_signature_is_valid_hmac_sha256(self):
-        body = '{"test": true}'
-        with patch.object(executor.config, "COINBASE_API_KEY", _FAKE_KEY), \
-             patch.object(executor.config, "COINBASE_API_SECRET", _FAKE_SECRET), \
-             patch("btc_agent.trading.executor.time.time", return_value=1234567890):
-            headers = executor._sign("POST", "/some/path", body)
-        ts = headers["CB-ACCESS-TIMESTAMP"]
-        message = ts + "POST" + "/some/path" + body
-        expected = hmac.new(
-            _FAKE_SECRET.encode(),
-            message.encode(),
-            hashlib.sha256,
-        ).hexdigest()
-        assert headers["CB-ACCESS-SIGN"] == expected
-
-    def test_empty_body_allowed(self):
-        with patch.object(executor.config, "COINBASE_API_KEY", _FAKE_KEY), \
-             patch.object(executor.config, "COINBASE_API_SECRET", _FAKE_SECRET):
-            headers = executor._sign("GET", "/api/v3/brokerage/accounts")
-        assert "CB-ACCESS-SIGN" in headers
+    def test_get_request_uri(self):
+        headers = executor._auth_headers(
+            "GET", "/api/v3/brokerage/accounts", _FAKE_KEY, _FAKE_SECRET
+        )
+        _, p, _ = headers["Authorization"].split(" ", 1)[1].split(".")
+        assert _decode_jwt_segment(p)["uri"] == "GET api.coinbase.com/api/v3/brokerage/accounts"
 
 
 # ── _post ─────────────────────────────────────────────────────────────────────
@@ -72,8 +79,7 @@ class TestPost:
     def test_returns_parsed_json(self):
         expected = {"order_id": "abc123", "success": True}
         cm = _make_urlopen_mock(expected)
-        with patch.object(executor.config, "COINBASE_API_KEY", _FAKE_KEY), \
-             patch.object(executor.config, "COINBASE_API_SECRET", _FAKE_SECRET), \
+        with patch("btc_agent.trading.executor._auth_headers", return_value=_FAKE_HEADERS), \
              patch("btc_agent.trading.executor.urllib.request.urlopen", return_value=cm):
             result = executor._post("/api/v3/brokerage/orders", {"side": "BUY"})
         assert result == expected
@@ -87,8 +93,7 @@ class TestPost:
             hdrs={},
             fp=MagicMock(read=lambda: b'{"error":"INVALID_ORDER"}'),
         )
-        with patch.object(executor.config, "COINBASE_API_KEY", _FAKE_KEY), \
-             patch.object(executor.config, "COINBASE_API_SECRET", _FAKE_SECRET), \
+        with patch("btc_agent.trading.executor._auth_headers", return_value=_FAKE_HEADERS), \
              patch("btc_agent.trading.executor.urllib.request.urlopen", side_effect=http_err):
             with pytest.raises(RuntimeError, match="HTTP 400"):
                 executor._post("/api/v3/brokerage/orders", {})
@@ -98,7 +103,7 @@ class TestPost:
 
 class TestPlaceMarketOrder:
     def _run(self, side: str, base_size: str, captured: list):
-        def fake_post(path, payload):
+        def fake_post(path, payload, *args, **kwargs):
             captured.append(payload)
             return {"success": True, "order_id": "mkt-001"}
 
@@ -135,7 +140,7 @@ class TestPlaceMarketOrder:
         captured = []
         with patch.object(executor.config, "COINBASE_API_KEY", _FAKE_KEY), \
              patch.object(executor.config, "COINBASE_API_SECRET", _FAKE_SECRET), \
-             patch("btc_agent.trading.executor._post", side_effect=lambda p, pl: captured.append(pl) or {}):
+             patch("btc_agent.trading.executor._post", side_effect=lambda p, pl, *a, **k: captured.append(pl) or {}):
             executor.place_market_order("BUY", "0.001", product_id="ETH-USD")
         assert captured[0]["product_id"] == "ETH-USD"
 
@@ -148,7 +153,7 @@ class TestPlaceStopLimitOrder:
              patch.object(executor.config, "COINBASE_API_SECRET", _FAKE_SECRET), \
              patch.object(executor.config, "COINBASE_PRODUCT_ID", _FAKE_PID), \
              patch("btc_agent.trading.executor._post",
-                   side_effect=lambda p, pl: captured.append(pl) or {"success": True}):
+                   side_effect=lambda p, pl, *a, **k: captured.append(pl) or {"success": True}):
             return executor.place_stop_limit_order(side, base_size, stop_price, limit_price)
 
     def test_sell_stop_uses_stop_down(self):
@@ -181,7 +186,7 @@ class TestPlaceTakeProfitOrder:
              patch.object(executor.config, "COINBASE_API_SECRET", _FAKE_SECRET), \
              patch.object(executor.config, "COINBASE_PRODUCT_ID", _FAKE_PID), \
              patch("btc_agent.trading.executor._post",
-                   side_effect=lambda p, pl: captured.append(pl) or {"success": True}):
+                   side_effect=lambda p, pl, *a, **k: captured.append(pl) or {"success": True}):
             return executor.place_take_profit_order(side, base_size, stop_price, limit_price)
 
     def test_sell_tp_uses_stop_up(self):
