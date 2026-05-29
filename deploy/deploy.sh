@@ -40,6 +40,7 @@ rsync -az --progress \
     --exclude='.env' \
     --exclude='data/' \
     --exclude='tasks/' \
+    --exclude='graphify-out/' \
     --exclude='debug_tf.py' \
     "$APP_DIR/" \
     "$EC2_HOST:$REMOTE_DIR/"
